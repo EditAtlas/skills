@@ -64,15 +64,19 @@ def find(video, fps=30, cut_thr=0.32):
     for tt, v in peaks(sm, t, med + 3 * mad, 0.35):
         if all(abs(tt - c) > 0.15 for c in cuts):
             moments.append({"t": round(float(tt), 3), "kind": "move", "strength": round(min(1.0, v / (sm.max() + 1e-9)), 2)})
-    # landing: motion was high and falls to still within 0.25 s
+    # landing: a clear burst of motion that falls to under 40 % of its peak within 0.4 s. A face that keeps
+    # moving a little (a talking head) crosses a plain threshold all the time, so the burst must stand well above
+    # the film's own median motion, and landings closer than 0.5 s count once.
     moving = sm > max(still * 3, med)
+    last_land = -1.0
     for i in range(1, len(sm)):
         if moving[i - 1] and not moving[i] and sm[i] < still * 3:
             back = sm[max(0, i - int(fps * 0.4)): i]
-            if len(back) and back.max() > med + 2 * mad:
+            if len(back) and back.max() > med + 4 * mad and sm[i] < 0.4 * back.max():
                 tt = float(t[i])
-                if all(abs(tt - m["t"]) > 0.12 for m in moments):
+                if tt - last_land >= 0.5 and all(abs(tt - m["t"]) > 0.12 for m in moments):
                     moments.append({"t": round(tt, 3), "kind": "land", "strength": round(float(back.max() / (sm.max() + 1e-9)), 2)})
+                    last_land = tt
     moments.sort(key=lambda m: m["t"])
     curve = {"fps": fps, "motion": [round(float(v), 3) for v in sm[:: max(1, fps // 10)]], "step_s": max(1, fps // 10) / fps}
     return moments, curve

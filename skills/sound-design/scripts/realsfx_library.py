@@ -1,6 +1,6 @@
-"""Make the EditAtlas-SFX library readable by the real-sfx skill as a main pack: hard links (no extra disk space,
+"""Make the EditAtlas/sfx library readable by the real-sfx skill as a main pack: hard links (no extra disk space,
 same drive only) plus a catalog.json that gives every sound its type from the EditAtlas category.
-Usage: realsfx_library.py MIRROR_DIR OUT_DIR   (MIRROR_DIR = a clone of github.com/ptrgiang/EditAtlas-SFX)"""
+Usage: realsfx_library.py MIRROR_DIR OUT_DIR   (MIRROR_DIR = a clone of github.com/EditAtlas/sfx)"""
 import json, os, shutil, sys
 from pathlib import Path
 

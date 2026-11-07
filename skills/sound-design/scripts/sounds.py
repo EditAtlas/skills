@@ -133,7 +133,7 @@ def main():
     utf8_stdout()
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--cache")
-    p.add_argument("--mirror", help="local EditAtlas-SFX checkout (else the index and files come from GitHub)")
+    p.add_argument("--mirror", help="local EditAtlas/sfx checkout (else the index and files come from GitHub)")
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("search")
     s.add_argument("query", nargs="?", default="")

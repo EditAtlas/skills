@@ -61,6 +61,17 @@ what was not checked, and whether a fresh agent ran the test cases with only the
 By opening a pull request you agree that your contribution is licensed under the Apache License 2.0, as
 section 5 of the License says.
 
+## Status
+
+`metadata.status` says how far a skill has been proven. Move it up only when every condition is met, and say in the
+pull request which evidence meets each one.
+
+| Status | Conditions |
+|---|---|
+| `draft` | Written; `validate.py` passes; the author ran it on real inputs |
+| `beta` | A person checked real results (watched, listened, read) and approved them; a fresh agent with only the skill ran every test case and passed, and did better than the same agent without the skill; it installs from the marketplace |
+| `stable` | Used on real projects with no open bugs; the description was tested for triggering (it loads when it should and not otherwise) |
+
 ## Versions and releases
 
 Raise `metadata.version` on every change to a skill (patch for fixes, minor for new behaviour). A tag `vX.Y.Z` on

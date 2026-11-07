@@ -13,7 +13,7 @@ itself is subject to its own terms.
 ## Sounds
 
 Skills download sounds at run time from the public
-[EditAtlas-SFX](https://github.com/ptrgiang/EditAtlas-SFX) repository. No sound files are stored here.
+[EditAtlas/sfx](https://github.com/EditAtlas/sfx) repository. No sound files are stored here.
 
 ## Runtime dependencies
 

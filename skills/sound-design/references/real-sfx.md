@@ -26,7 +26,7 @@ One gap showed on the first run: its auto-pick asked for `role: sub_drop` and Ed
 ## Setup
 
 ```
-python scripts/realsfx_library.py PATH/EditAtlas-SFX PATH/editatlas-lib   # hard links (or copies) + catalog.json
+python scripts/realsfx_library.py PATH/sfx PATH/editatlas-lib   # hard links (or copies) + catalog.json
 export REAL_SFX_CONFIG=PATH/real-sfx-config.json                           # keep its config out of the skill folder
 python REAL_SFX/scripts/setup.py init --library editatlas=PATH/editatlas-lib
 python REAL_SFX/scripts/build_index.py

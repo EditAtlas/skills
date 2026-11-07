@@ -2,11 +2,11 @@
 name: sound-design
 description: Sound-design a finished video with real sound effects from the EditAtlas library (2,278 described sounds, public, downloadable from GitHub with SHA-256 checks). Finds the moments in the picture, lets you look at them as frame sheets, picks sounds by description and measured numbers, places each on its exact frame at a level set by its role, keeps or replaces the film's own music and voice, renders a new MP4 plus a separate SFX WAV, and checks the result in numbers (sync, pace, holes, loudness, mono) before you show it. Use it whenever someone asks to add sound effects, SFX, whooshes, pops, clicks, hits, UI sounds or "sound design" to a video, reel, short, promo, motion graphic, product demo or talking-head edit; says a video "feels silent", "needs sound", "thêm hiệu ứng âm thanh", "lồng SFX", "thêm tiếng động"; or wants EditAtlas sounds placed on a video rather than just found. Not for composing music or generating sound.
 license: Apache-2.0. LICENSE.txt has the complete terms
-compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas-SFX). Designed for Claude Code and other agents with a shell.
+compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.2.0"
-  status: draft
+  version: "0.3.0"
+  status: beta
   library: sfx
   mcp-tools: search_sfx get_sfx
 ---
@@ -38,8 +38,8 @@ python SKILL/scripts/mix.py work/cues.json --out result/FILM_sfx.mp4    # MP4 + 
 python SKILL/scripts/check.py result/FILM_sfx_resolved.json --moments work/moments/moments.json --listen-out result/listen.wav
 ```
 
-Sounds come from `https://raw.githubusercontent.com/ptrgiang/EditAtlas-SFX/main/` and are cached in
-`~/.cache/editatlas-sfx` (`EDITATLAS_SFX_CACHE` moves it). With a local clone of EditAtlas-SFX, pass
+Sounds come from `https://raw.githubusercontent.com/EditAtlas/sfx/main/` and are cached in
+`~/.cache/editatlas-sfx` (`EDITATLAS_SFX_CACHE` moves it). With a local clone of EditAtlas/sfx, pass
 `--mirror PATH` (before the subcommand for `sounds.py`) and nothing is downloaded.
 
 ## 1. Look at the film and its sound
@@ -120,7 +120,8 @@ that the sound had to start inside its file.
 
 ## 5. Check, fix, check again
 
-Run `check.py` after every render; exit code 1 means it flagged something. It finds every sound in the rendered
+Run `check.py` after every render; exit code 1 means it flagged something. It reads the WAV tracks that
+`mix.py` wrote next to `_resolved.json`, so keep those files together when you copy results. It finds every sound in the rendered
 track by its own waveform, so `sync` is real: anything off by more than one frame is a bug in the sheet. It also
 measures gestures per 10 s, the longest hole, heavy hits, repeats, digital silence, master loudness and true
 peak, mono fold-down, and how many strong picture moments got a sound.

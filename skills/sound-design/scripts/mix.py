@@ -164,7 +164,8 @@ def main():
     nobed = Path(str(stem) + "_track_nobed.wav")
     write_wav(wav, sfx)
     write_wav(nobed, track)
-    write_json(str(stem) + "_resolved.json", {"video": video, "out": str(out), "keep_audio": sheet.get("keep_audio", True),
+    write_json(str(stem) + "_resolved.json", {"video": str(Path(video).resolve()), "out": str(out.resolve()), "keep_audio": sheet.get("keep_audio", True),
+                                               "under_voice": bool(sheet.get("under_voice")),
                                                "duration": info["duration"], "master_gain_db": round(master_db, 1),
                                                "cues": resolved})
     if a.no_video:

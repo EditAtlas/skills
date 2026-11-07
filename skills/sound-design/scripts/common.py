@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 
 SR = 48000
-INDEX_URL = "https://raw.githubusercontent.com/ptrgiang/EditAtlas-SFX/main/index.json"
+INDEX_URL = "https://raw.githubusercontent.com/EditAtlas/sfx/main/index.json"
 USER_AGENT = "sound-design-skill/0.2"
 
 # Peak level (dBFS) a sound of each role is set to before the cue's own gain_db.
@@ -143,7 +143,7 @@ def _get(url, dst):
 
 
 def load_index(cache=None, mirror=None, refresh=False):
-    """The public sound index: from a local EditAtlas-SFX checkout (--mirror / EDITATLAS_SFX_MIRROR) or GitHub."""
+    """The public sound index: from a local EditAtlas/sfx checkout (--mirror / EDITATLAS_SFX_MIRROR) or GitHub."""
     mirror = mirror or os.environ.get("EDITATLAS_SFX_MIRROR")
     if mirror:
         f = Path(mirror) / "index.json"
@@ -157,7 +157,7 @@ def load_index(cache=None, mirror=None, refresh=False):
             _get(INDEX_URL, f)
         except OSError as e:
             if not f.is_file():
-                die(f"cannot download the sound index ({e}). Clone https://github.com/ptrgiang/EditAtlas-SFX "
+                die(f"cannot download the sound index ({e}). Clone https://github.com/EditAtlas/sfx "
                     "and pass --mirror PATH.")
     return json.loads(f.read_text(encoding="utf-8")), None
 

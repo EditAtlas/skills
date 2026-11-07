@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Video editing skills built on the EditAtlas library of techniques, templates, styles and sound effects",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {

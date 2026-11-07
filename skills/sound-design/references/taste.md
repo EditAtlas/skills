@@ -9,8 +9,10 @@ Numbers are guides measured on finished work, not laws. A calm picture is allowe
 - **SFX-only films are dense:** finished SFX-only reels run about 7–15 gestures per 10 s (median about 11), with a
   median pause between gestures around 0.7 s and the longest hole around 2.5 s. `check.py` flags under 7 or over 15,
   and holes over 3 s.
-- **With music or voice:** fewer sounds, about 3–12 per 10 s; holes up to 5 s are fine because the film's own audio
-  fills them. Under speech, prefer the moments between phrases.
+- **With its own music:** about 3–12 gestures per 10 s; holes up to 5 s are fine because the music fills them.
+- **Carried by a voice** (`under_voice`): about 1.5–8 per 10 s, holes up to 8 s. The voice is the film; sounds
+  mark what appears on screen (badges, cards, stamps), ideally between phrases. A talking head approved by ear on
+  2026-11-07 had 2.6 gestures per 10 s and a 7.8 s hole.
 - Sounds within 80 ms of each other count as one gesture (a layered moment).
 
 ## Weight and variety

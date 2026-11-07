@@ -12,7 +12,7 @@ The agent loads it when a task matches its description. Skills here follow the
 
 | Skill | What it does | EditAtlas library | Status |
 |---|---|---|---|
-| [sound-design](./skills/sound-design) | Sound-designs a finished video with real EditAtlas sounds: finds the moments, places each sound on its frame, renders an MP4 and an SFX track, checks sync, pace and loudness in numbers | Sounds | draft |
+| [sound-design](./skills/sound-design) | Sound-designs a finished video with real EditAtlas sounds: finds the moments, places each sound on its frame, renders an MP4 and an SFX track, checks sync, pace and loudness in numbers | Sounds | beta |
 
 `skills/index.json` lists the same skills as data: the EditAtlas website reads it to show each skill next to the
 library it works with.
@@ -68,7 +68,7 @@ add it to `marketplace.json`, run `python scripts/validate.py --write-index`, an
 
 Apache License 2.0: see [LICENSE](./LICENSE) and [NOTICE](./NOTICE). Each skill carries a copy as
 `LICENSE.txt`, so a downloaded skill keeps its terms. The EditAtlas name and logo are not licensed. Sounds the
-skills download come from [EditAtlas-SFX](https://github.com/ptrgiang/EditAtlas-SFX) and are not part of this
+skills download come from [EditAtlas/sfx](https://github.com/EditAtlas/sfx) and are not part of this
 repository.
 
 ## Disclaimer

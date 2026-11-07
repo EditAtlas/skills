@@ -5,8 +5,8 @@
     {
       "name": "sound-design",
       "description": "Sound-design a finished video with real sound effects from the EditAtlas library (2,278 described sounds, public, downloadable from GitHub with SHA-256 checks). Finds the moments in the picture, lets you look at them as frame sheets, picks sounds by description and measured numbers, places each on its exact frame at a level set by its role, keeps or replaces the film's own music and voice, renders a new MP4 plus a separate SFX WAV, and checks the result in numbers (sync, pace, holes, loudness, mono) before you show it. Use it whenever someone asks to add sound effects, SFX, whooshes, pops, clicks, hits, UI sounds or \"sound design\" to a video, reel, short, promo, motion graphic, product demo or talking-head edit; says a video \"feels silent\", \"needs sound\", \"thêm hiệu ứng âm thanh\", \"lồng SFX\", \"thêm tiếng động\"; or wants EditAtlas sounds placed on a video rather than just found. Not for composing music or generating sound.",
-      "version": "0.2.0",
-      "status": "draft",
+      "version": "0.3.0",
+      "status": "beta",
       "libraries": [
         "sfx"
       ],
@@ -14,7 +14,7 @@
         "search_sfx",
         "get_sfx"
       ],
-      "compatibility": "Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas-SFX). Designed for Claude Code and other agents with a shell.",
+      "compatibility": "Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.",
       "license": "Apache-2.0. LICENSE.txt has the complete terms",
       "path": "skills/sound-design",
       "url": "https://github.com/EditAtlas/skills/tree/main/skills/sound-design",
