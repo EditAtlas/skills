@@ -1,0 +1,78 @@
+# EditAtlas Skills
+
+Skills that let Claude and other agents do real video editing work with [EditAtlas](https://edit.trysometh.ing):
+a library of editing techniques with correct names and prompts, composed templates, visual styles and sound
+effects you can download.
+
+A skill is a folder with a `SKILL.md` (instructions and metadata) and, when needed, scripts and reference files.
+The agent loads it when a task matches its description. Skills here follow the
+[Agent Skills specification](https://agentskills.io/specification).
+
+## Skills
+
+| Skill | What it does | EditAtlas library | Status |
+|---|---|---|---|
+| [editatlas-sfx](./skills/editatlas-sfx) | Sound-designs a finished video with real EditAtlas sounds: finds the moments, places each sound on its frame, renders an MP4 and an SFX track, checks sync, pace and loudness in numbers | Sounds | draft |
+
+`skills/index.json` lists the same skills as data: the EditAtlas website reads it to show each skill next to the
+library it works with.
+
+## Install
+
+### Claude Code
+
+Add this repository as a plugin marketplace, then install a skill:
+
+```
+/plugin marketplace add EditAtlas/skills
+/plugin install editatlas-sfx@editatlas-skills
+```
+
+Or copy a skill folder to `~/.claude/skills/` (Windows: `%USERPROFILE%\.claude\skills\`).
+
+### Claude.ai
+
+Download the skill's zip from the [latest release](https://github.com/EditAtlas/skills/releases/latest) and upload
+it in Settings > Capabilities > Skills. Skills that run scripts need code execution turned on, and skills that
+download sounds need network access to the hosts named in their `compatibility` field.
+
+### Claude API
+
+Upload the same zip with the Skills API. See the
+[Skills guide](https://docs.claude.com/en/api/skills-guide#creating-a-skill).
+
+### The EditAtlas MCP
+
+Most skills work better with the EditAtlas MCP server connected, so that search ranks well and records stay
+current. See [edit.trysometh.ing](https://edit.trysometh.ing) for the install line.
+
+## Repository layout
+
+```
+.claude-plugin/marketplace.json   plugins for Claude Code; every skill belongs to one
+skills/<name>/SKILL.md            one folder per skill
+skills/<name>/evals/              test cases in the `claude plugin eval` layout
+skills/index.json                 written by scripts/validate.py --write-index
+template/SKILL.md                 start a new skill from here
+spec/agent-skills-spec.md         the spec and the EditAtlas metadata keys
+scripts/validate.py               checks every skill; CI runs it
+scripts/package.py                zips each skill for Claude.ai and the API
+```
+
+## Make a new skill
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md). In short: copy `template/` to `skills/<name>/`, write it, add test cases,
+add it to `marketplace.json`, run `python scripts/validate.py --write-index`, and report what was measured.
+
+## License
+
+Apache License 2.0: see [LICENSE](./LICENSE) and [NOTICE](./NOTICE). Each skill carries a copy as
+`LICENSE.txt`, so a downloaded skill keeps its terms. The EditAtlas name and logo are not licensed. Sounds the
+skills download come from [EditAtlas-SFX](https://github.com/ptrgiang/EditAtlas-SFX) and are not part of this
+repository.
+
+## Disclaimer
+
+Skills tell an agent how to do a task; they do not guarantee the result. Test a skill in your own environment
+before relying on it. Skills that render audio or video say what they measured and what a person still has to
+watch or listen to.

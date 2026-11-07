@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: talking-head-keep-voice
+expected_outcome: |
+  The voice is kept (keep_audio true, under_voice true). Sounds land on the overlay moments, found by looking at frames around them. The master stays near the film's loudness with true peak under -0.5 dBFS. check.py flags are either fixed or explained. A listen list is given.
+context:
+  scaffold_script: place-files.sh

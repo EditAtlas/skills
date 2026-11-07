@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: sfx-only-product-reel
+expected_outcome: |
+  A new MP4 with sound and a separate SFX WAV. Sounds are EditAtlas ids placed on moments seen in the frames (ice, pour, peel, drink, bottle, button). The film is SFX-only so it is brought near -16 LUFS. check.py was run and its numbers are reported. The reply is in Vietnamese, lists gaps (no pour/fizz sound) and a listen list, and does not claim to have listened.
+context:
+  scaffold_script: place-files.sh

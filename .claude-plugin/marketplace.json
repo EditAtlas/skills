@@ -1,0 +1,21 @@
+{
+  "name": "editatlas-skills",
+  "owner": {
+    "name": "EditAtlas"
+  },
+  "metadata": {
+    "description": "EditAtlas skills: video editing work done with the EditAtlas library of techniques, templates, styles and sound effects",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "editatlas-sfx",
+      "description": "Sound-design a finished video with real sound effects from the EditAtlas library, with a numeric check before delivery",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/editatlas-sfx"
+      ]
+    }
+  ]
+}

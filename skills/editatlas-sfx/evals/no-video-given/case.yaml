@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: no-video-given
+expected_outcome: |
+  Claude asks for the video file (and whether to keep its audio) instead of inventing a film, timings or a render.
