@@ -1,7 +1,7 @@
 """Zip each skill for upload to Claude.ai (Settings > Capabilities > Skills) or the Claude API.
 
   python scripts/package.py                  # every skill -> dist/<name>.zip
-  python scripts/package.py editatlas-sfx    # one skill
+  python scripts/package.py sound-design    # one skill
 
 The zip holds one folder named after the skill. Test cases (evals/) and caches are left out: they are for
 development, not for the agent that uses the skill.

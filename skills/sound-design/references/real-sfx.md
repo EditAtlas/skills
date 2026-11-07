@@ -38,7 +38,7 @@ voice and music → music_transition (both never auto-picked, only taken by `--r
 
 ## When to use which
 
-- `editatlas-sfx` (this skill): any machine, downloads only the sounds a film uses, the agent looks at frames and
+- `sound-design` (this skill): any machine, downloads only the sounds a film uses, the agent looks at frames and
   writes the cues itself. Best for short social video and for agents in a sandbox.
 - `real-sfx`: a local copy of the whole library (768 MB), projects that already have cue lists or synthesized sound,
   screen recordings, music with a beat grid.

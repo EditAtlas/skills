@@ -7,15 +7,16 @@ cp -r template skills/<name>
 cp LICENSE skills/<name>/LICENSE.txt
 ```
 
-`<name>`: lowercase letters, digits and single hyphens, the same in the folder and in `name:`. Start EditAtlas
-skills with `editatlas-` so they are easy to tell apart once installed beside other skills.
+`<name>`: lowercase letters, digits and single hyphens, the same in the folder and in `name:`. Name the job, the
+way Anthropic does: a short noun phrase (`sound-design`), an object and its maker (`mcp-builder`, `theme-factory`)
+or a format (`pdf`). No `editatlas-` prefix: the repository and the marketplace already say EditAtlas.
 
 ## 2. Write SKILL.md
 
 - **Description** (max 1024 characters): what it does, when to use it, the words a person would type (English and
   Vietnamese if both are expected), and what it is not for. The agent decides to load the skill from this text
   alone.
-- **Metadata**: fill every `editatlas-*` key (see `spec/agent-skills-spec.md`). `editatlas-mcp-tools` must name
+- **Metadata**: fill `author`, `version`, `status`, `library` and `mcp-tools` (see `spec/agent-skills-spec.md`). `mcp-tools` must name
   only tools the EditAtlas MCP really has.
 - **Body**: under 500 lines. Explain why each step matters, not just what to do. Move long detail into
   `references/` and say when to read each file.

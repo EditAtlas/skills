@@ -1,10 +1,10 @@
-# editatlas-sfx
+# sound-design
 
 Sound-design a finished video with real sounds from the [EditAtlas](https://edit.trysometh.ing) library. Claude
 looks at the picture, picks sounds from the public library, places them on the frame, renders a new MP4 and a
 separate SFX track, and checks the result in numbers before showing it.
 
-Status: draft (0.1.0).
+Status: draft (0.2.0).
 
 ## Needs
 

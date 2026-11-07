@@ -1,5 +1,5 @@
 ---
-name: editatlas-template
+name: template-skill
 description: Replace with what the skill does and when Claude should use it. Name the user's words that should trigger it (in English and Vietnamese if both are expected), the inputs it needs, and what it is not for. Max 1024 characters.
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Replace with real requirements (Python version and packages, FFmpeg, network access), or delete this line if there are none.
@@ -7,9 +7,8 @@ metadata:
   author: EditAtlas
   version: "0.1.0"
   status: draft
-  editatlas-site: https://edit.trysometh.ing
-  editatlas-library: replace with techniques, templates, styles, sfx or several, separated by spaces
-  editatlas-mcp-tools: replace with the MCP tools the skill calls, separated by spaces, or none
+  library: replace with techniques, templates, styles, sfx or several, separated by spaces
+  mcp-tools: replace with the MCP tools the skill calls, separated by spaces, or none
 ---
 
 # Skill title

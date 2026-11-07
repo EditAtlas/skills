@@ -12,7 +12,7 @@ The agent loads it when a task matches its description. Skills here follow the
 
 | Skill | What it does | EditAtlas library | Status |
 |---|---|---|---|
-| [editatlas-sfx](./skills/editatlas-sfx) | Sound-designs a finished video with real EditAtlas sounds: finds the moments, places each sound on its frame, renders an MP4 and an SFX track, checks sync, pace and loudness in numbers | Sounds | draft |
+| [sound-design](./skills/sound-design) | Sound-designs a finished video with real EditAtlas sounds: finds the moments, places each sound on its frame, renders an MP4 and an SFX track, checks sync, pace and loudness in numbers | Sounds | draft |
 
 `skills/index.json` lists the same skills as data: the EditAtlas website reads it to show each skill next to the
 library it works with.
@@ -25,7 +25,7 @@ Add this repository as a plugin marketplace, then install a skill:
 
 ```
 /plugin marketplace add EditAtlas/skills
-/plugin install editatlas-sfx@editatlas-skills
+/plugin install sound-design@editatlas-skills
 ```
 
 Or copy a skill folder to `~/.claude/skills/` (Windows: `%USERPROFILE%\.claude\skills\`).

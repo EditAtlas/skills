@@ -22,7 +22,7 @@ STATUSES = {"draft", "beta", "stable"}
 LIBRARIES = {"techniques", "templates", "styles", "sfx"}
 MCP_TOOLS = {"get_workflow", "search_techniques", "get_technique", "search_templates", "get_template",
              "get_template_bundle", "list_styles", "get_style", "search_sfx", "get_sfx", "none"}
-REQUIRED_META = ("author", "version", "status", "editatlas-site", "editatlas-library", "editatlas-mcp-tools")
+REQUIRED_META = ("author", "version", "status", "library", "mcp-tools")
 # Private catalog fields and personal paths must never reach this public repo.
 FORBIDDEN = [
     (re.compile(r"\boriginal_name\b"), "private catalog field original_name"),
@@ -59,6 +59,9 @@ def check_skill(folder, errors, warnings, is_template=False):
         errors.append(f"{where}: name {name!r} must be 1-64 chars of a-z, 0-9 and single hyphens")
     elif not is_template and name != folder.name:
         errors.append(f"{where}: name {name!r} must equal the folder name {folder.name!r}")
+    elif name.startswith("editatlas"):
+        errors.append(f"{where}: name {name!r} repeats the brand; the repo and marketplace already say EditAtlas. "
+                      "Name the job instead (sound-design, template-builder)")
     if not isinstance(desc, str) or not (1 <= len(desc) <= 1024):
         errors.append(f"{where}: description must be 1-1024 characters (has {len(desc) if isinstance(desc, str) else 0})")
     comp = fm.get("compatibility")
@@ -81,12 +84,12 @@ def check_skill(folder, errors, warnings, is_template=False):
             errors.append(f"{where}: metadata.status must be one of {sorted(STATUSES)}")
         if meta.get("version") and not re.match(r"^\d+\.\d+\.\d+$", meta["version"]):
             errors.append(f"{where}: metadata.version must look like 1.2.3")
-        libs = set((meta.get("editatlas-library") or "").split())
+        libs = set((meta.get("library") or "").split())
         if libs - LIBRARIES:
-            errors.append(f"{where}: unknown editatlas-library {sorted(libs - LIBRARIES)}")
-        tools = set((meta.get("editatlas-mcp-tools") or "").split())
+            errors.append(f"{where}: unknown library {sorted(libs - LIBRARIES)}")
+        tools = set((meta.get("mcp-tools") or "").split())
         if tools - MCP_TOOLS:
-            errors.append(f"{where}: unknown editatlas-mcp-tools {sorted(tools - MCP_TOOLS)}")
+            errors.append(f"{where}: unknown mcp-tools {sorted(tools - MCP_TOOLS)}")
         if "license" not in fm and not any((folder / n).is_file() for n in ("LICENSE", "LICENSE.txt", "LICENSE.md")):
             warnings.append(f"{where}: no license field and no LICENSE file")
     lines = body.count("\n")
@@ -166,8 +169,8 @@ def main():
                 "description": s["description"],
                 "version": s["meta"].get("version"),
                 "status": s["meta"].get("status"),
-                "libraries": (s["meta"].get("editatlas-library") or "").split(),
-                "mcp_tools": [t for t in (s["meta"].get("editatlas-mcp-tools") or "").split() if t != "none"],
+                "libraries": (s["meta"].get("library") or "").split(),
+                "mcp_tools": [t for t in (s["meta"].get("mcp-tools") or "").split() if t != "none"],
                 "compatibility": s["compatibility"],
                 "license": s["license"],
                 "path": s["path"],

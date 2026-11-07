@@ -12,7 +12,7 @@ import numpy as np
 
 SR = 48000
 INDEX_URL = "https://raw.githubusercontent.com/ptrgiang/EditAtlas-SFX/main/index.json"
-USER_AGENT = "editatlas-sfx-skill/0.1"
+USER_AGENT = "sound-design-skill/0.2"
 
 # Peak level (dBFS) a sound of each role is set to before the cue's own gain_db.
 # Loud, short accents sit high; textures and beds sit low so they never cover the accents.
@@ -28,7 +28,7 @@ ROLE_ANCHOR = {"ui": "start", "click": "start", "pop": "start", "typing": "start
 
 
 def die(msg):
-    sys.exit("editatlas-sfx: " + msg)
+    sys.exit("sound-design: " + msg)
 
 
 def need(tool):

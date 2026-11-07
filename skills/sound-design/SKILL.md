@@ -1,18 +1,17 @@
 ---
-name: editatlas-sfx
+name: sound-design
 description: Sound-design a finished video with real sound effects from the EditAtlas library (2,278 described sounds, public, downloadable from GitHub with SHA-256 checks). Finds the moments in the picture, lets you look at them as frame sheets, picks sounds by description and measured numbers, places each on its exact frame at a level set by its role, keeps or replaces the film's own music and voice, renders a new MP4 plus a separate SFX WAV, and checks the result in numbers (sync, pace, holes, loudness, mono) before you show it. Use it whenever someone asks to add sound effects, SFX, whooshes, pops, clicks, hits, UI sounds or "sound design" to a video, reel, short, promo, motion graphic, product demo or talking-head edit; says a video "feels silent", "needs sound", "thêm hiệu ứng âm thanh", "lồng SFX", "thêm tiếng động"; or wants EditAtlas sounds placed on a video rather than just found. Not for composing music or generating sound.
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas-SFX). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.1.0"
+  version: "0.2.0"
   status: draft
-  editatlas-site: https://edit.trysometh.ing
-  editatlas-library: sfx
-  editatlas-mcp-tools: search_sfx get_sfx
+  library: sfx
+  mcp-tools: search_sfx get_sfx
 ---
 
-# editatlas-sfx: real sounds on a finished video
+# Sound design: real sounds on a finished video
 
 The aim: the film sounds as if an editor with a good library cut it. Every sound is a real file from EditAtlas,
 placed on a frame you have looked at, at a level you can justify in numbers.
