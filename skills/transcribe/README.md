@@ -5,11 +5,11 @@ transcript with you, writes SRT/VTT subtitles, and lists what an edit could cut:
 ừm) and repeated takes. The checked transcript feeds the [EditAtlas](https://edit.trysometh.ing) caption techniques,
 silence and filler removal, and the `verified_transcript` input of every template.
 
-Status: beta (0.1.0).
+Status: beta (0.1.1).
 
 ## Needs
 
-- Python 3.9+ and `pip install faster-whisper` (about 100 MB; Claude asks before installing)
+- Python 3.9+ and `pip install faster-whisper` (about 300 MB on disk with its parts; Claude asks before installing)
 - FFmpeg with ffprobe in PATH
 - About 1.6 GB of disk for the default model, downloaded from Hugging Face on first use. After that it works offline,
   and no audio leaves the machine.

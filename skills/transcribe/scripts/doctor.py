@@ -1,7 +1,7 @@
 """Check what transcription needs on this machine, and install it only when told to.
 
   doctor.py                    # report: Python, FFmpeg, faster-whisper, GPU, models already downloaded
-  doctor.py --install          # pip install faster-whisper (ask the person first: about 100 MB)
+  doctor.py --install          # pip install faster-whisper (ask the person first: about 300 MB on disk)
   doctor.py --fetch turbo      # download a model now instead of on first use (sizes below)
 
 Exit code 0 when transcribe.py can run, 1 when something is missing.
@@ -14,8 +14,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
-from common import utf8_stdout
+# No import from common.py: it needs numpy, which only arrives with faster-whisper, and this script must run on a
+# Python that has neither (found by a fresh-machine install test).
+
+
+def utf8_stdout():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
 # Name -> (Hugging Face repo, download size). faster-whisper downloads on first use into the Hugging Face cache.
 MODELS = {
@@ -75,7 +83,7 @@ def main():
         import faster_whisper
         print(f"faster-whisper: {faster_whisper.__version__}")
     else:
-        print("faster-whisper: MISSING. Ask the person, then run doctor.py --install (pip, about 100 MB). "
+        print("faster-whisper: MISSING. Ask the person, then run doctor.py --install (pip, about 300 MB on disk, under a minute on a fast line). "
               "It runs Whisper on this machine; no audio leaves it.")
         ok = False
 

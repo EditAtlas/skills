@@ -2,10 +2,10 @@
 name: transcribe
 description: Transcribe the speech in a video or audio file on the person's own machine with Whisper (faster-whisper), with a time for every word, then check it, write SRT/VTT subtitles, and list what an edit could cut (long silences, filler words like um, uh, ờ, ừm, and repeated takes). The checked word-level transcript is what EditAtlas caption techniques, silence and filler removal, retake selection and every template's verified_transcript input need. Use it whenever someone wants a transcript, subtitles, captions or an SRT from a video; asks to "trích lời", "lấy lời thoại", "chuyển giọng nói thành chữ", "làm phụ đề", "làm sub", "cắt khoảng lặng", "bỏ ờ ừm", "speech to text", "Whisper"; or starts an EditAtlas edit that needs word times, even if they never say "transcript". Installs Whisper only after asking. Not for translating, cleaning up audio, separating a voice from music, or making a voice.
 license: Apache-2.0. LICENSE.txt has the complete terms
-compatibility: Requires Python 3.9+ with faster-whisper (pip, about 100 MB) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
+compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.1.0"
+  version: "0.1.1"
   status: beta
   library: techniques templates
   mcp-tools: get_technique search_techniques get_workflow
@@ -51,8 +51,10 @@ You need, and must not invent:
    wants "Interviewer:" / "Guest:" labels, say that you would add them from the sense of the text and that they need
    checking.
 
-Run `doctor.py`. If faster-whisper is missing, tell the person what it is (a local copy of OpenAI's Whisper, about
-100 MB by pip, plus a 0.5–1.6 GB model on first use) and install only when they agree: `doctor.py --install`.
+Run `doctor.py`; it needs nothing installed. If faster-whisper is missing, tell the person what it is (a local copy
+of OpenAI's Whisper, about 300 MB on disk by pip, plus a 0.5–1.6 GB model on first use) and install only when they
+agree: `doctor.py --install`, then `doctor.py --fetch turbo` so the download shows before the work starts. On a fast
+line both took under a minute and a half in a fresh Python.
 
 ## 2. Transcribe
 
