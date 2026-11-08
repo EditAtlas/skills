@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Video editing skills built on the EditAtlas library of techniques, templates, styles and sound effects",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "plugins": [
     {
@@ -15,6 +15,15 @@
       "strict": false,
       "skills": [
         "./skills/sound-design"
+      ]
+    },
+    {
+      "name": "transcribe",
+      "description": "Word-level transcripts with local Whisper, checked with you, with subtitles and a cut list for silences, fillers and retakes",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/transcribe"
       ]
     }
   ]

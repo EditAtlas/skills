@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: vietnamese-subtitles
+expected_outcome: |
+  An SRT made from a local Whisper transcript of vi_tips.mp4, with "Minh Anh" and "EditAtlas" spelled as given and no
+  line the speaker did not say. The reply is in Vietnamese, lists what still needs a person to check (numbers such as
+  "400ms" and "45", names), and does not claim the subtitles are perfect.
+context:
+  scaffold_script: place-files.sh

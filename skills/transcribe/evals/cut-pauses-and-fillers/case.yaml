@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: cut-pauses-and-fillers
+expected_outcome: |
+  A list of cuts from a word-level transcript: the long pauses between sentences and the two fillers ("Um", "uh"),
+  with times. The repeated sentence "The third is picking the best take." is raised as a question, not cut silently.
+  The person gets what the edit needs (a keep list or FFmpeg expressions, and word times for captions after the cut).
+  No video is rendered.
+context:
+  scaffold_script: place-files.sh

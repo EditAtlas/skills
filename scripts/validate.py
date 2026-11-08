@@ -21,7 +21,7 @@ NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 STATUSES = {"draft", "beta", "stable"}
 LIBRARIES = {"techniques", "templates", "styles", "sfx"}
 MCP_TOOLS = {"get_workflow", "search_techniques", "get_technique", "search_templates", "get_template",
-             "get_template_bundle", "list_styles", "get_style", "search_sfx", "get_sfx", "none"}
+             "get_template_bundle", "list_styles", "get_style", "search_sfx", "get_sfx", "get_skill", "none"}
 REQUIRED_META = ("author", "version", "status", "library", "mcp-tools")
 # Private catalog fields and personal paths must never reach this public repo.
 FORBIDDEN = [
