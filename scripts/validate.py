@@ -153,6 +153,16 @@ def main():
         if s["name"] not in listed:
             errors.append(f"marketplace.json: skill {s['name']} is in no plugin")
 
+    # The README table is written by hand; its status column must follow each SKILL.md.
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for s in skills:
+        row = re.search(rf"^\|\s*\[{re.escape(s['name'])}\]\(.*\|\s*(\w+)\s*\|\s*$", readme, re.M)
+        if not row:
+            errors.append(f"README.md: skill {s['name']} has no row in the skills table")
+        elif row.group(1) != s["meta"].get("status"):
+            errors.append(f"README.md: {s['name']} is {row.group(1)} in the table but "
+                          f"{s['meta'].get('status')} in SKILL.md")
+
     for w in warnings:
         print("warning:", w)
     for e in errors:
