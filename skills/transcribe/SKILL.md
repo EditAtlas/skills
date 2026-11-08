@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.1.1"
+  version: "0.2.0"
   status: beta
   library: techniques templates
   mcp-tools: get_technique search_techniques get_workflow
@@ -51,9 +51,9 @@ You need, and must not invent:
    wants "Interviewer:" / "Guest:" labels, say that you would add them from the sense of the text and that they need
    checking.
 
-Run `doctor.py`; it needs nothing installed. If faster-whisper is missing, tell the person what it is (a local copy
-of OpenAI's Whisper, about 300 MB on disk by pip, plus a 0.5–1.6 GB model on first use) and install only when they
-agree: `doctor.py --install`, then `doctor.py --fetch turbo` so the download shows before the work starts. On a fast
+Run `doctor.py`; it needs nothing installed, and it exits 1 while faster-whisper is missing (expected). If it is
+missing, tell the person what it is (a local copy of OpenAI's Whisper, about 300 MB on disk by pip, plus a 0.5–1.6 GB
+model on first use) and install only when they agree: `doctor.py --install`, then `doctor.py --fetch turbo` so the download shows before the work starts. On a fast
 line both took under a minute and a half in a fresh Python.
 
 ## 2. Transcribe
@@ -72,6 +72,8 @@ python SKILL/scripts/transcribe.py FILM.mp4 --out work/t [--language vi] [--name
 - Voice activity detection with a 500 ms silence step is always on: without it, a Vietnamese test film ended with an
   invented "Hãy subscribe cho kênh La La School". It can also make Whisper skip a whole sentence, so any stretch the
   detector calls voice but that got no words is transcribed again on its own and listed for review ("second pass").
+- With `--language` given, no language is detected and `language_probability` is null; pass it only when the
+  person said which language it is.
 - Look at the summary it prints: language, words, mean confidence, how many words are unsure, second-pass stretches,
   and the number of review items.
 
@@ -86,19 +88,25 @@ Open `review.md`. Each line is a word or a run of words, with why it is there:
 |---|---|
 | looks like the name X | `fix.py ... names` applies every suggestion; look at them first |
 | a line Whisper often invents | read the words around it; if nobody would say that there, `fix.py ... delete i-j` |
-| unsure (p under 0.5) | check the sense of the sentence; if the right word is clear from context, fix it and say so; if not, ask |
+| unsure (p under 0.7) | check the sense of the sentence; if the right word is clear from context, fix it and say so; if not, ask |
 | number | ask how it should be written (45 giây or bốn mươi lăm giây, $2,500) when it will be on screen |
 | name? | a capital in mid-sentence: confirm the spelling |
 | heard in near silence | likely invented; check the time against the picture |
 | the same words repeat | Whisper looping; delete the extra copies |
 | missed on the first pass | heard on its own after the first pass skipped it; read it with the sentences around it |
+| speech runs to the very end | the file may stop mid-word; ask whether to keep the last word as it is |
 
 A line from the invented list can be real: a YouTuber's own outro often says "subscribe". It is listed so someone
 checks it, not so it is deleted on sight.
 
-Fix with `fix.py` only, never by hand-editing times: `set` keeps the times (several heard words can become one, or one
-can become several), `delete` removes invented words, and both rewrite the subtitle files and log the edit. Then show
-the person the corrected text (`transcript.txt`) and the remaining review lines. When they confirm, run
+The list does not hold every wrong word: on real Vietnamese read speech with a reference text it caught about 4 in
+10 (the rest were mostly words Whisper was sure of, such as "cãi tay đò" for "cãi tay đôi"). Read the whole
+`transcript.txt` once for words that make no sense, and ask about the ones you cannot fix from context.
+
+Fix with `fix.py` only, never by hand-editing times: `set` keeps the times (several heard words can become one, or
+one can become several), `delete` removes invented words, and both rewrite the subtitle files and `review.md` and log
+the edit. Word numbers start at 0 everywhere; `fix.py ... review` prints the items still open. Then show the person
+the corrected text (`transcript.txt`) and the remaining review lines. When they confirm, run
 `fix.py ... checked`. A template's `verified_transcript` must be a transcript marked checked.
 
 ## 4. Subtitles
@@ -107,8 +115,11 @@ the person the corrected text (`transcript.txt`) and the remaining review lines.
 38 characters, a break at sentence ends and pauses, each caption held for its phrase plus 150 ms, never overlapping
 the next. For 9:16 video use `captions.py ... --max-chars 32`. It flags captions read faster than 17 characters a
 second: a fast speaker, not an error, but mention it for burned-in captions (word-by-word styles read better).
-Vietnamese talk usually runs past 17 characters a second (a real 6-minute talk: 69 of 96 captions). Do not shorten
-or reword what was said to meet the number unless the person asks.
+Captions break where a phrase starts (punctuation, a breath, words like "là", "và", "nhưng"), so a two-syllable
+word is rarely split, but there is no dictionary: read the lines once, and if one splits a word such as
+"tiết / kiệm", move the break by hand in the SRT after the last `fix.py` edit (fix.py rewrites the SRT). Vietnamese
+talk usually runs past 17 characters a second (a real 6-minute talk: 69 of 96 captions). Do not shorten or reword
+what was said to meet the number unless the person asks.
 
 For styled captions burned into the picture, call EditAtlas `search_techniques` (for example "word by word captions")
 and `get_technique`; build the ASS file from the words in `transcript.json`, not from the SRT.

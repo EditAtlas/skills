@@ -14,6 +14,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# huggingface_hub warns on Windows that it cannot make symlinks; the download still works, and the warning
+# read as a failure to a fresh-machine tester.
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 # No import from common.py: it needs numpy, which only arrives with faster-whisper, and this script must run on a
 # Python that has neither (found by a fresh-machine install test).
 

@@ -8,6 +8,7 @@ Writes transcript.json (words, segments, review lists), transcript.srt/.vtt/.txt
 should check before the transcript is used for captions or cuts. Nothing leaves this machine.
 """
 import argparse
+import os
 import difflib
 import re
 import sys
@@ -15,10 +16,14 @@ import time
 import unicodedata
 from pathlib import Path
 
+# huggingface_hub warns on Windows that it cannot make symlinks; the download still works, and the warning
+# read as a failure to a fresh-machine tester.
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
-from captions import text_of, write_all
+from captions import write_all, write_review
 from common import HOP, SR, clock, decode, die, envelope_db, probe, utf8_stdout, write_json
 
 MODEL_REPOS = {"small": "small", "medium": "medium", "turbo": "large-v3-turbo", "large-v3": "large-v3"}
@@ -36,7 +41,9 @@ STYLE = {"en": "Yes, I agree. It's simple, isn't it? Let's see."}
 # Vietnamese talk it raised sentence ends in 2 minutes from 6 to 23 with the same words; on a real English film it
 # lost every sentence end, so English keeps it off.
 CONTEXT = {"vi"}
-LOW_P = 0.5
+# Measured on real Vietnamese read speech with a reference text: under 0.5 caught 8% of the wrong words, under 0.7
+# caught 42%, and 64% of the words under 0.7 were wrong.
+LOW_P = 0.7
 # Lines Whisper is known to invent from silence or music, learned from subtitled video. Measured here too: with the
 # default VAD, a Vietnamese test film ended with "Hãy subscribe cho kênh La La School ..." that nobody said.
 HALLUCINATIONS = [
@@ -212,6 +219,11 @@ def review_lists(words, env, segments, names):
         peaks, quiet = np.zeros(len(words)), -999
     starts = {s["first"] for s in segments}
     named = {k for r in name_suggestions(words, names) for k in range(r["i"], r["to"] + 1)}
+    for name in names:                  # names heard exactly as given need no "name?" check
+        n = len(name.split())
+        for i in range(len(words) - n + 1):
+            if re.sub(r"[\"'(),.!?;:…]", "", " ".join(w["w"] for w in words[i:i + n])) == name:
+                named.update(range(i, i + n))
     sentence_start = True
     for i, w in enumerate(words):
         sentence_start = sentence_start or i in starts
@@ -299,6 +311,9 @@ def main():
         die("Whisper heard no words. Is there speech? Try --language, or a bigger --model.")
 
     review = review_lists(words, env, segs, names)
+    if duration - words[-1]["end"] < 0.15:
+        # The file may stop mid-word (a clip cut from a longer video); a caption should not pretend the word is whole.
+        review.append({"i": len(words) - 1, "why": "speech runs to the very end of the file: the last word may be cut off"})
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     data = {
@@ -311,20 +326,7 @@ def main():
     write_json(out / "transcript.json", data)
     cues, fast, long_lines = write_all(data, out / "transcript")
 
-    lines = [f"# Words to check in {src.name}", "",
-             "Whisper writes what it heard, not what was meant. Check each line with the person. Correct words with "
-             "`fix.py transcript.json set N \"text\"` (or `names`, `delete`), which keeps the times and rewrites the "
-             "subtitles. Run `fix.py transcript.json checked` only after the person has confirmed names and numbers.", "",
-             "| # | time | heard | in context | why | suggested |", "|---|---|---|---|---|---|"]
-    for r in review:
-        i, j = r["i"], r.get("to", r["i"])
-        heard = text_of(words[i:j + 1])
-        ctx = text_of(words[max(0, i - 4): j + 5])
-        span = f"{i}" if i == j else f"{i}-{j}"
-        lines.append(f"| {span} | {clock(words[i]['start'])} | {heard} | {ctx} | {r['why']} | {r.get('fix', '')} |")
-    if not review:
-        lines.append("| - | - | - | - | nothing flagged; still read it once | |")
-    (out / "review.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_review(data, out / "review.md")
 
     speech = sum(w["end"] - w["start"] for w in words)
     low = sum(1 for w in words if w["p"] < LOW_P)

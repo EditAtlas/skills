@@ -38,7 +38,8 @@ Times are seconds from the start of the file, rounded to milliseconds. Text is U
   on its own; it is in the review list.
 - `checked` becomes true only through `fix.py ... checked`, after the person confirmed the text. Any later edit sets
   it back to false.
-- `edits` logs every change made with `fix.py`.
+- `edits` logs every change made with `fix.py`. Each change also rewrites the subtitles and `review.md`, whose word numbers (from 0)
+  match `words`.
 
 EditAtlas techniques and templates read `words`: a caption is built from word starts and ends; a template's
 `verified_transcript` is this file with `checked` true.

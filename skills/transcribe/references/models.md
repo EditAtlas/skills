@@ -47,6 +47,22 @@ minutes with turbo; offer `--model small` if the person needs it faster and will
 | `hallucination_silence_threshold` | 2 s | No change on these films; it is there for long silences. |
 | beam size | 5 | Beam 1 was 15–20% faster with one fewer sentence end on the real film. |
 
+## Review list and captions
+
+- Unsure words: on `fleurs_vi` (reference text, 77 wrong words of 913) words under p 0.5 caught 8% of the errors,
+  under 0.7 caught 42% with 64% of the flagged words really wrong, under 0.9 caught 71% at 39%. `transcribe.py`
+  uses 0.7. Many wrong words have high p ("cãi tay đò" 0.80, "nỡ lòng mạng lời" 0.92), so a person reads the text.
+- Caption breaks: before phrase-aware breaks, the 90 s Spiderum clip had captions ending inside two-syllable words
+  ("sự / nghiệp", "tất / cả", "sự chính / xác") and lines split "khăng / khăng", "ghi / nhận", "nỗ / lực". After,
+  none of those; "tiết / kiệm" on a test film still splits, as there is no dictionary.
+
+## Installing on a fresh machine
+
+Measured 2026-11-08 in an empty Python 3.11 venv with an empty model cache: `doctor.py --install` 34–39 s and 302 MB
+on disk (faster-whisper 1.2.1 with ctranslate2, onnxruntime, av, numpy), `doctor.py --fetch turbo` 26–28 s for 1.6 GB.
+A fresh agent following the skill asked before installing, installed, and delivered an SRT and its open questions for a 90 s
+Vietnamese clip in about 5 minutes.
+
 ## Known ways Whisper goes wrong
 
 - It invents stock lines from YouTube subtitles in silence, at the end of a file or under music. `transcribe.py`

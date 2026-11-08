@@ -5,7 +5,7 @@ transcript with you, writes SRT/VTT subtitles, and lists what an edit could cut:
 ừm) and repeated takes. The checked transcript feeds the [EditAtlas](https://edit.trysometh.ing) caption techniques,
 silence and filler removal, and the `verified_transcript` input of every template.
 
-Status: beta (0.1.1).
+Status: beta (0.2.0).
 
 ## Needs
 
@@ -44,6 +44,12 @@ On 2026-11-08, with faster-whisper 1.2.1 on a 12-thread CPU, model large-v3-turb
 - Word times after a cut: the cut films were transcribed again and the times in `transcript_cut.json` matched with a
   median difference of 10–20 ms.
 - Without the settings in `references/models.md`, Whisper invented a closing line on two of these films.
+
+Fresh-machine install (empty Python, empty model cache, installed as a Claude Code plugin): a fresh agent asked
+first, installed faster-whisper (34 s, 302 MB) and the turbo model (26 s, 1.6 GB), and made subtitles for a 90 s
+Vietnamese clip in 48 s of transcription. Its notes led to 0.2.0: doctor.py runs before anything is installed,
+review.md follows every fix, unsure words are flagged under p 0.7 (42% of real errors caught instead of 8%), and
+captions break at phrase edges instead of inside Vietnamese two-syllable words.
 
 With the skill, fresh agents passed 8 of 8 checks on three test cases (subtitles in Vietnamese, cuts in English, no
 file given); without it 7 of 8 (no word times for the film after the cuts), and they took about twice as long

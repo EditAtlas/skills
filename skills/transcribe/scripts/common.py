@@ -12,7 +12,7 @@ HOP = 0.01          # envelope step in seconds
 
 
 def die(msg):
-    sys.exit("transcribe: " + msg)
+    sys.exit(f"{Path(sys.argv[0]).stem}: {msg}")
 
 
 def utf8_stdout():

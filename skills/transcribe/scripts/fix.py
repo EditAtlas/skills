@@ -1,20 +1,22 @@
 """Correct words in transcript.json without breaking the times, then rewrite the subtitle files.
 
-  fix.py work/transcript/transcript.json show 40-60            # words with their numbers and times
+  fix.py work/transcript/transcript.json review                # the words still to check (also in review.md)
+  fix.py work/transcript/transcript.json show 40-60            # words with their numbers (from 0) and times
   fix.py work/transcript/transcript.json set 45 "400 ms"       # one word, its times kept
   fix.py work/transcript/transcript.json set 12-13 "EditAtlas" # two heard words become one, first start to last end
   fix.py work/transcript/transcript.json delete 97-110         # words nobody said (an invented line)
   fix.py work/transcript/transcript.json names                 # apply every "looks like the name" suggestion
   fix.py work/transcript/transcript.json checked               # the person confirmed it: templates may use it
 
-Every change is logged in the file's "edits" list. Review items that touched a changed word are dropped.
+Word numbers start at 0, as in review.md. Every change is logged in the file's "edits" list, review items that
+touched a changed word are dropped, and the subtitles and review.md are written again.
 """
 import argparse
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
-from captions import text_of, write_all
+from captions import text_of, write_all, write_review
 from common import clock, die, read_json, utf8_stdout, write_json
 
 
@@ -65,12 +67,20 @@ def main():
     utf8_stdout()
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("transcript")
-    p.add_argument("action", choices=["show", "set", "delete", "names", "checked"])
+    p.add_argument("action", choices=["review", "show", "set", "delete", "names", "checked"])
     p.add_argument("args", nargs="*")
     a = p.parse_args()
     t = read_json(a.transcript)
     words = t["words"]
 
+    if a.action == "review":
+        for r in t.get("review", []):
+            i, j = r["i"], r.get("to", r["i"])
+            span_text = str(i) if i == j else f"{i}-{j}"
+            print(f"{span_text:>9}  {clock(words[i]['start']):>7}  {text_of(words[i:j + 1])!r}  "
+                  f"in: {text_of(words[max(0, i - 4):j + 5])!r}  {r['why']}" + (f"  -> {r['fix']!r}" if r.get("fix") else ""))
+        print(f"{len(t.get('review', []))} items; checked: {t.get('checked', False)}")
+        return
     if a.action == "show":
         i, j = span(a.args[0], len(words)) if a.args else (0, len(words) - 1)
         for k in range(i, j + 1):
@@ -120,6 +130,7 @@ def main():
         print(f"marked checked ({left} review items were left as they are)")
     write_json(a.transcript, t)
     cues, _, _ = write_all(t, str(Path(a.transcript).with_suffix("")))
+    write_review(t, Path(a.transcript).with_name("review.md"))
     print(f"{len(t['words'])} words, {len(cues)} captions rewritten")
 
 
