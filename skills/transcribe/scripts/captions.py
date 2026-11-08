@@ -42,7 +42,8 @@ OPENS = {
 }
 LEANS_ON_NEXT = {
     "vi": {"sự", "cái", "con", "những", "các", "một", "mỗi", "người", "việc", "cuộc", "nhà", "rất", "quá", "hơi",
-           "thật", "đã", "sẽ", "đang", "không", "chưa", "được", "bị", "của", "và", "là", "với", "cho", "để", "những"},
+           "thật", "đã", "sẽ", "đang", "không", "chưa", "được", "bị", "của", "và", "là", "với", "cho", "để", "thì",
+           "mà", "rằng", "nếu", "khi", "vì", "nhưng", "hay", "hoặc"},
     "en": {"the", "a", "an", "to", "of", "my", "your", "our", "their", "his", "her", "very", "so", "not"},
 }
 # Common pairs whose second word would otherwise look like the start of a phrase.

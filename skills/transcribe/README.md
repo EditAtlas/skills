@@ -5,7 +5,7 @@ transcript with you, writes SRT/VTT subtitles, and lists what an edit could cut:
 ừm) and repeated takes. The checked transcript feeds the [EditAtlas](https://edit.trysometh.ing) caption techniques,
 silence and filler removal, and the `verified_transcript` input of every template.
 
-Status: beta (0.2.0).
+Status: beta (0.2.1).
 
 ## Needs
 

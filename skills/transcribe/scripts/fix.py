@@ -5,6 +5,7 @@
   fix.py work/transcript/transcript.json set 45 "400 ms"       # one word, its times kept
   fix.py work/transcript/transcript.json set 12-13 "EditAtlas" # two heard words become one, first start to last end
   fix.py work/transcript/transcript.json delete 97-110         # words nobody said (an invented line)
+  fix.py work/transcript/transcript.json ok 45                 # the word in review item 45 is right as it is
   fix.py work/transcript/transcript.json names                 # apply every "looks like the name" suggestion
   fix.py work/transcript/transcript.json checked               # the person confirmed it: templates may use it
 
@@ -67,7 +68,7 @@ def main():
     utf8_stdout()
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("transcript")
-    p.add_argument("action", choices=["review", "show", "set", "delete", "names", "checked"])
+    p.add_argument("action", choices=["review", "show", "set", "delete", "ok", "names", "checked"])
     p.add_argument("args", nargs="*")
     a = p.parse_args()
     t = read_json(a.transcript)
@@ -123,6 +124,16 @@ def main():
             new = [{"w": r["fix"], "start": t["words"][i]["start"], "end": t["words"][j]["end"], "p": 1.0}]
             replace(t, i, j, new, {"set": [i, j], "from": old, "to": r["fix"], "by": "names"})
             print(f"{i}-{j}: {old!r} -> {r['fix']!r}")
+    elif a.action == "ok":
+        if len(a.args) != 1:
+            die("ok needs the word number of a review item: ok 45")
+        i = int(a.args[0])
+        left = [r for r in t.get("review", []) if r["i"] != i]
+        if len(left) == len(t.get("review", [])):
+            die(f"no review item starts at word {i}; see fix.py ... review")
+        t["review"] = left
+        t.setdefault("edits", []).append({"ok": i, "word": words[i]["w"]})
+        print(f"{i}: {words[i]['w']!r} kept as heard; {len(left)} review items left")
     elif a.action == "checked":
         left = len(t.get("review", []))
         t["checked"] = True

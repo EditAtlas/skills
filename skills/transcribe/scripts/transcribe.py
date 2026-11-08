@@ -338,6 +338,10 @@ def main():
         print(f"second pass: {again} stretch(es) of voice had no words on the first pass and were transcribed alone (in review)")
     print(f"words: {len(words)}, mean confidence {mean_p:.2f}, unsure {low} ({low / len(words):.0%}); words cover {speech:.1f} s of {duration:.1f} s")
     print(f"review: {len(review)} items -> {out / 'review.md'}")
+    heard = fold(" ".join(w["w"] for w in words))
+    for name in names:
+        if fold(name) not in heard and not any(r.get("fix", "").startswith(name) for r in review):
+            print(f"name {name}: not heard anywhere, not even close; if it should be said, check the start and end")
     print(f"captions: {len(cues)}" + (f", {len(fast)} faster than 17 chars/s" if fast else "") + (f", {len(long_lines)} with a long line" if long_lines else ""))
     print("->", out / "transcript.json", "and transcript.srt, .vtt, .txt")
 

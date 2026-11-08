@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.2.0"
+  version: "0.2.1"
   status: beta
   library: techniques templates
   mcp-tools: get_technique search_techniques get_workflow
@@ -105,7 +105,9 @@ The list does not hold every wrong word: on real Vietnamese read speech with a r
 
 Fix with `fix.py` only, never by hand-editing times: `set` keeps the times (several heard words can become one, or
 one can become several), `delete` removes invented words, and both rewrite the subtitle files and `review.md` and log
-the edit. Word numbers start at 0 everywhere; `fix.py ... review` prints the items still open. Then show the person
+the edit. Word numbers start at 0 everywhere; `fix.py ... review` prints the items still open, and
+`fix.py ... ok N` closes one that is right as heard. Read words with `fix.py ... show`: a Windows console cannot
+print Vietnamese from your own Python unless `PYTHONIOENCODING=utf-8` is set (and `python -I` ignores it). Then show the person
 the corrected text (`transcript.txt`) and the remaining review lines. When they confirm, run
 `fix.py ... checked`. A template's `verified_transcript` must be a transcript marked checked.
 
