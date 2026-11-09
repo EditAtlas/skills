@@ -5,8 +5,8 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.1.0"
-  status: draft
+  version: "0.2.0"
+  status: beta
   library: techniques sfx
   mcp-tools: search_techniques get_technique search_sfx get_workflow
 ---
@@ -78,6 +78,10 @@ Open, with the Read tool, in this order:
 Then use `frames.py` wherever you are not sure: `--step 0.04` (one frame at 25 fps) across a join to see its
 shape, `--crop` to read small text or see how a word enters (pop, bounce, slide, typewriter), `--times` for a
 few moments side by side. Two or three close looks are normal; a short video with many effects may need more.
+
+Check the format against the picture. A 9:16 video whose shots look cut out of wider footage (a film, a podcast, a
+game: faces and objects cropped at the sides, a frame that sits differently in each shot) is a reframe: say so, and
+search `reframe to vertical`. Wide footage with black bars is letterboxed or pillarboxed instead.
 
 Write down, for every element, what you see in plain words before you look for a name: "the old picture is
 squeezed into a horizontal line while the new one shows behind it", not "a squeeze".

@@ -4,7 +4,7 @@ Break down a reference video shot by shot and name what it does, with the [EditA
 technique for each transition, camera move, text style and sound, and a recipe to make one like it. Claude measures
 the video, looks at frame sheets, searches EditAtlas and writes a report.
 
-Status: draft (0.1.0).
+Status: beta (0.2.0).
 
 ## Needs
 
@@ -35,4 +35,17 @@ On 2026-11-09, on EditAtlas demos whose edits are known:
 | 4 product reels cut on the beat | cuts on the beat 9/9, 10/13, 5/8, 0/10 (the last: a grid that drifts) |
 | 1 full run (comedy edit, 17 s) | 9 elements named with EditAtlas techniques, all slugs confirmed by `--check-api`; missed the freeze frame and the speed ramp |
 
-Not yet done: a fresh agent running the test cases with only the skill; a person checking a report.
+Fresh agents ran the five test cases in `evals/` on 2026-11-09, one run each, with and without the skill:
+
+| Case | With the skill | Without |
+|---|---|---|
+| comedy-edit | 100% | 83% |
+| drink-reel-beat | 100% | 100% |
+| no-video-given | 100% | 50% (tried to download from TikTok) |
+| vertical-short-captions | 100% (0.1.0: 67%) | 33% (no EditAtlas techniques named) |
+| space-trailer | 100% | 83% |
+
+Mean 100% with the skill, 70% without; 267 s against 341 s a run. Every technique slug in all replies exists on
+EditAtlas. `/plugin marketplace add EditAtlas/skills` and `/plugin install video-breakdown@editatlas-skills` work.
+
+The owner read the reports and approved beta on 2026-11-09.

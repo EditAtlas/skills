@@ -4,7 +4,7 @@
 audio at 22 kHz. Everything below is what each field means, how far it was right on videos where the answer was
 known, and what to search for in EditAtlas.
 
-## How well it was measured (2026-11-09, version 0.1.0)
+## How well it was measured (2026-11-09, version 0.1.0 and 0.2.0)
 
 On the 24 EditAtlas transition demos (two shots joined by one known FFmpeg transition, 16:9, 24 fps):
 
@@ -33,8 +33,10 @@ On four 9:16 product reels cut on the beat by design (12 to 18 s, 8 to 13 cuts):
 - On the drink reel, the four flash cuts checked in the frames (a light frame on each cut) were all called
   `bright flash`.
 
-Speech-like share on three talking-head previews: 0.13, 0.41 and 0.45; on four music-only reels: 0.0. It tells talking from no
-talking, roughly. For the words, use the `transcribe` skill.
+Speech-like share on three talking-head previews: 0.13, 0.41 and 0.45; on four music-only reels: 0.0. But a 13 s film
+phone call with music under it measured 0.0, and a cartoon with music and no words reached 0.3 in some windows. So 0
+does not mean nobody talks: captions that follow speech, moving lips and faces turned to each other are the evidence.
+For the words, use the `transcribe` skill.
 
 Run time: 9 to 15 s for a 12 to 34 s 720x1280 video on one desktop CPU, sheets included.
 
@@ -112,7 +114,7 @@ Search terms: `meme caption`, `word by word pop`, `bouncing words`, `typewriter 
 |---|---|
 | `lufs` | integrated loudness of the whole video (EBU R128) |
 | `silent_share` | share of 50 ms windows under -50 dBFS |
-| `speech_like_share` | share of 2 s windows whose voice band rises and falls at syllable rate; a hint only |
+| `speech_like_share` | share of 2 s windows whose voice band rises and falls at syllable rate; a hint only, it misses dialogue under music |
 | `music.tempo_candidates` | up to three tempos, strongest first, each refined to 0.1 BPM, with how many cuts land within 70 ms of its beats and how many would by chance |
 | `music.cuts_follow_beat` | present when one candidate holds at least 60 % of the cuts and twice the chance rate |
 | `transients` | sudden sounds: time, a rough kind from brightness (`low hit or boom`, `hit`, `bright hit or whoosh`, `click, tick or pop`), tail length, `on_beat`, and `near_visual` (a join, overlay event or fast zoom within 0.2 s) |

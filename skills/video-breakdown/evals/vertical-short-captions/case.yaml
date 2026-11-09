@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: vertical-short-captions
+expected_outcome: |
+  A breakdown of a 13 s vertical short cut from a 1963 film phone call. It says the picture is a 9:16 crop of a wider
+  film (EditAtlas Reframe to Vertical) and that the edit cuts to the other speaker near 5.2 s and back near
+  10.1 s; that the captions show one big word at a time (Word-by-Word Pop); and, for the person's podcast, that
+  word-by-word captions need a word-timed transcript (the transcribe skill). It does not claim to have heard the
+  dialogue and lists what it did not check.
+context:
+  scaffold_script: place-files.sh

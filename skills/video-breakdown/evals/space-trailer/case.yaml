@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: space-trailer
+expected_outcome: |
+  A breakdown of a 33 s trailer cut from NASA launch and moonwalk footage, with many effects. Built with: a teal and
+  orange grade and a slow push on the first shot, a crash zoom onto ignition near 5 s, camera shake on the engines,
+  a cross-dissolve near 7.7 s, a Slide Up near 10.5 s, bloom on the flames, a zoom transition near 14.1 s, a dip to
+  black near 17.3 s, a black and white restored moonwalk with clean subtitles, a join to the Earth near 29.2 s (built
+  as an iris open, it reads as a quick dissolve in the frames), a "Five engines" title with one stressed word near 7.3 to 9.5 s and a word-by-word "Next stop the Moon"
+  title near 13.2 to 15.4 s. Some extra cuts are inside the source footage. The recipe is for the person's drone
+  footage.
+context:
+  scaffold_script: place-files.sh
