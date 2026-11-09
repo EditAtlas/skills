@@ -72,7 +72,15 @@ def check_skill(folder, errors, warnings, is_template=False):
     unknown = set(fm) - {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
     if unknown:
         errors.append(f"{where}: unknown frontmatter fields {sorted(unknown)}")
-    meta = fm.get("metadata") or {}
+    meta = dict(fm.get("metadata") or {}) if isinstance(fm.get("metadata"), dict) else fm.get("metadata")
+    # `internal: true` makes the `skills` CLI (npx skills add) skip a SKILL.md. The template needs it, because the
+    # CLI lists every top-level folder that holds a SKILL.md; a real skill must not have it.
+    if isinstance(meta, dict):
+        internal = meta.pop("internal", None)
+        if is_template and internal is not True:
+            errors.append(f"{where}: metadata.internal must be true, or `npx skills add` lists the template as a skill")
+        elif not is_template and internal is not None:
+            errors.append(f"{where}: delete metadata.internal; it hides the skill from `npx skills add`")
     if not isinstance(meta, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in meta.items()):
         errors.append(f"{where}: metadata must map strings to strings (quote versions: version: \"0.1.0\")")
         meta = {}

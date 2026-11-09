@@ -16,7 +16,7 @@ or a format (`pdf`). No `editatlas-` prefix: the repository and the marketplace 
 - **Description** (max 1024 characters): what it does, when to use it, the words a person would type (English and
   Vietnamese if both are expected), and what it is not for. The agent decides to load the skill from this text
   alone.
-- **Metadata**: fill `author`, `version`, `status`, `library` and `mcp-tools` (see `spec/agent-skills-spec.md`). `mcp-tools` must name
+- **Metadata**: fill `author`, `version`, `status`, `library` and `mcp-tools` (see `spec/agent-skills-spec.md`), and delete the `internal: true` line, which only keeps the template itself out of `npx skills add`. `mcp-tools` must name
   only tools the EditAtlas MCP really has.
 - **Body**: under 500 lines. Explain why each step matters, not just what to do. Move long detail into
   `references/` and say when to read each file.
