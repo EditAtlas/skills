@@ -14,7 +14,7 @@ import numpy as np
 
 from common import decode_audio, die, frame_size, grab, iter_frames, lufs, probe, sheet, utf8_stdout, write_json
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 DEBUG = bool(__import__("os").environ.get("VB_DEBUG"))
 BANDS = 6  # horizontal bands for overlay events (top to bottom)
 
@@ -901,9 +901,9 @@ def draw(video, info, r, out):
     portrait = (info["height"] or 0) > (info["width"] or 1)
     tw = 150 if portrait else 240
     dur = r["format"]["analysed_s"]
-    step = max(1.0, dur / 24)
-    ts = list(np.arange(min(0.5, dur / 2), dur, step))
-    p = sheet(grab(video, ts, tw, info), [f"{t:.1f}s" for t in ts], out / "overview.png", 8 if portrait else 6)
+    step = max(0.15, dur / 24)  # at least 24 frames: a short video changes text every few tenths of a second
+    ts = list(np.arange(min(0.5, step / 2), dur, step))
+    p = sheet(grab(video, ts, tw, info), [f"{t:.2f}s" for t in ts], out / "overview.png", 8 if portrait else 6)
     if p:
         paths.append(p)
     shots = r["shots"]

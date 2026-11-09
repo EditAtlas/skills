@@ -1,11 +1,11 @@
 ---
 name: video-breakdown
-description: Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, iris, push, zoom, flash, punch-in), camera moves (push in, crash zoom, pan, shake, freeze, speed change), text and graphics coming on screen, the look, pacing, music tempo and whether cuts follow the beat, and sound hits; you look at the frame sheets, then look up each element in EditAtlas (search_techniques, get_technique, search_sfx) and write a report with technique names, links, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says "video này dùng hiệu ứng gì", "phân tích video mẫu", "làm sao để edit giống video này", "hiệu ứng chuyển cảnh này tên gì", "reverse engineer this edit", "what transition is this". Works on a file on this machine. Not for downloading videos from TikTok or YouTube, telling filmed from AI footage, or editing the video itself.
+description: Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, iris, push, zoom, flash), camera moves (crash zoom, push in, shake, speed change), text and graphics coming on screen, each text's colours (gradient stops, outline, glow) and free lookalike fonts, the look, pacing, the beat and sound hits; you look at the frame sheets, then look up each element in EditAtlas and write a report with technique names, links, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says "video này dùng hiệu ứng gì", "phân tích video mẫu", "làm sao để edit giống video này", "hiệu ứng chuyển cảnh này tên gì", "reverse engineer this edit", "what transition is this". Works on a file on this machine. Not for downloading videos from TikTok or YouTube, telling filmed from AI footage, or editing the video itself.
 license: Apache-2.0. LICENSE.txt has the complete terms
-compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.
+compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step, font lookalikes (downloaded once from Google Fonts) and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.2.0"
+  version: "0.3.0"
   status: beta
   library: techniques sfx
   mcp-tools: search_techniques get_technique search_sfx get_workflow
@@ -35,6 +35,7 @@ folder's path, from a working folder of your own (`work/`); never write into the
 python SKILL/scripts/analyze.py VIDEO --out work/bd                      # breakdown.json + sheets
 python SKILL/scripts/frames.py VIDEO --at 6.8 --span 0.6 --step 0.04 --out work/look   # every frame of a join
 python SKILL/scripts/frames.py VIDEO --at 7.9 --crop 0,60,100,40 --out work/look      # bottom 40 %, to read text
+python SKILL/scripts/text_look.py VIDEO --at 3.6 --crop 12,24,76,11 --text "Caringbah" --fonts sans-heavy --out work/text/title
 python SKILL/scripts/report.py work/bd/breakdown.json work/bd/notes.json --out result/breakdown.md --check-api
 ```
 
@@ -69,7 +70,8 @@ breakdown of a session.
 
 Open, with the Read tool, in this order:
 
-1. `overview.png`: the whole video, about one frame a second. Get the story and the style first.
+1. `overview.png`: the whole video in 24 frames or more (every 0.15 s in a short video, one a second or less in a
+   long one). Get the story and the style first, and where each piece of text comes in.
 2. `shots_NN.png`: first, middle and last frame of every shot. Check each shot is real: a crash zoom, a flash or
    a flicker can split one shot in two; a dissolve inside the source footage can look like a join.
 3. `joins_NN.png`: six frames across every join that is not a plain cut. Name the transition from these.
@@ -85,6 +87,34 @@ search `reframe to vertical`. Wide footage with black bars is letterboxed or pil
 
 Write down, for every element, what you see in plain words before you look for a name: "the old picture is
 squeezed into a horizontal line while the new one shows behind it", not "a squeeze".
+
+### Text on screen
+
+Text is what people copy first and what a remake gets wrong most: the wrong kind of script, flat colour where the
+original has a gradient, text in front of a person where the original puts it behind. For every piece of text that
+is not plain subtitles, find these five things:
+
+1. **Layer.** Does a person or object cover part of the letters (hair over the bottom of a word, a hand in front)?
+   Then the text is behind the subject: `compositing-text-behind-object`. Look at a crop where they overlap. Check
+   every title, not just the first: one video can put several words behind the subject.
+2. **Entrance.** `frames.py --at <time it appears> --span 0.6 --step 0.04 --crop ...`: slides in with motion blur
+   (from which side), drops from above, pops (scale), fades in, types on, word by word or all at once, and whether
+   words move again after they land. Overlay events miss text that comes in while the camera moves; use the
+   overview to find those times.
+3. **Colour.** Run `text_look.py` on a crop of the text once it is fully in and still. Crop one line with a little
+   background on every side. It prints the fill (solid, or a gradient with its direction and stops as hex colours),
+   an outline or offset shadow, a glow or dark halo around the letters, and how far the letters lean. Open
+   `look.png`: "taken as text" must show the letters and nothing else. If it took a face or left out part of a
+   gradient, run again with `--text-clusters` and the cluster numbers that are text (the panel under it shows each
+   cluster). Each word can have its own colours: measure each title separately.
+4. **Font.** Describe the letters first: sans or serif or script; for scripts, even strokes (brush, marker,
+   casual) or thick downstrokes with hairline upstrokes (formal, calligraphic); weight; upright or leaning; upper
+   or lower case; wide or condensed. `text_look.py` prints the stroke weight and contrast, which tell a
+   calligraphic script (contrast 2.2 or more) from a brush one. Then add `--text "<the words exactly as shown>"
+   --fonts <groups>` (`--list-fonts` shows them) for the one or two groups that fit, and compare the letters by
+   eye: capitals, the shapes of a, g, t, the joins. The match number helps for sans and serif fonts and is weak for
+   scripts. Name one or two free lookalikes and say they are lookalikes, not the creator's font.
+5. **Place and size**: where it sits, its height as a share of the frame, and how long it stays.
 
 ## 3. Name it with EditAtlas
 
@@ -125,8 +155,8 @@ Give the person, in their language:
 2. The elements in time order with their names and links: the report's table, or the main rows of it.
 3. The recipe: steps with their own footage, technique by technique. Offer to do the edit, which starts with
    `get_workflow`; and for the sounds, the `sound-design` skill (`get_skill`).
-4. What is measured, what you looked at, and what is unknown: font names, exact speeds and curves, what each
-   sound actually is, whether footage was filmed or generated.
+4. What is measured, what you looked at, and what is unknown: the creator's actual font (you give free
+   lookalikes), exact speeds and curves, what each sound actually is, whether footage was filmed or generated.
 5. The report file (`result/breakdown.md`).
 
 After delivery, ask whether the names and techniques were right and send the answer with `send_feedback` when

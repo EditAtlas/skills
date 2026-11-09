@@ -23,6 +23,8 @@ KINDS = {"transition", "camera", "text", "graphic", "look", "effect", "speed", "
 EVIDENCE = {"measured", "looked", "measured+looked", "guessed"}
 SLUG = re.compile(r"^[a-z0-9][a-z0-9.\-]*$")
 SFX_ID = re.compile(r"^sfx-[a-z0-9]+$")
+LAYERS = {"in front", "behind subject", "in the scene"}
+STYLE_KEYS = ("words", "font", "fill", "layer", "entrance")
 
 WORDS = {
     "en": {"title": "Breakdown", "video": "Video", "format": "Format", "shots": "Shots", "pace": "Pace",
@@ -34,7 +36,9 @@ WORDS = {
            "measured_note": "Measured by analyze.py; the agent looked at the frames to name each element. "
                             "Evidence: measured = from the numbers, looked = from the frames, guessed = neither.",
            "median": "median shot", "per_min": "joins a minute", "beat": "tempo", "speech": "speech-like",
-           "follow": "cuts follow the beat", "nofollow": "cuts do not follow a beat grid", "none": "no audio"},
+           "follow": "cuts follow the beat", "nofollow": "cuts do not follow a beat grid", "none": "no audio",
+           "text": "Text on screen", "words": "Words", "font": "Font (free lookalikes, not confirmed)",
+           "fill": "Colour", "layer": "Layer", "entrance": "How it comes in"},
     "vi": {"title": "Phân tích video mẫu", "video": "Video", "format": "Khung hình", "shots": "Số cảnh",
            "pace": "Nhịp", "audio": "Âm thanh", "summary": "Tóm tắt", "shot_table": "Từng cảnh", "n": "#",
            "time": "Thời điểm", "len": "Dài", "in": "Vào cảnh bằng", "camera": "Camera (đo được)",
@@ -45,7 +49,9 @@ WORDS = {
            "measured_note": "Số đo từ analyze.py; agent xem khung hình để gọi tên từng hiệu ứng. "
                             "Căn cứ: measured = từ số đo, looked = từ khung hình, guessed = đoán.",
            "median": "cảnh trung vị", "per_min": "lần chuyển mỗi phút", "beat": "tempo", "speech": "giống giọng nói",
-           "follow": "điểm cắt theo beat", "nofollow": "điểm cắt không theo beat", "none": "không có tiếng"},
+           "follow": "điểm cắt theo beat", "nofollow": "điểm cắt không theo beat", "none": "không có tiếng",
+           "text": "Chữ trên hình", "words": "Chữ", "font": "Font (font miễn phí trông giống, chưa xác nhận)",
+           "fill": "Màu", "layer": "Lớp", "entrance": "Cách xuất hiện"},
 }
 
 
@@ -80,6 +86,15 @@ def problems(bd, notes):
                 out.append(f"{tag}.technique.name is empty: copy the name get_technique returned")
         elif e.get("kind") not in {"sound", "music", "voice", "pacing"} and not str(e.get("gap", "")).strip():
             out.append(f"{tag} has no technique and no 'gap': say what you searched and why nothing fit")
+        if e.get("kind") == "text":
+            st = e.get("style")
+            if not isinstance(st, dict) or any(not str(st.get(k, "")).strip() for k in STYLE_KEYS):
+                out.append(f"{tag} is text: give style with {', '.join(STYLE_KEYS)} (see references/notes-format.md); "
+                           "measure the colours and fonts with text_look.py")
+            elif st["layer"] not in LAYERS:
+                out.append(f"{tag}.style.layer must be one of {sorted(LAYERS)}")
+            elif st.get("lookalikes") is not None and not isinstance(st["lookalikes"], list):
+                out.append(f"{tag}.style.lookalikes must be a list of font names")
         sfx = e.get("sfx")
         if sfx and sfx.get("example_id") and not SFX_ID.match(str(sfx["example_id"])):
             out.append(f"{tag}.sfx.example_id '{sfx['example_id']}' is not an EditAtlas sound id")
@@ -170,6 +185,16 @@ def render(bd, notes):
         snd = " ".join(x for x in (esc(sfx.get("category", "")), f"`{sfx['example_id']}`" if sfx.get("example_id") else "") if x)
         what = f"**{esc(e['kind'])}**: {esc(e['seen'])}" + (f" ({esc(e['note'])})" if e.get("note") else "")
         L.append(f"| {fmt_t(e['at'])} | {what} | {how} | {snd} | {e['evidence']} |")
+    texts = [e for e in notes.get("elements", []) if e.get("kind") == "text" and isinstance(e.get("style"), dict)]
+    if texts:
+        L += ["", f"## {W['text']}", "",
+              f"| {W['at']} | {W['words']} | {W['font']} | {W['fill']} | {W['layer']} | {W['entrance']} |",
+              "|---|---|---|---|---|---|"]
+        for e in sorted(texts, key=lambda e: e["at"][0] if isinstance(e["at"], list) else e["at"]):
+            st = e["style"]
+            font = esc(st["font"]) + (f" ({esc(', '.join(st['lookalikes']))})" if st.get("lookalikes") else "")
+            L.append(f"| {fmt_t(e['at'])} | {esc(st['words'])} | {font} | {esc(st['fill'])} | {esc(st['layer'])} | "
+                     f"{esc(st['entrance'])} |")
     L += ["", f"## {W['recipe']}", ""] + [f"{i}. {r}" for i, r in enumerate(notes.get("recipe", []), 1)]
     if notes.get("corrections"):
         L += ["", f"## {W['corrections']}", ""] + [f"- {c}" for c in notes["corrections"]]

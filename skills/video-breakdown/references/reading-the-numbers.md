@@ -108,6 +108,43 @@ fixed caption bar, a burned-in credit.
 Search terms: `meme caption`, `word by word pop`, `bouncing words`, `typewriter caption`, `karaoke`,
 `tilted sticker`, `lower third`, `callout label`, `progress bar`, `logo watermark`.
 
+On a 4 s vertical ad with a slow push in, analyze.py found 1 overlay event where eight words or titles came in.
+The overview sheet (24 frames or more) is where those show; open it before trusting `events`.
+
+Search terms for how text comes in and where it sits: `text behind subject` (Text behind object), `word slides in
+with motion blur` (Whip In), `word drops in from above` (Drop Down), `words appear one by one` (Per-Word
+Stagger), `bouncing words`, `gradient sweep text` (only for a gradient that moves). EditAtlas has no technique for
+a still gradient fill on its own; give its colours in the text style and say so in `gap` if it is the element.
+
+## Text colours and fonts (text_look.py)
+
+`text_look.py` splits a crop into colour clusters and takes as text the clusters that do not touch the crop's
+edge. Colours the background shares (white text over a white shirt) only count inside the line of text, found
+from rows dense with sharp edges.
+
+- **fill**: the median colour of the text in five bands top to bottom and five left to right. A change of 0.1 or
+  more is a gradient; the direction with the larger change names it. "Both axes" is a diagonal gradient, a
+  gradient per letter, or words in different colours: look at the crop.
+- **outline or shadow**: a cluster that forms the outer layer of the letters. Offset by more than 4 % of the text
+  height, it is a shadow. A soft glow often comes out as a thick outline; the halo line says which.
+- **halo**: the ring just outside the letters against the background further out: brighter is a glow, darker
+  below is a drop shadow.
+- **lean**: the shear that makes stems upright, in 2 degree steps. 6 degrees or more is italic or slanted.
+- **strokes**: weight is the median stroke width over the text height; contrast is thick strokes over thin. Drawn
+  about 100 px tall, brush, marker and casual scripts measured 1.2 to 1.9; Arizonia, Playball, Lobster and Alex
+  Brush 2.3 to 4.3; but thin formal scripts (Great Vibes, Pinyon Script, Petit Formal Script) only 1.0 to 1.7,
+  because their hairlines are one pixel. So 2.2 or more says thick and thin; a low number does not rule out a
+  formal script. A glow thickens the reference's strokes, so its weight reads high.
+- **match**: overlap of the letter shapes, scaled to the same box, weighed by stroke contrast and weight. On a
+  bold italic title with a gradient and a drop shadow it put Montserrat Black Italic first, which matched letter
+  for letter. On a glowing calligraphic script partly hidden by other words, it ranked brush scripts first, the
+  same mistake a remake made by eye. Judge scripts by the letters: the capitals, the loops, thick downstrokes.
+
+Where it fails: busy backgrounds in the text's colours (raise `--k`, pick clusters with `--text-clusters`), text
+still moving or fading in (pick a later time), text smaller than about 20 px tall (use a higher resolution source).
+`--before` takes the frame before the text came in and keeps only what changed; it helps on a still shot and fails
+when the camera or the subject moves.
+
 ## Audio
 
 | Field | Meaning |

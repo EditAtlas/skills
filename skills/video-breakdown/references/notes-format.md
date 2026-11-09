@@ -29,6 +29,20 @@ as EditAtlas gives them.
 | `gap` | one of these two | why there is no technique: "plain cut", or "searched 'paper tear transition', 'ripped paper reveal': nothing close" |
 | `sfx` | no | `{"category": "...", "example_id": "sfx-..."}`: an EditAtlas sound you suggest for this moment |
 | `note` | no | anything the reader needs: "followed by Iris Open", "the speed is a guess" |
+| `style` | for `text` | how the text looks, below |
+
+## Text style
+
+Every `text` element needs a `style`. `report.py` refuses text without one and puts all text in one table.
+
+| Field | Required | What |
+|---|---|---|
+| `words` | yes | the words as they appear on screen |
+| `font` | yes | the letters in plain words, then the closest free lookalike: "bold italic geometric sans, like Montserrat Black Italic" |
+| `lookalikes` | no | free fonts you compared with `text_look.py` that look closest, best first: `["Montserrat:900i"]` |
+| `fill` | yes | solid or gradient, with the direction and the measured stops, then outline, shadow and glow: "gradient top to bottom #fa8f04 to #d35a01; dark brown shadow down and right" |
+| `layer` | yes | `in front`, `behind subject` (a person or object covers part of it) or `in the scene` (tracked onto a wall, a table) |
+| `entrance` | yes | how it comes in and goes: "slides in from the left with motion blur in 0.2 s, then moves up when the next word lands" |
 
 `sound`, `music`, `voice` and `pacing` elements need neither a technique nor a gap. Every other element needs one
 of them. Do not put a technique you did not get from EditAtlas in this session; `--check-api` refuses unknown
@@ -56,6 +70,12 @@ slugs and names that do not match.
   {"at": [12.92, 13.66], "kind": "transition", "seen": "A circle closes to black on the rabbit, then opens on the sky",
    "evidence": "looked", "technique": {"slug": "transition-iris-close", "name": "Iris Close", "match": "close"},
    "note": "followed by Iris Open"},
+  {"at": [1.4, 4.1], "kind": "text", "seen": "Pink sticker word over the squirrel, partly hidden by its tail",
+   "evidence": "looked", "technique": {"slug": "compositing-text-behind-object", "name": "Text behind object", "match": "close"},
+   "style": {"words": "THE NEIGHBORS", "font": "heavy rounded sans, upper case, like Fredoka SemiBold",
+             "lookalikes": ["Fredoka:600", "Baloo 2:800"],
+             "fill": "gradient top to bottom #ff8ad8 to #c2186b; white outline about 6 % of the letter height",
+             "layer": "behind subject", "entrance": "pops from 70 % to 100 % size in 0.15 s"}},
   {"at": 0.57, "kind": "sound", "seen": "A short bright transient as the caption appears", "evidence": "measured",
    "sfx": {"category": "cartoon", "example_id": "sfx-746bc6f1d9"}}
  ],
@@ -64,6 +84,7 @@ slugs and names that do not match.
   "Join them with a different transition each time: cut, Squeeze, Push Left, Iris Close into Iris Open; end on Fade to Black.",
   "Crash Zoom on the surprise, with a riser just before it."
  ],
- "not_checked": ["What each sound actually is: nothing was heard.", "The caption font."]
+ "not_checked": ["What each sound actually is: nothing was heard.",
+                 "The creator's actual fonts: the names given are free lookalikes."]
 }
 ```

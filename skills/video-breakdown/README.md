@@ -4,13 +4,14 @@ Break down a reference video shot by shot and name what it does, with the [EditA
 technique for each transition, camera move, text style and sound, and a recipe to make one like it. Claude measures
 the video, looks at frame sheets, searches EditAtlas and writes a report.
 
-Status: beta (0.2.0).
+Status: beta (0.3.0).
 
 ## Needs
 
 - Python 3.9+ with numpy and Pillow (`pip install numpy pillow`)
 - FFmpeg with ffprobe in PATH
-- The EditAtlas MCP for search (or network access to its REST API); the measuring itself runs offline
+- The EditAtlas MCP for search (or network access to its REST API); the measuring itself runs offline, except
+  lookalike fonts, which `text_look.py` downloads once from Google Fonts
 
 ## Files
 
@@ -21,6 +22,7 @@ Status: beta (0.2.0).
 | `references/notes-format.md` | The notes Claude writes, with an example |
 | `scripts/analyze.py` | Joins and their kind, camera moves, look, overlay events, pacing, tempo and cuts on the beat, sound hits, frame sheets |
 | `scripts/frames.py` | Frames around a time, at chosen times, or a cropped part of the frame |
+| `scripts/text_look.py` | One piece of text: fill colour or gradient stops, outline, shadow or glow, lean, stroke weight and contrast, and free lookalike fonts drawn beside it |
 | `scripts/report.py` | Checks the notes (and, with `--check-api`, every slug and sound id) and writes the report |
 | `evals/` | Test cases in the `claude plugin eval` layout; inputs are downloaded from the EditAtlas site |
 
@@ -49,3 +51,23 @@ Mean 100% with the skill, 70% without; 267 s against 341 s a run. Every techniqu
 EditAtlas. `/plugin marketplace add EditAtlas/skills` and `/plugin install video-breakdown@editatlas-skills` work.
 
 The owner read the reports and approved beta on 2026-11-09.
+
+### 0.3.0: text colours and fonts
+
+A user remade a 4 s vertical ad after a 0.2.0 breakdown and the text came out wrong: a casual brush script where
+the original has a calligraphic one, flat colours where it has gradients, words in front of the person where the
+original puts them behind. 0.3.0 adds `text_look.py`, an overview of 24 frames or more, a text checklist in
+`SKILL.md`, and a `style` that `report.py` requires for every text element.
+
+On that video, one fresh agent per version, the same request ("what effects, what kind of text, what colours, so I
+can remake it"), graded on ten points checked by hand:
+
+| | 0.2.0 | 0.3.0 |
+|---|---|---|
+| Points | 6 of 10 | 10 of 10 |
+| Script named as calligraphic, with a free lookalike | no ("italic handwriting", no font) | yes (Italianno, Pinyon Script) |
+| Gradient stops and direction for the three coloured titles | 1 of 3 | 3 of 3 |
+| Text behind the person, entrances, grey sans titles | yes | yes |
+| Time, tokens | 312 s, 140k | 435 s, 158k |
+
+One run each; the 0.2.0 agent also found one gradient by sampling pixels itself.
