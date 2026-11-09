@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: comedy-edit
+expected_outcome: |
+  A breakdown of a 17 s comedy edit with five cartoon shots. The report names, with EditAtlas slugs: the squeeze
+  transition near 6.8 s, the push or slide near 9.5 s, the iris that closes and opens near 13.3 s, the crash zoom
+  near 5 s (not counted as a join), meme captions and the tilted sticker. Claude opened the frame sheets, ran
+  report.py with --check-api, wrote in Vietnamese, and lists what it did not check (what the sounds are, fonts).
+context:
+  scaffold_script: place-files.sh

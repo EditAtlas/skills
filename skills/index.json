@@ -45,6 +45,30 @@
       "install_claude_code": "/plugin install transcribe@editatlas-skills",
       "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/transcribe.zip",
       "eval_cases": 3
+    },
+    {
+      "name": "video-breakdown",
+      "description": "Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, iris, push, zoom, flash, punch-in), camera moves (push in, crash zoom, pan, shake, freeze, speed change), text and graphics coming on screen, the look, pacing, music tempo and whether cuts follow the beat, and sound hits; you look at the frame sheets, then look up each element in EditAtlas (search_techniques, get_technique, search_sfx) and write a report with technique names, links, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says \"video này dùng hiệu ứng gì\", \"phân tích video mẫu\", \"làm sao để edit giống video này\", \"hiệu ứng chuyển cảnh này tên gì\", \"reverse engineer this edit\", \"what transition is this\". Works on a file on this machine. Not for downloading videos from TikTok or YouTube, telling filmed from AI footage, or editing the video itself.",
+      "version": "0.1.0",
+      "status": "draft",
+      "libraries": [
+        "techniques",
+        "sfx"
+      ],
+      "mcp_tools": [
+        "search_techniques",
+        "get_technique",
+        "search_sfx",
+        "get_workflow"
+      ],
+      "compatibility": "Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.",
+      "license": "Apache-2.0. LICENSE.txt has the complete terms",
+      "path": "skills/video-breakdown",
+      "url": "https://github.com/EditAtlas/skills/tree/main/skills/video-breakdown",
+      "plugin": "video-breakdown",
+      "install_claude_code": "/plugin install video-breakdown@editatlas-skills",
+      "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/video-breakdown.zip",
+      "eval_cases": 3
     }
   ]
 }

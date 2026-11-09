@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Video editing skills built on the EditAtlas library of techniques, templates, styles and sound effects",
-    "version": "0.5.1"
+    "version": "0.6.0"
   },
   "plugins": [
     {
@@ -24,6 +24,15 @@
       "strict": false,
       "skills": [
         "./skills/transcribe"
+      ]
+    },
+    {
+      "name": "video-breakdown",
+      "description": "Break down a reference video shot by shot and name each transition, camera move, text style and sound with its EditAtlas technique, plus a recipe",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/video-breakdown"
       ]
     }
   ]

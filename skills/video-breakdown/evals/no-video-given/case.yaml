@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: no-video-given
+expected_outcome: |
+  Claude asks for the video file (downloaded by the person, or a screen recording) instead of naming effects from the
+  link or from what such videos usually have. It does not download from TikTok and does not run analyze.py on nothing.
