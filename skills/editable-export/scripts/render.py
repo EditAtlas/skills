@@ -11,6 +11,7 @@ then measure the file with ffprobe before you hand it over.
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -77,6 +78,9 @@ def main():
         if not browser:
             die("no Chrome, Edge or Playwright Chromium found (" + "; ".join(errors) + ")")
         ctx = browser.new_context(accept_downloads=True, viewport={"width": 1400, "height": 900})
+        internal = os.environ.get("EDITATLAS_INTERNAL")  # EditAtlas's own checks: kept out of its numbers, as in share.py
+        if internal:
+            ctx.add_init_script("localStorage.setItem('editatlas-internal', " + json.dumps(internal) + ")")
         pg = ctx.new_page()
         logs = []
         pg.on("pageerror", lambda e: logs.append("page error: " + str(e)))

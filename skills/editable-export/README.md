@@ -12,7 +12,7 @@ own computer, without asking Claude to edit and render again. Things they can fi
 
 The copy is optional. Claude offers it when it delivers a video and builds it only when asked.
 
-Status: draft (0.1.0).
+Status: draft (0.1.1).
 
 ## How the person gets it
 

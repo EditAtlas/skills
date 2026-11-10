@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: continue-from-link
+expected_outcome: |
+  Claude pulls version 2 from the link in message.txt (share.py pull), renders the final MP4 from it with render.py
+  and checks it. It lists the person's changes as they are in version 2: the title size 96 instead of 80 and the
+  click 0.1 s later (0.6 s), with their note. It does not render from its own older version 1 or invent changes.
+context:
+  scaffold_script: place-files.sh

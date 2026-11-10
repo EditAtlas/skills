@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+, FFmpeg with ffprobe, and network access to edit.trysometh.ing. render.py needs Playwright (pip install playwright) and Chrome or Edge. share.py needs the cryptography package. The studio needs Chrome or Edge 94+ (WebCodecs); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.1.0"
+  version: "0.1.1"
   status: draft
   library: sfx
   mcp-tools: none

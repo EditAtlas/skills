@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: no-offer-subtitles-only
+expected_outcome: |
+  Claude writes talk.srt from transcript.json with about 3 words per subtitle and the word times. It does not
+  build an editable package or offer a studio copy: the person asked for a subtitle file, not a video.
+context:
+  scaffold_script: place-files.sh
