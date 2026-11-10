@@ -7,7 +7,7 @@ metadata:
   author: EditAtlas
   version: "0.1.0"
   status: draft
-  library: replace with techniques, templates, styles, sfx or several, separated by spaces
+  library: replace with techniques, templates, styles, sfx, studio or several, separated by spaces
   mcp-tools: replace with the MCP tools the skill calls, separated by spaces, or none
   internal: true  # hides this template from `npx skills add`; delete this line in your copy
 ---

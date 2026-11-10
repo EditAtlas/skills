@@ -27,7 +27,7 @@ In `metadata`:
 | `author` | `EditAtlas` for skills made by the project |
 | `version` | semantic version as a string, for example `"0.1.0"` |
 | `status` | `draft`, `beta` or `stable` |
-| `library` | which EditAtlas libraries the skill uses: `techniques`, `templates`, `styles`, `sfx` |
+| `library` | which EditAtlas libraries the skill uses: `techniques`, `templates`, `styles`, `sfx`, or `studio` for a skill that hands the person a project to edit in the EditAtlas Studio |
 | `mcp-tools` | the EditAtlas MCP tools the skill calls, separated by spaces, or `none` |
 
 The `library` and `mcp-tools` keys let the EditAtlas website list each skill next to the library it works with
