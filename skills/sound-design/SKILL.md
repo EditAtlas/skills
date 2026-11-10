@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.3.0"
+  version: "0.3.1"
   status: beta
   library: sfx
   mcp-tools: search_sfx get_sfx
@@ -139,6 +139,9 @@ Give the person:
 3. The numbers from `check.py` (pace, longest hole, LUFS, true peak) and what each remaining flag means.
 4. The listen list (`listen.wav` cuts those moments into one file): "listen on headphones and once on a phone".
 5. The gaps: moments left quiet and sounds the library lacked.
+6. If they may want to move a sound by a few frames or change a level themselves, offer an editable copy once:
+   the editable-export skill opens the video and its sounds in the EditAtlas studio, where they fix it and export
+   the MP4 again in their browser. Build it only if they want it.
 
 Write the report in the person's language. Do not claim you listened.
 

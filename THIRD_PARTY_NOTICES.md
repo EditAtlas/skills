@@ -17,5 +17,5 @@ Skills download sounds at run time from the public
 
 ## Runtime dependencies
 
-Skills call, but do not bundle: Python, numpy, Pillow, PyYAML (validation only) and FFmpeg. Each is used under its
+Skills call, but do not bundle: Python, numpy, Pillow, PyYAML (validation only), Playwright, cryptography and FFmpeg. Each is used under its
 own license.

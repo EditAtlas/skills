@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: apply-saved-changes
+expected_outcome: |
+  Claude builds a package from the person's saved edited.json (the hook 0.4 s later and size 90 instead of 80, the
+  click 3 dB softer), renders the MP4 from it with render.py, checks the file, and lists exactly those changes from a
+  comparison with project.json. It keeps the ids.
+context:
+  scaffold_script: place-files.sh
