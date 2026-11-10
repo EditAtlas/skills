@@ -12,7 +12,7 @@ own computer, without asking Claude to edit and render again. Things they can fi
 
 The copy is optional. Claude offers it when it delivers a video and builds it only when asked.
 
-Status: draft (0.2.0).
+Status: beta (0.3.0).
 
 ## How the person gets it
 
@@ -70,6 +70,25 @@ The studio page and the link service are in the EditAtlas website's repository, 
 
 ## Verified
 
+Beta (0.3.0), on 2026-11-10. The owner read the results and approved; the evidence for each beta condition:
+
+- **Every test case, with and without the skill.** A fresh agent ran all 7 cases in `evals/` against the production
+  studio and link service, once with only this skill and once with no skill. With the skill it passed 22 of 22
+  checks, without it 14 of 23, in 75 s against 124 s on average, with about the same tokens (68k a run). Without
+  the skill it rendered with its own FFmpeg script and Arial, so the MP4 can differ from the studio (3 cases); it
+  gave a JSON, a Python script and an ASS file instead of a studio copy for captions; it blurred burned-in captions
+  and drew new ones on top. It did re-implement the link from the public studio code and push version 3 correctly,
+  in 150 s against 71 s. `no-offer-subtitles-only` passed in both runs, so it shows only that the skill adds no
+  unwanted offer.
+- **Real results looked at.** Rendered files checked with ffprobe, frames and sound levels in every run; the
+  versions each run saved hold the person's values (size 96 or 90, click at 0.6 s or -9 dB) and pass `check`. The
+  studio itself was used by hand in Chrome on the owner's projects during 0.1 and 0.2.
+- **Studio and agent on one folder and one link.** The studio's flow test (53 checks), the folder round trip
+  `package.py` <-> studio (9 of 9) and the link round trip `share.py` <-> studio against production (26 of 26).
+- **Installs from the marketplace.** A fresh Claude Code with an empty config added the marketplace from GitHub
+  (v0.10.1) and installed the plugin, then ran it end to end with the production MCP to version 3 on one link.
+- Each case ran once per arm, so how much a run varies is not measured.
+
 0.2.0 (versions in the folder, no upload), on 2026-11-10, on a 12-thread Windows PC with Chrome 156:
 
 - `package.py` end to end on a 4 s 1080×1920 test package: `build` wrote version 1 and refused to build into the
@@ -106,9 +125,6 @@ Earlier (0.1.x), against a local copy of the studio:
 
 Not yet checked:
 
-- the studio reading and writing versions in a folder, and the light link (both are being changed to this format
-  at the same time); `share.py` against the real link service; the `continue-from-link` scaffold
-- a round trip between a person in the studio and an agent on one folder
 - the zip hand-over in a Claude.ai chat
 - Safari, Firefox, Mac
 - videos longer than a minute

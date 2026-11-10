@@ -28,9 +28,11 @@ obj = {"format": share.FORMAT, "version": n, "parent": info["version"], "by": "s
 if link.put_version(obj) != 201:
     sys.exit("studio_saves: the link refused the version")
 lines = "\n".join("- " + x for x in change_summary(was["project"], p))
+# The studio's own wording when the person opened the link without the folder (forAgent in studio-editor.js).
 Path("message.txt").write_text(
-    f'I fine-tuned "{p["title"]}" in EditAtlas Studio and saved it as version {n} in the project folder {folder.name}.\n\n'
-    f"What I changed since version {n - 1}:\n{lines}\n\nNext: {note}\n\n"
-    f"Continue from version {n} in that folder with the editable-export skill, and save your result there as the next "
-    f"version.\nLink: {link.url}\n", encoding="utf-8", newline="\n")
+    f'I fine-tuned "{p["title"]}" in EditAtlas Studio and saved it as version {n} on the studio link.\n'
+    f"Link: {link.url}\n\nWhat I changed since version {n - 1}:\n{lines}\n\nNext: {note}\n\n"
+    f"Continue from version {n} with the editable-export skill: pull it from the link into the project folder "
+    f"(share.py pull), and save your result as the next version there and on the link (share.py push).\n",
+    encoding="utf-8", newline="\n")
 print(f"version {n} on the link, by the studio")
