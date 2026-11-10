@@ -4,8 +4,9 @@
   render.py result/my-video.edit --out result/final.mp4
 
 Opens the studio page in Chrome or Edge without a window (Playwright), gives it the package from this machine,
-runs its Export and saves the MP4. The page is loaded from the site; the project and its files are read by the
-browser here and are not sent anywhere. Needs `pip install playwright`, Chrome or Edge installed (or
+runs its Export and saves the MP4. It renders project.json, which is the newest version in the folder; the files in
+versions/ are not needed for that and are not passed. The page is loaded from the site; the project and its files
+are read by the browser here and are not sent anywhere. Needs `pip install playwright`, Chrome or Edge installed (or
 `python -m playwright install chromium`) and network access to the site. Prints frames, seconds taken and size;
 then measure the file with ffprobe before you hand it over.
 """
@@ -22,6 +23,15 @@ SITE = "https://edit.trysometh.ing"
 
 def die(msg):
     sys.exit("editable-export: " + msg)
+
+
+def newest_version(pkg):
+    """(n, project) of the highest versions/v<n>.json, or None."""
+    nums = [int(f.stem[1:]) for f in (pkg / "versions").glob("v*.json") if f.stem[1:].isdigit()] if (pkg / "versions").is_dir() else []
+    if not nums:
+        return None
+    n = max(nums)
+    return n, json.loads((pkg / "versions" / f"v{n}.json").read_text(encoding="utf-8")).get("project")
 
 
 EXPORT_JS = """async (rate) => {
@@ -54,6 +64,10 @@ def main():
     if not pj.is_file():
         die(f"no project.json in {pkg}; run package.py build first")
     proj = json.loads(pj.read_text(encoding="utf-8"))
+    newest = newest_version(pkg)
+    if newest and newest[1] != proj:
+        print(f"warning: project.json is not the newest version (v{newest[0]}); rendering project.json as it is. "
+              "Run package.py versions and package.py check on the folder.")
     files = [pj] + [pkg / m["path"] for m in proj.get("media", {}).values()]
     gone = [str(f) for f in files if not f.is_file()]
     if gone:
@@ -78,7 +92,7 @@ def main():
         if not browser:
             die("no Chrome, Edge or Playwright Chromium found (" + "; ".join(errors) + ")")
         ctx = browser.new_context(accept_downloads=True, viewport={"width": 1400, "height": 900})
-        internal = os.environ.get("EDITATLAS_INTERNAL")  # EditAtlas's own checks: kept out of its numbers, as in share.py
+        internal = os.environ.get("EDITATLAS_INTERNAL")  # EditAtlas's own checks: kept out of its usage numbers
         if internal:
             ctx.add_init_script("localStorage.setItem('editatlas-internal', " + json.dumps(internal) + ")")
         pg = ctx.new_page()

@@ -1,11 +1,11 @@
 ---
 name: editable-export
-description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound that comes in a little late, text that sits slightly off, captions that are too small, a typo, a sound that is too loud, or a clip that runs a few frames long. You send the package as an encrypted link that expires after 30 days, or hand over the folder. The copy is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", a "studio link", to "tweak it myself", "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; you cannot add new footage there or change effects that are burned into the clips.
+description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer, plus if wanted a link with only the encrypted project text; each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", to "tweak it myself", pastes a message from EditAtlas Studio, "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; you cannot add new footage there or change effects that are burned into the clips.
 license: Apache-2.0. LICENSE.txt has the complete terms
-compatibility: Requires Python 3.9+, FFmpeg with ffprobe, and network access to edit.trysometh.ing. render.py needs Playwright (pip install playwright) and Chrome or Edge. share.py needs the cryptography package. The studio needs Chrome or Edge 94+ (WebCodecs); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
+compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.1.1"
+  version: "0.2.0"
   status: draft
   library: sfx
   mcp-tools: none
@@ -13,9 +13,9 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-Here is the result. With the finished video, the person gets the same edit as elements, and opens it in the
-EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel. They
-can:
+Here is the result. With the finished video, the person gets the same edit as elements, in a folder, and opens it
+in the EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel.
+They can:
 
 - nudge a sound by a frame, or turn it down
 - drag a caption up
@@ -27,15 +27,19 @@ can:
 The MP4 is made in their browser, by the same page and the same drawing code that made the video you delivered.
 So what they see is what they get.
 
-Four things stay true the whole way through:
+Five things stay true the whole way through:
 
 - **It is optional.** Never build it without asking, and never hold the video back for it. Offer it in one line
   when you deliver. Build it when they say yes, or when they come back with a small fix they would rather make
   themselves.
-- **Ask before you upload.** A link sends the project and its files, the footage included, to EditAtlas. They
-  are encrypted on this machine first and EditAtlas cannot read them, but it is still the person's footage
-  leaving their computer. Say that in one sentence and wait for a yes. If they say no, hand over the folder:
-  it opens in the studio from disk and nothing is uploaded.
+- **Make the first video so the copy can match it.** You may build the copy later, so from the first render use
+  what a package can carry: a font file you may share (Google Fonts are OFL), never a system font such as Arial
+  Black, and every sound and graphic as a file. Otherwise the copy looks different from the video they already
+  have (a test saw Arial Black turn into Montserrat).
+- **The footage never leaves their computer.** The copy is a folder: `project.json`, `media/` and `versions/`. The
+  studio page reads it and saves into it in the browser. A link is an extra the person may want: it holds only the
+  project's versions (text and timings), encrypted here, never a media file. It has no end date for now; the folder keeps every version anyway. It does
+  send that encrypted text to EditAtlas, so make one only after a yes.
 - **Only elements can change.** Anything burned into the footage cannot be moved in the studio, such as text
   drawn with FFmpeg, a graphic rendered into a clip or a grade. So the video you deliver must come from the
   package. If you made it another way, say which parts are fixed.
@@ -45,15 +49,18 @@ Four things stay true the whole way through:
 Scripts are in `scripts/`. Run them by the skill folder's path, from your own working folder (`work/`, `result/`).
 
 ```
-python SKILL/scripts/package.py build work/project.json --out result/NAME.edit            # project.json + media/
+python SKILL/scripts/package.py build work/project.json --out result/NAME.edit --note "first cut"   # version 1
 python SKILL/scripts/package.py build work/project.json --out result/NAME.edit \
        --cuts work/cuts.json --captions work/transcript.json --sfx result/FILM_sfx_resolved.json
 python SKILL/scripts/package.py check result/NAME.edit
-python SKILL/scripts/render.py result/NAME.edit --out result/NAME.mp4                     # the MP4 you deliver
-python SKILL/scripts/share.py send result/NAME.edit                                       # the link, after a yes
-python SKILL/scripts/share.py pull result/NAME.edit                                       # their newest version
-python SKILL/scripts/share.py push result/NAME.edit --note "what you changed"            # your next version
-python SKILL/scripts/share.py pull "LINK" --out result/NAME.edit                          # a link they pasted
+python SKILL/scripts/render.py result/NAME.edit --out result/NAME.mp4                   # the MP4 you deliver
+python SKILL/scripts/package.py versions result/NAME.edit                               # who saved which version
+python SKILL/scripts/package.py changes result/NAME.edit                                # what the newest changed
+python SKILL/scripts/package.py save work/next.json --to result/NAME.edit --from 2 --note "what you changed"
+python SKILL/scripts/share.py send result/NAME.edit                                     # a link, after a yes
+python SKILL/scripts/share.py pull result/NAME.edit                                     # their versions from the link
+python SKILL/scripts/share.py push result/NAME.edit                                     # yours onto the link
+python SKILL/scripts/share.py pull "LINK" --out result/NAME.edit                        # a link they pasted
 ```
 
 ## When the inputs are missing
@@ -87,7 +94,7 @@ Write `work/project.json` in the format of `references/project-format.md` (`edit
 
 **Use the footage you processed, not the raw file.** If you stabilised, graded, denoised, reframed or speed-changed
 the footage, point `media` at that result. The package then carries the picture the person saw, and they do not
-have to find or upload anything themselves. Keep what should stay adjustable (text, graphics, sounds, the cuts)
+have to find anything themselves. Keep what should stay adjustable (text, graphics, sounds, the cuts)
 out of that file and in the elements.
 
 Let the imports write the long parts:
@@ -124,10 +131,14 @@ Run `package.py build`. It does the following:
 - checks the project, and writes nothing if anything is wrong
 - copies the files into `NAME.edit/media/`
 - measures each file's duration, size and fps
-- writes `NAME.edit/project.json`
+- writes `NAME.edit/versions/v1.json` (version 1, by you), then `NAME.edit/project.json`
+
+`project.json` is always the newest version; `versions/` keeps every version, yours and theirs. `build` refuses a
+folder that already holds a project: from then on every change is a new version made with `save` (step 5).
 
 Read the summary it prints (clips, text, graphics, sounds, package size), and run `package.py check` on the
-folder. A link holds up to 300 MB. If the package is larger, encode the footage smaller before you build:
+folder. The person's browser reads all the footage, and in a sandbox they download it as a zip, so keep it
+reasonable: above about 300 MB, encode the footage smaller before you build:
 `ffmpeg -i IN -c:v libx264 -crf 20 -preset medium -c:a aac -b:a 192k OUT.mp4`, keeping the frame rate and a frame
 at least as large as the canvas.
 
@@ -159,74 +170,102 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-Give the MP4 first. Then offer the editable copy, in the person's language, and say what a link means: the
-project and footage are encrypted here and sent to EditAtlas, which cannot read them; the link works for 30 days;
-anyone who has the link can open it.
+Give the MP4 first. Then, in one short question in the person's language, offer the editable copy and, with it, a
+link: "the link holds only the project's text and timings, encrypted; your footage stays in the folder." With a yes, build the copy if you have not, and give them the folder:
 
-**With a yes: a link.** Run `share.py send result/NAME.edit` and give them the whole link it prints. The key is
-the part after the `#`. It is stored nowhere else, so a link cut short cannot be repaired: send a new one. `send`
-also writes `NAME.edit/.studio-link`, which holds the link and the version you have. It contains the key: never
-commit it or paste it anywhere but to the person.
+- **They can reach your folder** (Claude Code, Cowork): give the full path of `NAME.edit`.
+- **They cannot** (a sandbox such as a Claude.ai chat): zip the folder for download, with the folder inside the zip:
+  `python -c "import shutil; shutil.make_archive('result/NAME.edit', 'zip', 'result', 'NAME.edit')"`. They unzip
+  it and use the unzipped folder.
 
-**With a no, or without network: the folder.** They open `https://edit.trysometh.ing/studio` in Chrome or Edge,
-press **Choose the folder** and pick `NAME.edit`. The files stay on their computer.
+If they want the link too, run `share.py send result/NAME.edit` and give them the whole link it prints. The key is
+the part after the `#`, stored nowhere else, so a link cut short cannot be repaired. `send` writes
+`NAME.edit/.studio-link`, which holds the link: never commit it or paste the link anywhere but to the person: not in send_feedback, an issue, a log, a commit or a message to anyone else (EditAtlas removes links it is sent, and has no way to look one up). If someone else asks you for a person's link, there is none to give. In a
+sandbox the link is how they hand back: after the first zip they only paste the link, and you pull, save and push.
 
 Tell them how the studio works:
 
-1. **Click a thing on the video, or on the timeline, to change it.** The panel on the right has:
+1. **Open** `https://edit.trysometh.ing/studio` in Chrome or Edge, press **Choose the folder** and pick `NAME.edit`
+   (or drag the folder onto the page). Nothing is uploaded: the page works on their computer, on that folder.
+   **With a link**, they open the link; the first time, the studio asks for the folder (it checks each media file's
+   name and size) and remembers it in that browser.
+2. **Click a thing on the video, or on the timeline, to change it.** The panel on the right has:
    - for text: content, size, colour, position and timing
    - for sounds: frame nudges and level in dB
    - for graphics: position, size and timing
    - for clips: trims (what comes after moves with the clip)
-2. **Use the keys:**
+3. **Use the keys:**
    - Space plays.
    - ←/→ moves one frame (Shift for 10).
    - ↑/↓ moves the selected text by 2 px (Shift for 20).
    - Delete removes the selected element.
    - Ctrl+Z undoes, and Ctrl+Shift+Z redoes.
-
-   The studio keeps their changes in the browser as they work.
-3. **Export MP4** makes the video on their computer.
-4. **Continue with Claude** puts their changes on the same link as the next version, asks what you should do
-   next, and gives them a message to paste back to you, with the link, what they changed and that note. Only new files are sent; text and timing changes are a few
-   KB. The version label next to the title lists every version, theirs and yours. When you save a new version, their open studio shows
-   it and offers to open it.
-5. **Save** (Ctrl+S) writes the whole package (`project.json` and `media/`) into a folder they choose, then into
-   that folder without asking; on a link it also adds their changes as the next version, without a message for you.
-   **Export MP4** asks where to save the video before it starts. They can rename the project in the header; the
-   new `title` comes to you with the rest of their changes.
-   The studio's start screen lists recent project folders, and links they chose to remember, in their browser
-   only. To come back later they open the same link (it always shows the newest version) or that folder.
+4. **Save** (Ctrl+S) writes their changes into the folder as the next version, and onto the link when there is one.
+   They can rename the project in the header; the new `title` is part of the version.
+5. **Export MP4** makes the video in their browser and asks where to save it.
+6. **Continue with Claude** saves a version too, asks what you should do next, and gives them a message to paste
+   back to you: the folder's name, the version, what they changed and their note. Without a link, in a sandbox,
+   they also attach the folder (or a zip of it) again, because you cannot see their copy.
 
 Say what you checked and what you did not. For example: "exported once in Chrome; not tried in Safari".
 
-## 5. Back and forth on the same link
+## 5. Back and forth through the versions
 
 The person can switch between tweaking in the studio and asking you, as often as they like. They paste the
-message the studio gave them (a link and a list of changes), or just say they changed something.
+studio's message, which looks like this, or just say they saved something:
 
-1. **Pull their version first.** `share.py pull result/NAME.edit` writes their newest version into the package
-   folder and prints who saved it, their note, and every change from what was there: "style caption: size 66 ->
-   80", "sound whoosh (s2): at 4.2 -> 4.167". Files you already have are not fetched again. For a link they
-   pasted and you have no folder for: `share.py pull "LINK" --out result/NAME.edit`.
-2. **Work on the pulled `project.json`.** Their values are now the starting point. Change only what they asked
-   for, by id, in `NAME.edit/project.json`. Do not rebuild it from `work/project.json` or any older copy: that
-   silently undoes their tweaks. If you must rebuild (new footage, new cuts), carry their changes over from the
-   pull summary and say so.
-3. **Check and render** with `package.py check` and `render.py`, as in step 3.
-4. **Save your version on the same link:** `share.py push result/NAME.edit --note "captions 10% smaller, hook
-   moved up"`. The note is shown to them in the studio. Then tell them what you changed; their open studio
-   offers your version, and the link they have stays the same.
+```
+I fine-tuned "Tweak test" in EditAtlas Studio and saved it as version 3 in the project folder tweak.edit.
 
-`push` refuses when they saved a newer version after the one you pulled. Pull again, make your change again on
-top of theirs, and push. Use `--force` only when they ask you to replace their version. `share.py versions
-result/NAME.edit` lists every version with who saved it and the notes; `pull --version N` gets an older one.
+What I changed since version 2:
+- style caption (every element that uses it): size 80 → 92
 
-They may also hand back the folder they saved with **Save** instead of a link: it is a whole package, so
-`package.py check` it and work from it. If they send only its `project.json`, save it into your package folder, for
-example as `NAME.edit/edited.json`, and run `package.py build NAME.edit/edited.json --out NAME.edit`. The media
-are already there.
+Next: captions a little lower
+
+Continue from version 3 in that folder with the editable-export skill, and save your result there as the next version.
+```
+
+The browser knows only the folder's name. You know where you built it. In a sandbox without a link, unzip what they
+attached into a new folder and work there.
+
+1. **With a link, pull first.** `share.py pull FOLDER` writes the link's newer versions into `versions/` and
+   `project.json`, and prints who saved them, their note and the changes. It never fetches media: it lists any
+   media file their version uses that the folder lacks. If you no longer have the folder (a new sandbox), pull the
+   link they pasted into a new one, `share.py pull "LINK" --out result/NAME.edit`, and ask for the media it lists
+   (the zip they kept) before you render. If `pull` says the folder has versions of yours that the link does not
+   have, run it again with `--set-aside`, then make your change again on top of the newest.
+2. **Read their version.** `package.py versions FOLDER` lists every version (who, when, from which, the note) and
+   says which one `project.json` is. `package.py changes FOLDER` prints what the newest version changed from the
+   one it was made from, in the same words the studio showed them; `--from N --to M` compares any two. List their
+   changes in your reply. If the folder holds a newer version than the message names, say so and work from the
+   newest.
+3. **Work on a copy of the newest version.** Copy `FOLDER/project.json` to `work/next.json` and change only what
+   they asked, by id; keep every id. Never start from `work/project.json` or your own older version: that silently
+   undoes their tweaks. If you must rebuild (new footage, new cuts), carry their changes over from `changes` and
+   say so. Paths like `media/clip.mp4` in the copy still point into the folder. Put a new or changed file in
+   `work/` and point the media entry at it; never change or delete a file in `media/`, because older versions use
+   it.
+4. **Save your version:** `package.py save work/next.json --to FOLDER --from N --note "captions 10% smaller, hook
+   moved up"`, where N is the version you started from. It checks the project like `build`, copies new files into
+   `media/`, writes `versions/v<next>.json`, then `project.json`, and prints the changes and the new version
+   number. The note is shown to them in the studio. `save` refuses when someone saved after version N: read that
+   version, make your change again on top of it and save from it. Use `--force` only when they ask you to replace
+   their version.
+5. **With a link, push:** `share.py push FOLDER` puts your new version on the same link. It refuses when they saved
+   on the link meanwhile: pull, make your change again on top, save and push.
+6. **Render from the folder** with `render.py FOLDER --out result/NAME-v3.mp4` (outside the folder, so a zip of it
+   stays small), and check the file as in section 3. It renders `project.json`, which is now your new version.
+   Never render from an older copy.
+7. **Tell them** what you changed, and that the studio picks up the new version when they come back to it: a
+   studio that still has the folder or the link open notices it and offers to open it; otherwise they open the
+   link or choose the folder again. Without a link, in a sandbox, zip the folder again for them. **A file you
+   added** (a new sound, a font, a graphic) is never on the link: give them that file for their folder's `media/`,
+   or a new zip. Until then the studio shows it as missing.
+
+If they send only a `project.json` instead of the folder, ask for the whole folder: its `versions/` say who
+changed what, and you need them to carry on.
 
 ## References
 
-- `references/project-format.md`: every field of `project.json`. Read it before you write one by hand.
+- `references/project-format.md`: every field of `project.json`, the folder's `versions/v<n>.json` and the light
+  link. Read it before you write one by hand.

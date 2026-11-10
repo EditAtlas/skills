@@ -33,8 +33,8 @@ Every file the edit uses, by id. `path` is relative to `project.json` (package.p
 | `image` | `path` (PNG with transparency, JPG, WebP, SVG; or an animated WebP, GIF or APNG for a motion graphic) |
 | `font` | `path` (TTF, OTF, WOFF, WOFF2), `family`, optional `weight` (400), `style` (`normal`/`italic`) |
 
-Use fonts you may redistribute (Google Fonts are OFL): the font file goes into the package, and into the link
-when the package is shared.
+Use fonts you may redistribute (Google Fonts are OFL): the font file goes into the package folder, which the
+person keeps and may pass on.
 
 ## tracks
 
@@ -194,3 +194,43 @@ exit, and a hold of at least 0.5 s between moves. A card's keys carry its words 
 
 Every clip and item has an `id` unique in the project. Keep ids stable when you rebuild a project, so a person's
 saved changes still match.
+
+## The package folder and its versions
+
+```
+NAME.edit/
+  project.json          the newest version's project: what the studio opens and render.py renders
+  media/...             every file any version uses; nothing is ever deleted from here
+  versions/v1.json      one file per version: 1, 2, 3 ... with no gaps
+```
+
+```json
+{"format": "editatlas-version/1", "version": 2, "parent": 1, "by": "studio", "name": "", "note": "captions bigger",
+ "made": "2026-11-10T12:00:00.000Z", "project": { ...the whole editatlas-project/1 object... }}
+```
+
+- `parent`: the version the writer opened and changed (`null` for version 1). Usually n-1; lower when someone saved
+  from an older version.
+- `by`: `agent` (written by `package.py`) or `studio` (the person). `name`: the agent's name, `""` for the studio.
+- `note`: at most 500 characters. From the studio, what the person wants next; from the agent, what it did.
+- `made`: ISO 8601 UTC. Media paths in `project` are relative to the folder (`media/...`).
+- A writer writes `versions/v<n>.json` first, then `project.json`, and never overwrites a version file. If the
+  newest version is higher than the one it opened, it refuses unless forced; forced, it still writes newest + 1,
+  with `parent` = the version it opened.
+- A folder with `project.json` and no `versions/` (made before versions) counts as version 1; the first save writes
+  it as `versions/v1.json` first.
+
+## The light link (optional)
+
+`https://edit.trysometh.ing/studio#<id>.<key>` holds the same versions, with the same numbers, and nothing else: no
+media. `share.py send` makes it, `push` adds the folder's newer versions, `pull` writes the link's newer versions
+into the folder. Links have no end date for now (`expires` is null). `NAME.edit/.studio-link` is
+`{"link": "<the whole link>", "version": <the newest version both have>}`; it holds the key, so it never goes into Git
+or a message other than to the person.
+
+- On the link, version n is the object `v<n>`: a 12-byte nonce, then AES-256-GCM of gzip of the UTF-8 JSON below,
+  with `editatlas-share/2|<id>|v<n>` as additional data. The write token is HKDF-SHA256 of the key (no salt, info
+  `editatlas-share/2 write`), sent as a Bearer token.
+- The JSON is the folder's version with `"format": "editatlas-share/2"` and a `media` list: every media id the
+  project uses, with its path in the folder and its size in bytes, so the studio can check the folder it is given.
+- Limits: a version at most 256 KiB encrypted; a link at most 2 MiB and 64 versions.

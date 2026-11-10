@@ -4,21 +4,21 @@
   "skills": [
     {
       "name": "editable-export",
-      "description": "Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound that comes in a little late, text that sits slightly off, captions that are too small, a typo, a sound that is too loud, or a clip that runs a few frames long. You send the package as an encrypted link that expires after 30 days, or hand over the folder. The copy is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for \"an editable version\", \"a project file\", a \"studio link\", to \"tweak it myself\", \"chỉnh lại chút\", \"tự sửa\", \"file để sửa\", \"chỉnh cỡ chữ\", or \"âm thanh bị trễ\" after an edit. It is not a full editor; you cannot add new footage there or change effects that are burned into the clips.",
-      "version": "0.1.1",
+      "description": "Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer, plus if wanted a link with only the encrypted project text; each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for \"an editable version\", \"a project file\", to \"tweak it myself\", pastes a message from EditAtlas Studio, \"chỉnh lại chút\", \"tự sửa\", \"file để sửa\", \"chỉnh cỡ chữ\", or \"âm thanh bị trễ\" after an edit. It is not a full editor; you cannot add new footage there or change effects that are burned into the clips.",
+      "version": "0.2.0",
       "status": "draft",
       "libraries": [
         "sfx"
       ],
       "mcp_tools": [],
-      "compatibility": "Requires Python 3.9+, FFmpeg with ffprobe, and network access to edit.trysometh.ing. render.py needs Playwright (pip install playwright) and Chrome or Edge. share.py needs the cryptography package. The studio needs Chrome or Edge 94+ (WebCodecs); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.",
+      "compatibility": "Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.",
       "license": "Apache-2.0. LICENSE.txt has the complete terms",
       "path": "skills/editable-export",
       "url": "https://github.com/EditAtlas/skills/tree/main/skills/editable-export",
       "plugin": "editable-export",
       "install_claude_code": "/plugin install editable-export@editatlas-skills",
       "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/editable-export.zip",
-      "eval_cases": 6
+      "eval_cases": 7
     },
     {
       "name": "sound-design",

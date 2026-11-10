@@ -1,8 +1,11 @@
 schema_version: "1.1"
 name: continue-from-link
 expected_outcome: |
-  Claude pulls version 2 from the link in message.txt (share.py pull), renders the final MP4 from it with render.py
-  and checks it. It lists the person's changes as they are in version 2: the title size 96 instead of 80 and the
-  click 0.1 s later (0.6 s), with their note. It does not render from its own older version 1 or invent changes.
+  The person's version 2 is only on the link. Claude pulls it into tweak.edit with share.py pull (no media come with
+  it; the folder already has them) and lists their changes: the title size 96 instead of 80 and the click 0.1 s later
+  (0.6 s), with their note. It moves the title up on a copy of version 2, keeping the ids and their values, saves it
+  as version 3 with package.py save --from 2, renders the final MP4 from tweak.edit with render.py and checks it, and
+  puts version 3 on the same link with share.py push. It does not make a new link, start from work/project.json or
+  version 1, or invent changes.
 context:
   scaffold_script: place-files.sh

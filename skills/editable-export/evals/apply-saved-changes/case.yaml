@@ -1,8 +1,10 @@
 schema_version: "1.1"
 name: apply-saved-changes
 expected_outcome: |
-  Claude renders the MP4 from the person's saved tweak.edit with render.py, checks the file, and lists exactly
-  the changes from a comparison with its own earlier work/project.json: the hook starts 0.4 s later (0.9 s), is
-  size 90 instead of 80, and the click is 3 dB softer (-9 dB). It keeps the ids and invents no other change.
+  The person pressed Save in the studio, which wrote tweak.edit/versions/v2.json and project.json. Claude renders the
+  MP4 from tweak.edit with render.py, checks the file, and lists exactly the person's changes in version 2 (from
+  package.py changes, or a comparison with version 1 or work/project.json): the hook starts 0.4 s later (0.9 s), is
+  size 90 instead of 80, and the click is 3 dB softer (-9 dB). It keeps the person's version as it is, saves no new
+  version since nothing more was asked, and invents no other change.
 context:
   scaffold_script: place-files.sh

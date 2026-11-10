@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Input: Claude's edit, sent to a real studio link, and a person's version 2 on it (needs network, Playwright and Chrome).
+# Input: Claude's edit in work/, its package folder tweak.edit (version 1) with a real light studio link, and the
+# person's version 2 on that link only (title size 96 instead of 80, click 0.1 s later), saved by a helper that acts
+# as the studio. message.txt is what the studio gives the person to paste back, with the link.
+# Needs network, the cryptography package, and the studio's share service; set EDITATLAS_INTERNAL for EditAtlas's own
+# runs so they stay out of its numbers. EDITATLAS_SITE points it at another studio (a local one).
 set -eu
 HERE="$(cd "$(dirname "$0")" && pwd)"
+SCRIPTS="$HERE/../../scripts"
 mkdir -p work
 cd work
 ffmpeg -v error -f lavfi -i testsrc2=size=1080x1920:rate=30:duration=6 -c:v libx264 -pix_fmt yuv420p clip.mp4
@@ -21,4 +26,6 @@ p = {"format": "editatlas-project/1", "title": "Tweak test",
 json.dump(p, open("project.json", "w"), indent=1)
 PY
 cd ..
-python "$HERE/make_link.py" "$HERE/../../scripts"
+python "$SCRIPTS/package.py" build work/project.json --out tweak.edit --note "title and click" > /dev/null
+python "$SCRIPTS/share.py" send tweak.edit --site "${EDITATLAS_SITE:-https://edit.trysometh.ing}" > /dev/null
+python "$HERE/studio_saves.py" "$SCRIPTS" tweak.edit > /dev/null

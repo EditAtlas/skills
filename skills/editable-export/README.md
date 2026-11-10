@@ -12,24 +12,34 @@ own computer, without asking Claude to edit and render again. Things they can fi
 
 The copy is optional. Claude offers it when it delivers a video and builds it only when asked.
 
-Status: draft (0.1.1).
+Status: draft (0.2.0).
 
 ## How the person gets it
 
-- **A link.** Claude encrypts the project and its files on the person's machine (AES-256-GCM), sends them to
-  EditAtlas and gives the person a link. The key is the part of the link after the `#`, which browsers never send
-  to a server, so EditAtlas stores bytes it cannot read. No account is needed. The link stops working after 30
-  days and the files are deleted. Claude asks before it uploads.
-- **A folder.** The person opens the studio, presses **Choose the folder** and picks the package. Nothing is
-  uploaded.
+A folder, `NAME.edit`, with `project.json`, `media/` and `versions/`. The person opens the studio in Chrome or
+Edge, presses **Choose the folder** and picks it. The page reads the folder and saves into it in the browser; the
+footage is never uploaded and there is no account. In a sandbox such as a Claude.ai chat, Claude zips the folder
+for download and the person unzips it.
+
+If the person wants it, Claude also makes a light link (`share.py send`, after a yes). It holds only the project's
+versions, the text and timings, gzipped and encrypted on their machine with AES-256-GCM; never a media file. The key
+is the part of the link after the `#`, which browsers never send to a server, so EditAtlas stores bytes it cannot
+read. Links have no end date for now; the folder keeps every version either way. The person opens the link and, the
+first time in that browser, chooses the folder for the media. In a sandbox the link is how they hand back: Claude
+pulls their version, saves its own and pushes it to the same link.
+
+Every save is a new version in `versions/` (`v1.json`, `v2.json` ...), by Claude or by the person, with a note.
+`project.json` is always the newest. So the person and Claude can take turns on the same folder: the studio's
+**Continue with Claude** gives the person a message to paste back, and Claude carries on from their version.
 
 ## Needs
 
 - Python 3.9+ and FFmpeg with ffprobe in PATH
-- Network access to `edit.trysometh.ing`
-- `render.py` (the video Claude delivers): `pip install playwright`, and Chrome or Edge installed
-- `share.py` (the link): `pip install cryptography`
-- The person: Chrome or Edge 94+ (the studio uses WebCodecs). Safari and Firefox are not tested.
+- `render.py` (the video Claude delivers): `pip install playwright`, Chrome or Edge installed, and network access
+  to `edit.trysometh.ing` to load the studio page (the files stay on the machine)
+- `share.py` (the optional link): `pip install cryptography`, and network access to `edit.trysometh.ing`
+- The person: Chrome or Edge 94+ (the studio uses WebCodecs, and saves into the folder). Safari and Firefox are
+  not tested.
 
 ## What the person can change
 
@@ -40,11 +50,10 @@ Status: draft (0.1.1).
 | Sounds and music | | nudge by a frame, level in dB, fades | move, trim, mute a track |
 | Clips | | trim in and out by a frame; what comes after moves with it | trim the edges |
 
-The studio also has undo and redo, keeps changes in the browser as the person works, makes the MP4 with
-**Export MP4**, saves with **Save** (the next version on a link, or the whole package into a folder on their computer). **Continue with Claude** adds their changes to the link
-as the next version and gives them a message for Claude; Claude pulls it, carries on from their values and pushes
-its own version to the same link, which their open studio offers. Motion graphics drawn in code stay elements as
-animated WebP images.
+The studio also has undo and redo, makes the MP4 with **Export MP4**, and saves the person's changes into the
+folder as the next version with **Save** (and onto the link, when there is one). **Continue with Claude** saves
+too and gives them a message for Claude; Claude reads their version (`share.py pull` first with a link), saves its own
+as the next one with `package.py save` (then `share.py push`), and the studio offers it when the person comes back. Motion graphics drawn in code stay elements as animated WebP images.
 
 ## Files
 
@@ -52,41 +61,42 @@ animated WebP images.
 |---|---|
 | `SKILL.md` | The workflow Claude follows |
 | `references/project-format.md` | `project.json`: an edit as elements (`editatlas-project/1`) |
-| `scripts/package.py` | Checks a project, imports transcribe's cuts and captions and sound-design's sounds, and writes `NAME.edit/` (project.json, media/) |
+| `scripts/package.py` | `build`: checks a project, imports transcribe's cuts and captions and sound-design's sounds, and writes `NAME.edit/` (version 1). `save`: Claude's next version. `versions`, `changes` (in the studio's words) and `check` |
 | `scripts/render.py` | Runs the studio's own export in Chrome or Edge without a window: the video Claude delivers |
-| `scripts/share.py` | `send` makes an encrypted link (version 1); `pull` gets the person's newest version and says what changed; `push` saves Claude's next version on the same link; `versions` lists them |
+| `scripts/share.py` | The optional link, project versions only: `send` makes it, `pull` writes the person's newer versions into the folder (never media; it lists media the folder lacks), `push` puts Claude's newer versions on it, `versions` lists them |
 | `evals/` | Test cases in the `claude plugin eval` layout |
 
-The studio page and the share service are in the EditAtlas website's repository, not here.
+The studio page and the link service are in the EditAtlas website's repository, not here.
 
 ## Verified
 
-On 2026-11-10, on a 12-thread Windows PC with Chrome 156, against a local copy of the studio:
+0.2.0 (versions in the folder, no upload), on 2026-11-10, on a 12-thread Windows PC with Chrome 156:
+
+- `package.py` end to end on a 4 s 1080×1920 test package: `build` wrote version 1 and refused to build into the
+  same folder again; a hand-written studio version 2 (hook size 96, click 0.1 s later) was listed by `versions` and
+  described by `changes` as the studio does; `save --from 2` wrote version 3 with a new sound and a changed file of
+  the same name (copied as `click-2.wav`, nothing overwritten); `save --from 1` was refused and named version 3 and
+  its author; `--force` wrote version 4 from 1; `check` passed, flagged a gap in the numbers and a `project.json`
+  edited without a version; a folder without `versions/` got its version 1 written on the first save.
+- `changes` gives the same lines as the studio's own `changeSummary` on 425 pairs of projects (25 made by hand, 400
+  random), run against the JS function in Node.
+- `render.py` on that package with `versions/`, against the production studio page: 120 frames in 2 s, H.264
+  1080×1920 30 fps with AAC 48 kHz, 4.01 s.
+- `share.py` sealing against a WebCrypto reference in Node (AES-GCM with the contract's additional data, HKDF write
+  token, gzip): 5 projects up to 7 KB sealed, Python sealed and Node opened, Node sealed and Python opened, the
+  write tokens were equal, and a wrong object name or share id was refused on both sides (25 of 25 checks).
+- `share.py` against a local mock of the link API (not the real server): send, a studio version put by the eval
+  helper, versions, pull, save and push; push refused after the studio saved meanwhile, pull refused the clash and
+  `--set-aside` resolved it; a studio version with a new logo listed the missing file; pull of the link into an empty
+  folder wrote 5 versions and listed the 3 missing media; an expired link (410) printed the server's message.
+
+Earlier (0.1.x), against a local copy of the studio:
 
 - **A 34.5 s 1080×1920 talking head.** It had 42 captions with word timing, a hook, a logo, 3 sounds, music and
-  3 clips cut from a 24 fps source: 23.1 MB in 8 files.
-  - `render.py`: 1035 frames in 45 s (23 frames/s), H.264 + AAC, 45.5 MB. Every frame was identical to an export
-    that seeks to every frame. In earlier runs of the same export code, 1 frame of 1035 showed the next source
-    frame.
-  - `share.py send`: 23.1 MB in 11 objects, 2 to 3 s to a server on the same machine.
-  - `share.py get` (now `pull`): all 8 files came back byte for byte, and `project.json` was identical. A link
-    with a wrong key was refused.
-- **The studio used like a person would, in Chrome.** These steps all did what they should:
-  - open the package from disk
-  - captions 66 → 84 px for all 42 at once, and a sound 2 frames earlier
-  - Share: a link in 3.5 s; what the server stored could not be read as text
-  - open the link in a fresh browser: 1.3 s, the changes were there, no file was missing
-  - change the hook and save again: about 9 KB sent
-  - Export MP4: 1035 frames in 26 to 28 s
-  - a link with a wrong key, and a link that does not exist, each gave a plain message
-- **The round trip on one link** (a script driving Chrome and `share.py`): 18 of 18 checks passed.
-  - `send` made version 1; the studio opened it, two changes were saved as version 2 with a note, and the message
-    for Claude named the link and both changes
-  - `pull` printed both changes and the note, and fetched no file again; a hook text change pushed as version 3
-    sent 0.01 MB
-  - the open studio showed "Version 3 ... by your agent: longer hook" and opened it with both sides' changes
-  - a studio save made while Claude pushed version 4 was stopped with a choice, then saved as version 5 from 3
-  - `push` from the stale folder was refused and told to pull; `versions` and the studio's list showed all five
+  3 clips cut from a 24 fps source: 23.1 MB in 8 files. `render.py`: 1035 frames in 45 s (23 frames/s), H.264 +
+  AAC, 45.5 MB. Every frame was identical to an export that seeks to every frame.
+- **The studio used like a person would, in Chrome:** open the package from disk; captions 66 → 84 px for all 42
+  at once, and a sound 2 frames earlier; Export MP4: 1035 frames in 26 to 28 s.
 - **Heavy graphics** (28 stickers, a full-frame overlay, 10 shadowed labels at once, 4 animated WebP graphics, zooming
   clips, 96 elements): preview frames took 3 ms or less to draw, no footage frame more than 100 ms off at the cuts,
   and 8 exported frames matched the preview at the same time (PSNR 32 to 41 dB, against 19 to 36 dB for the next
@@ -96,10 +106,12 @@ On 2026-11-10, on a 12-thread Windows PC with Chrome 156, against a local copy o
 
 Not yet checked:
 
-- the studio and the share service in production
-- upload speed over a real connection
+- the studio reading and writing versions in a folder, and the light link (both are being changed to this format
+  at the same time); `share.py` against the real link service; the `continue-from-link` scaffold
+- a round trip between a person in the studio and an agent on one folder
+- the zip hand-over in a Claude.ai chat
 - Safari, Firefox, Mac
 - videos longer than a minute
-- exporting in a visible browser window (the timings above are from Chrome without a window, which varied from
-  26 s to 90 s for the same 35 s video between runs)
+- exporting in a visible browser window (Chrome without a window varied from 26 s to 90 s for the same 35 s video
+  between runs)
 - real people using it

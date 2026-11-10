@@ -1,29 +1,39 @@
 """Turn a finished edit into an editable package: its elements and their files, for the EditAtlas studio.
 
-  package.py build work/project.json --out result/my-video.edit
-  package.py build work/project.json --out result/my-video.edit \
-      --cuts work/cuts.json --captions work/transcript.json --sfx result/film_sfx_resolved.json
+  package.py build work/project.json --out result/my-video.edit           # version 1
+  package.py build work/project.json --out result/my-video.edit       --cuts work/cuts.json --captions work/transcript.json --sfx result/film_sfx_resolved.json
   package.py check result/my-video.edit
+  package.py versions result/my-video.edit                                # who saved which version
+  package.py changes result/my-video.edit                                 # what the newest version changed
+  package.py save work/next.json --to result/my-video.edit --from 2 --note "hook shorter"   # your next version
 
 `build` checks project.json (references/project-format.md), copies every file it uses into OUT/media/, measures
-the footage and sounds, and writes OUT/project.json. The folder is what the studio opens (Choose the folder),
-what render.py renders and what share.py sends.
+the footage and sounds, and writes OUT/versions/v1.json, then OUT/project.json. The folder is what the studio
+opens on the person's computer and what render.py renders. Nothing is uploaded anywhere.
 
-Optional imports, so you do not write hundreds of elements by hand:
+The folder holds every version: versions/v1.json, v2.json ... (by "agent" or by "studio", with a parent and a
+note), and project.json is always the newest one. `save` adds your next version after the person's, and refuses
+when someone saved after the version you started from.
+
+Optional imports for build, so you do not write hundreds of elements by hand:
   --cuts cuts.json        transcribe's cut list -> the footage clips (the parts kept), for --cuts-media
   --captions FILE.json    transcribe's transcript.json -> caption elements with word timing (style "caption")
   --sfx RESOLVED.json     sound-design's _resolved.json -> sound elements at the same times and levels
 """
 import argparse
+import filecmp
 import json
+import math
 import os
 import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 FORMAT = "editatlas-project/1"
+VERSION_FORMAT = "editatlas-version/1"
 KINDS = {"video", "audio", "image", "font"}
 TRACK_KINDS = {"video", "text", "image", "audio"}
 
@@ -62,8 +72,18 @@ def probe(path):
 
 
 # ------------------------------------------------------------------ checking a project
+def find_file(path, bases):
+    """The file a media path names: relative to one of the bases (in order), or as given."""
+    for b in bases:
+        if (Path(b) / path).is_file():
+            return Path(b) / path
+    return Path(path) if Path(path).is_file() else None
+
+
 def check(p, base=None):
-    """A list of problems; empty when the project can be built."""
+    """A list of problems; empty when the project can be built. base: a folder, or a list of folders, that media
+    paths are relative to (None: do not look for the files)."""
+    bases = None if base is None else ([base] if isinstance(base, (str, Path)) else list(base))
     errs = []
     if p.get("format") != FORMAT:
         errs.append(f"format must be {FORMAT!r}")
@@ -79,7 +99,7 @@ def check(p, base=None):
             errs.append(f"media {mid}: kind must be one of {sorted(KINDS)}")
         if not m.get("path"):
             errs.append(f"media {mid}: no path")
-        elif base is not None and not (Path(base) / m["path"]).is_file() and not Path(m["path"]).is_file():
+        elif bases is not None and not find_file(m["path"], bases):
             errs.append(f"media {mid}: file not found: {m['path']}")
         if m.get("kind") == "font" and not m.get("family"):
             errs.append(f"media {mid}: a font needs its family name")
@@ -281,40 +301,67 @@ def import_sfx(p, resolved_path):
     return n
 
 
-# ------------------------------------------------------------------ build
-def cmd_build(a):
-    src = Path(a.project).resolve()
-    base = src.parent
-    p = json.loads(src.read_text(encoding="utf-8"))
-    p.setdefault("media", {})
-    p.setdefault("tracks", [])
-    p.setdefault("styles", {})
-    notes = []
-    if a.cuts:
-        n, d = import_cuts(p, a.cuts, a.cuts_media or first_video(p))
-        notes.append(f"footage: {n} clips from the cut list, {d:.2f} s kept")
-    if a.captions:
-        n, w = import_captions(p, a.captions, a.captions_media or first_video(p), a.words_per_caption,
-                               a.caption_style, a.max_chars)
-        notes.append(f"captions: {n} elements from {w} words")
-    if a.sfx:
-        notes.append(f"sounds: {import_sfx(p, a.sfx)} elements from the sound-design render")
-    errs = check(p, base)
-    if errs:
-        for e in errs:
-            print("error:", e)
-        die(f"{len(errs)} problem(s) in {src.name}; nothing written")
+# ------------------------------------------------------------------ the folder: media and versions
+def write_json(path, obj, new=False):
+    """UTF-8, indent 1, newline at the end. new=True never overwrites (a version file is written once)."""
+    with open(path, "x" if new else "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(obj, indent=1, ensure_ascii=False) + "\n")
 
-    out = Path(a.out)
-    (out / "media").mkdir(parents=True, exist_ok=True)
-    used = set()
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def version_files(folder):
+    """{n: path} of FOLDER/versions/v<n>.json, in order."""
+    d = Path(folder) / "versions"
+    out = {}
+    if d.is_dir():
+        for f in d.iterdir():
+            m = re.fullmatch(r"v([1-9]\d*)\.json", f.name)
+            if m and f.is_file():
+                out[int(m.group(1))] = f
+    return dict(sorted(out.items()))
+
+
+def read_version(f):
+    return json.loads(Path(f).read_text(encoding="utf-8"))
+
+
+def who(v):
+    return "the person (studio)" if v.get("by") == "studio" else f"{v.get('name') or 'an agent'} (agent)"
+
+
+def free_name(src, media_dir):
+    """A name in media/ for src: the same name when that file is already there with the same bytes, otherwise the
+    first name-2, name-3 ... that is free. A file already in media/ is never replaced: older versions may use it."""
+    stem, ext = os.path.splitext(re.sub(r"[^\w.\-]+", "-", src.name).strip("-") or "file")
+    k = 1
+    while True:
+        name = stem + ext if k == 1 else f"{stem}-{k}{ext}"
+        dst = media_dir / name
+        if not dst.exists() or (dst.is_file() and filecmp.cmp(src, dst, shallow=False)):
+            return name
+        k += 1
+
+
+def place_media(p, bases, out):
+    """Copy every file the project uses into OUT/media/ (new or changed files only; nothing is deleted), point the
+    project at them and measure the footage and sounds. Returns the bytes the project uses."""
+    media_dir = out / "media"
+    media_dir.mkdir(parents=True, exist_ok=True)
+    root = media_dir.resolve()
     total = 0
     for mid, m in p["media"].items():
-        f = (base / m["path"]) if (base / m["path"]).is_file() else Path(m["path"])
-        name = safe_name(f.name, used)
-        dst = out / "media" / name
-        if not dst.is_file() or dst.stat().st_size != f.stat().st_size:
-            shutil.copy2(f, dst)
+        f = find_file(m["path"], bases).resolve()
+        try:
+            name = f.relative_to(root).as_posix()            # already in this folder's media/
+            dst = f
+        except ValueError:
+            name = free_name(f, media_dir)
+            dst = media_dir / name
+            if not dst.is_file():
+                shutil.copy2(f, dst)
         m["path"] = "media/" + name
         if m["kind"] in ("video", "audio"):
             info = probe(dst)
@@ -328,9 +375,23 @@ def cmd_build(a):
                 d = p["media"][c["media"]].get("duration")
                 if d and c["out"] > d + 0.01:
                     die(f"clip {c['id']}: out {c['out']} is past the end of {c['media']} ({d} s)")
+    return total
 
-    (out / "project.json").write_text(json.dumps(p, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
 
+def write_version(out, p, n, parent, note, name):
+    """versions/v<n>.json first, then project.json, so project.json never holds what has no version file."""
+    (out / "versions").mkdir(parents=True, exist_ok=True)
+    v = {"format": VERSION_FORMAT, "version": n, "parent": parent, "by": "agent", "name": (name or "Claude")[:40],
+         "note": (note or "")[:500], "made": now_iso(), "project": p}
+    try:
+        write_json(out / "versions" / f"v{n}.json", v, new=True)
+    except FileExistsError:
+        die(f"versions/v{n}.json appeared while saving (someone saved at the same time); nothing written. "
+            f"Run package.py versions {out} and start again from the newest.")
+    write_json(out / "project.json", p)
+
+
+def print_summary(p, total, notes=()):
     dur = timeline_duration(p)
     counts = {k: sum(len(t.get("items") or t.get("clips") or []) for t in p["tracks"] if t["kind"] == k) for k in TRACK_KINDS}
     for n in notes:
@@ -339,22 +400,446 @@ def cmd_build(a):
           f"{counts['video']} clips, {counts['text']} text, {counts['image']} graphics, {counts['audio']} sounds")
     print(f"package {total / 1e6:.1f} MB in {len(p['media'])} files; footage: "
           + ", ".join(m["path"] for m in p["media"].values() if m["kind"] == "video"))
-    if total > 300e6:
-        print("warning: over 300 MB, more than a studio link holds. share.py says how to make the footage smaller.")
-    print("->", out)
+
+
+def load_project(path):
+    src = Path(path).resolve()
+    p = json.loads(src.read_text(encoding="utf-8"))
+    p.setdefault("media", {})
+    p.setdefault("tracks", [])
+    p.setdefault("styles", {})
+    return src, p
+
+
+def report_errors(errs, src):
+    if errs:
+        for e in errs:
+            print("error:", e)
+        die(f"{len(errs)} problem(s) in {src.name}; nothing written")
+
+
+# ------------------------------------------------------------------ build: version 1
+def cmd_build(a):
+    src, p = load_project(a.project)
+    out = Path(a.out)
+    if version_files(out) or (out / "project.json").is_file():
+        die(f"{out} already holds a project and its versions. To add your next version, edit a copy of its "
+            f"project.json and run: package.py save COPY.json --to {out} --from N (N: the version you started from; "
+            f"package.py versions {out} lists them). If the person has not had this folder yet, you may delete it "
+            "and build again.")
+    notes = []
+    if a.cuts:
+        n, d = import_cuts(p, a.cuts, a.cuts_media or first_video(p))
+        notes.append(f"footage: {n} clips from the cut list, {d:.2f} s kept")
+    if a.captions:
+        n, w = import_captions(p, a.captions, a.captions_media or first_video(p), a.words_per_caption,
+                               a.caption_style, a.max_chars)
+        notes.append(f"captions: {n} elements from {w} words")
+    if a.sfx:
+        notes.append(f"sounds: {import_sfx(p, a.sfx)} elements from the sound-design render")
+    report_errors(check(p, src.parent), src)
+    total = place_media(p, [src.parent], out)
+    write_version(out, p, 1, None, a.note, a.name)
+    print_summary(p, total, notes)
+    print("->", out, "(version 1)")
+
+
+# ------------------------------------------------------------------ save: the agent's next version
+def cmd_save(a):
+    src, p = load_project(a.project)
+    out = Path(a.to)
+    if not (out / "project.json").is_file():
+        die(f"no project.json in {out}; run package.py build first")
+    have = version_files(out)
+    if not have:                                     # made before versions: project.json counts as version 1
+        old = json.loads((out / "project.json").read_text(encoding="utf-8"))
+        write_version(out, old, 1, None, "", "Claude")
+        print(f"{out} had no versions/: wrote its project.json as version 1")
+        have = version_files(out)
+    newest = max(have)
+    if a.from_ not in have:
+        die(f"there is no version {a.from_} in {out}; it has " + ", ".join(f"v{n}" for n in have))
+    if newest > a.from_ and not a.force:
+        v = read_version(have[newest])
+        die(f"version {newest} was saved by {who(v)} at {v.get('made')}, after version {a.from_}"
+            + (f' (note: "{v["note"]}")' if v.get("note") else "") + ". Nothing written. Read it with package.py "
+            f"changes {out}, make your change on top of its project.json and save with --from {newest}. Use --force "
+            f"only to save from version {a.from_} anyway.")
+    report_errors(check(p, [out, src.parent]), src)
+    total = place_media(p, [out, src.parent], out)
+    n = newest + 1
+    write_version(out, p, n, a.from_, a.note, a.name)
+    print_summary(p, total)
+    lines = change_summary(read_version(have[a.from_]).get("project") or {}, p)
+    print(f"changes from version {a.from_}:" if lines else f"no changes from version {a.from_}")
+    for line in lines:
+        print("-", line)
+    print("->", out, f"(version {n}, from version {a.from_}"
+          + (f"; saved over version {newest} with --force" if newest > a.from_ else "") + ")")
+    print(f"version {n}")
+
+
+# ------------------------------------------------------------------ versions and changes
+def cmd_versions(a):
+    out = Path(a.folder)
+    have = version_files(out)
+    pj = out / "project.json"
+    if not have:
+        print(f"{out}: no versions/ yet" + (": project.json counts as version 1" if pj.is_file() else ""))
+        return
+    current = json.loads(pj.read_text(encoding="utf-8")) if pj.is_file() else None
+    match = None
+    for n in sorted(have, reverse=True):
+        v = read_version(have[n])
+        if match is None and current is not None and v.get("project") == current:
+            match = n
+        par = "first" if v.get("parent") is None else f"from v{v['parent']}"
+        print(f"v{n}  {who(v)}  {v.get('made')}  {par}" + (f'  "{v["note"]}"' if v.get("note") else ""))
+    newest = max(have)
+    if current is None:
+        print("project.json: missing")
+    elif match == newest:
+        print(f"project.json = v{newest} (the newest)")
+    elif match:
+        print(f"project.json = v{match}, not the newest (v{newest})")
+    else:
+        print("project.json matches no version: it was edited without saving a version")
+
+
+def cmd_changes(a):
+    out = Path(a.folder)
+    have = version_files(out)
+    if not have:
+        die(f"{out} has no versions/")
+    to = a.to or max(have)
+    if to not in have:
+        die(f"there is no version {to} in {out}")
+    vt = read_version(have[to])
+    frm = a.from_ if a.from_ is not None else vt.get("parent")
+    print(f"v{to} by {who(vt)}, {vt.get('made')}" + ("" if vt.get("parent") is None else f", from v{vt['parent']}"))
+    if vt.get("note"):
+        print("note:", vt["note"])
+    if frm is None:
+        print(f"v{to} is the first version; nothing to compare it with")
+        return
+    if frm not in have:
+        die(f"there is no version {frm} in {out}")
+    lines = change_summary(read_version(have[frm])["project"], vt["project"])
+    print(f"changes from v{frm} to v{to}:" if lines else f"no changes from v{frm} to v{to}")
+    for line in lines:
+        print("-", line)
+
+
+# ------------------------------------------------------------------ what changed, in the studio's words
+# A port of the studio's changeSummary(a, b), so the agent and the person read the same lines. JS details kept:
+# JSON.stringify for equality, `||` (an empty list is truthy), Math.round, String(number), UTF-16 string lengths.
+MISSING = object()                                    # JS undefined
+NAMES = {"at": "start", "dur": "length", "in": "in point", "out": "out point", "gain_db": "volume (dB)",
+         "fade_in": "fade in", "fade_out": "fade out", "x": "x", "y": "y", "width": "width", "size": "size",
+         "text": "text", "color": "colour", "rotation": "rotation", "opacity": "opacity", "volume": "volume",
+         "scale": "zoom", "zoom_to": "zoom at the end", "style": "style"}
+
+
+def js_truthy(v):
+    if v is MISSING or v is None or v is False:
+        return False
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return not (v == 0 or v != v)
+    return v != ""
+
+
+def js_or(*vs):
+    for v in vs[:-1]:
+        if js_truthy(v):
+            return v
+    return vs[-1]
+
+
+def js_num(x):
+    """String(x) for a JS number."""
+    if isinstance(x, int):
+        return str(x)
+    if x != x:
+        return "NaN"
+    if x in (math.inf, -math.inf):
+        return "Infinity" if x > 0 else "-Infinity"
+    if x == 0:
+        return "0"
+    sign, s = ("-" if x < 0 else ""), repr(abs(x))
+    mant, _, e = s.partition("e")
+    ip, _, fp = mant.partition(".")
+    digits, exp = (ip + fp).lstrip("0"), int(e or 0) - len(fp)
+    while digits.endswith("0"):
+        digits, exp = digits[:-1], exp + 1
+    k, n = len(digits), len(digits) + exp           # value = 0.digits * 10^n
+    if k <= n <= 21:
+        return sign + digits + "0" * (n - k)
+    if 0 < n <= 21:
+        return sign + digits[:n] + "." + digits[n:]
+    if -6 < n <= 0:
+        return sign + "0." + "0" * -n + digits
+    ee = n - 1
+    return sign + (digits if k == 1 else digits[0] + "." + digits[1:]) + "e" + ("+" if ee >= 0 else "-") + str(abs(ee))
+
+
+ESCAPES = {'"': '\\"', "\\": "\\\\", "\b": "\\b", "\f": "\\f", "\n": "\\n", "\r": "\\r", "\t": "\\t"}
+
+
+def js_str(s):
+    """JSON.stringify for a string (control characters and lone surrogates escaped, as JS does)."""
+    out = []
+    for ch in s:
+        o = ord(ch)
+        if ch in ESCAPES:
+            out.append(ESCAPES[ch])
+        elif o < 0x20 or 0xD800 <= o <= 0xDFFF:
+            out.append(f"\\u{o:04x}")
+        else:
+            out.append(ch)
+    return '"' + "".join(out) + '"'
+
+
+def js_keys(o):
+    """Object.keys order: array-index keys ascending, then the rest in insertion order."""
+    if not isinstance(o, dict):
+        return []
+    idx = [k for k in o if re.fullmatch(r"0|[1-9]\d*", k) and int(k) < 4294967295]
+    return sorted(idx, key=int) + [k for k in o if k not in idx]
+
+
+def js_json(v):
+    """JSON.stringify(v); MISSING (undefined) gives None, as JS gives undefined."""
+    if v is MISSING:
+        return None
+    if v is None:
+        return "null"
+    if v is True or v is False:
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return "null" if isinstance(v, float) and (v != v or v in (math.inf, -math.inf)) else js_num(v)
+    if isinstance(v, str):
+        return js_str(v)
+    if isinstance(v, list):
+        return "[" + ",".join(js_json(x) or "null" for x in v) + "]"
+    if isinstance(v, dict):
+        return "{" + ",".join(js_str(k) + ":" + js_json(v[k]) for k in js_keys(v) if v[k] is not MISSING) + "}"
+    return js_str(str(v))
+
+
+def u16_slice(s, n):
+    """s.slice(0, n), counted in UTF-16 units as JS does."""
+    return s.encode("utf-16-le", "surrogatepass")[:2 * n].decode("utf-16-le", "surrogatepass")
+
+
+def u16_len(s):
+    return len(s.encode("utf-16-le", "surrogatepass")) // 2
+
+
+def js_template(v):
+    """`${v}` in a JS template string."""
+    if v is MISSING:
+        return "undefined"
+    if v is None:
+        return "null"
+    if v is True or v is False:
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return js_num(v)
+    if isinstance(v, list):
+        return ",".join("" if x is None or x is MISSING else js_template(x) for x in v)
+    if isinstance(v, dict):
+        return "[object Object]"
+    return str(v)
+
+
+def js_is(a, b):
+    """a === b for values read from JSON."""
+    if a is MISSING or b is MISSING or a is None or b is None or isinstance(a, bool) or isinstance(b, bool):
+        return a is b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return a == b
+    if isinstance(a, str) and isinstance(b, str):
+        return a == b
+    return a is b
+
+
+def get(o, k):
+    return o.get(k, MISSING) if isinstance(o, dict) else MISSING
+
+
+def r3(x):
+    """Math.round(x * 1000) / 1000 (Math.round: halves go up)."""
+    y = x * 1000
+    if y != y or y in (math.inf, -math.inf):
+        return y
+    r = math.floor(y)
+    return (r + 1 if y - r >= 0.5 else r) / 1000
+
+
+def val(v):
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return js_num(r3(v))
+    if isinstance(v, str):
+        return js_str(u16_slice(v, 48) + "…" if u16_len(v) > 48 else v)
+    if v is None or v is MISSING:
+        return "none"
+    return u16_slice(js_json(v), 60)
+
+
+def change_summary(a, b):
+    """The studio's changeSummary(a, b): lines that say what changed from project a to project b."""
+    out = []
+
+    def keys(*os):
+        return list(dict.fromkeys(k for o in os for k in js_keys(js_or(o, {}))))
+
+    def same(x, y):
+        return js_json(x) == js_json(y)
+
+    def name(k):
+        return NAMES.get(k) or k.replace("_", " ")
+
+    def find(lst, i):
+        return next((x for x in lst if js_is(get(x, "id"), i)), None)
+
+    def label(tr, it):
+        kind, i = get(tr, "kind"), js_template(get(it, "id"))
+        if kind == "text":
+            return f"text {val(get(it, 'text'))} ({i})"
+        if kind == "audio":
+            return f"sound {js_template(js_or(get(it, 'label'), get(it, 'media')))} ({i})"
+        if kind == "video":
+            return f"clip {i}"
+        return f"graphic {js_template(get(it, 'media'))} ({i})"
+
+    ta_title, tb_title = js_or(get(a, "title"), ""), js_or(get(b, "title"), "")
+    if not js_is(ta_title, tb_title):
+        out.append(f"project name {val(ta_title)} → {val(tb_title)}")
+    sa, sb = js_or(get(a, "styles"), {}), js_or(get(b, "styles"), {})
+    for k in keys(get(a, "styles"), get(b, "styles")):
+        x, y = get(sa, k), get(sb, k)
+        if not js_truthy(x):
+            out.append(f"style {k}: added")
+        elif not js_truthy(y):
+            out.append(f"style {k}: removed")
+        else:
+            for f in keys(x, y):
+                if not same(get(x, f), get(y, f)):
+                    out.append(f"style {k} (every element that uses it): {name(f)} {val(get(x, f))} → {val(get(y, f))}")
+    tracks_a, tracks_b = js_or(get(a, "tracks"), []), js_or(get(b, "tracks"), [])
+    for tb in tracks_b:
+        ta = find(tracks_a, get(tb, "id"))
+        tname = js_template(js_or(get(tb, "name"), get(tb, "id")))
+        if ta is None:
+            out.append(f"track {tname}: added")
+            continue
+        if js_truthy(get(ta, "hidden")) != js_truthy(get(tb, "hidden")):
+            out.append(f"track {tname}: {'hidden' if js_truthy(get(tb, 'hidden')) else 'shown'}")
+        if js_truthy(get(ta, "muted")) != js_truthy(get(tb, "muted")):
+            out.append(f"track {tname}: {'muted' if js_truthy(get(tb, 'muted')) else 'unmuted'}")
+        ia = js_or(get(ta, "clips"), get(ta, "items"), [])
+        ib = js_or(get(tb, "clips"), get(tb, "items"), [])
+        for it in ia:
+            if find(ib, get(it, "id")) is None:
+                out.append(f"{label(ta, it)}: removed")
+        for it in ib:
+            was = find(ia, get(it, "id"))
+            if was is None:
+                out.append(f"{label(tb, it)}: added")
+                continue
+            for f in keys(was, it):
+                if not same(get(was, f), get(it, f)):
+                    out.append(f"{label(tb, was)}: word timings" if f == "words" else
+                               f"{label(tb, was)}: {name(f)} {val(get(was, f))} → {val(get(it, f))}")
+        if js_truthy(get(tb, "clips")) and not same([get(c, "id") for c in ia],
+                                                    [get(c, "id") for c in ib if find(ia, get(c, "id")) is not None]):
+            out.append(f"track {tname}: clips in a new order")
+    for ta in tracks_a:
+        if find(tracks_b, get(ta, "id")) is None:
+            out.append(f"track {js_template(js_or(get(ta, 'name'), get(ta, 'id')))}: removed")
+    return out
+
+
+# ------------------------------------------------------------------ check
+def check_folder(d):
+    """Problems and warnings for the versions in a package folder."""
+    errs, warns = [], []
+    have = version_files(d)
+    pj = d / "project.json"
+    if not have:
+        if pj.is_file():
+            warns.append("no versions/ yet: project.json counts as version 1 (the first save writes versions/v1.json)")
+        return errs, warns
+    nums = list(have)
+    if nums != list(range(1, len(nums) + 1)):
+        errs.append("version numbers must be 1, 2, 3 ... with no gaps; found " + ", ".join(f"v{n}" for n in nums))
+    newest = None
+    for n in nums:
+        where = f"versions/v{n}.json"
+        try:
+            v = read_version(have[n])
+        except ValueError as e:
+            errs.append(f"{where}: not JSON ({e})")
+            continue
+        if v.get("format") != VERSION_FORMAT:
+            errs.append(f"{where}: format must be {VERSION_FORMAT!r}")
+        if v.get("version") != n:
+            errs.append(f"{where}: says version {v.get('version')!r}")
+        par = v.get("parent")
+        if n == 1 and par is not None:
+            errs.append(f"{where}: version 1 has parent null")
+        if n > 1 and not (isinstance(par, int) and not isinstance(par, bool) and 1 <= par < n):
+            errs.append(f"{where}: parent must be an earlier version (1 to {n - 1}), not {par!r}")
+        if v.get("by") not in ("agent", "studio"):
+            errs.append(f"{where}: by must be 'agent' or 'studio'")
+        if not isinstance(v.get("name"), str):
+            errs.append(f"{where}: name must be text")
+        if not isinstance(v.get("note"), str) or len(v["note"]) > 500:
+            errs.append(f"{where}: note must be text of at most 500 characters")
+        try:
+            datetime.fromisoformat(str(v.get("made")).replace("Z", "+00:00"))
+        except ValueError:
+            errs.append(f"{where}: made must be an ISO 8601 time, not {v.get('made')!r}")
+        p = v.get("project")
+        if not isinstance(p, dict):
+            errs.append(f"{where}: no project")
+            continue
+        errs += [f"{where}: {e}" for e in check(p)]
+        for mid, m in (p.get("media") or {}).items():
+            if m.get("path") and not (d / m["path"]).is_file():
+                errs.append(f"{where}: media {mid}: {m['path']} is not in the folder")
+        if n == nums[-1]:
+            newest = p
+    if newest is not None and pj.is_file() and json.loads(pj.read_text(encoding="utf-8")) != newest:
+        warns.append(f"project.json is not the newest version (v{nums[-1]}): someone edited it without saving a "
+                     "version. See what differs before you render or hand it over.")
+    return errs, warns
+
+
+def cmd_check(a):
+    d = Path(a.package)
+    f = d / "project.json" if d.is_dir() else d
+    errs, warns = [], []
+    if f.is_file():
+        errs = check(json.loads(f.read_text(encoding="utf-8")), f.parent)
+    elif d.is_dir():
+        errs.append("no project.json")
+    else:
+        die(f"no such file or folder: {d}")
+    if d.is_dir():
+        e2, warns = check_folder(d)
+        errs += e2
+    for e in errs:
+        print("error:", e)
+    for w in warns:
+        print("warning:", w)
+    n = len(version_files(d)) if d.is_dir() else 0
+    print(f"{f}: " + ("ok" if not errs else f"{len(errs)} problem(s)") + (f", {n} versions" if n else ""))
+    sys.exit(1 if errs else 0)
 
 
 def first_video(p):
     return next((k for k, m in p["media"].items() if m.get("kind") == "video"), None) or die("no video in media")
-
-
-def safe_name(name, used):
-    stem, ext = os.path.splitext(re.sub(r"[^\w.\-]+", "-", name).strip("-") or "file")
-    n, k = stem + ext, 2
-    while n.lower() in used:
-        n, k = f"{stem}-{k}{ext}", k + 1
-    used.add(n.lower())
-    return n
 
 
 def timeline_duration(p):
@@ -368,22 +853,11 @@ def timeline_duration(p):
     return end
 
 
-def cmd_check(a):
-    d = Path(a.package)
-    f = d / "project.json" if d.is_dir() else d
-    p = json.loads(f.read_text(encoding="utf-8"))
-    errs = check(p, f.parent)
-    for e in errs:
-        print("error:", e)
-    print(f"{f}: " + ("ok" if not errs else f"{len(errs)} problem(s)"))
-    sys.exit(1 if errs else 0)
-
-
 def main():
     utf8_stdout()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    b = sub.add_parser("build", help="check, copy the files, write project.json")
+    b = sub.add_parser("build", help="check, copy the files, write versions/v1.json and project.json")
     b.add_argument("project")
     b.add_argument("--out", required=True, help="the package folder to write (NAME.edit)")
     b.add_argument("--cuts", help="transcribe's cuts.json: footage clips are the parts kept")
@@ -394,10 +868,26 @@ def main():
     b.add_argument("--words-per-caption", type=int, default=3)
     b.add_argument("--max-chars", type=int, default=24)
     b.add_argument("--sfx", help="sound-design's _resolved.json: sound elements at their rendered times and levels")
-    c = sub.add_parser("check", help="check a project.json or a package folder")
+    b.add_argument("--note", default="", help="what you made, kept with the version")
+    b.add_argument("--name", default="Claude", help="who saved it (default: %(default)s)")
+    s = sub.add_parser("save", help="your next version: check, add new files to media/, write versions/v<n>.json "
+                                    "and project.json")
+    s.add_argument("project", help="your edited copy of the folder's project.json")
+    s.add_argument("--to", required=True, help="the package folder (NAME.edit)")
+    s.add_argument("--from", dest="from_", type=int, required=True, help="the version you started from")
+    s.add_argument("--note", default="", help="what you changed, shown to the person in the studio")
+    s.add_argument("--name", default="Claude", help="who saved it (default: %(default)s)")
+    s.add_argument("--force", action="store_true", help="save even when someone saved after --from")
+    c = sub.add_parser("check", help="check a project.json, or a package folder and every version in it")
     c.add_argument("package")
+    v = sub.add_parser("versions", help="list the versions in a package folder, newest first")
+    v.add_argument("folder")
+    g = sub.add_parser("changes", help="what changed between two versions (default: the newest and its parent)")
+    g.add_argument("folder")
+    g.add_argument("--from", dest="from_", type=int)
+    g.add_argument("--to", type=int)
     a = ap.parse_args()
-    (cmd_build if a.cmd == "build" else cmd_check)(a)
+    {"build": cmd_build, "save": cmd_save, "check": cmd_check, "versions": cmd_versions, "changes": cmd_changes}[a.cmd](a)
 
 
 if __name__ == "__main__":
