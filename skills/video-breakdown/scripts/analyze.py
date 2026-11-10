@@ -14,7 +14,7 @@ import numpy as np
 
 from common import decode_audio, die, frame_size, grab, iter_frames, lufs, probe, sheet, utf8_stdout, write_json
 
-VERSION = "0.2.0"
+VERSION = "0.4.0"
 DEBUG = bool(__import__("os").environ.get("VB_DEBUG"))
 BANDS = 6  # horizontal bands for overlay events (top to bottom)
 
@@ -266,6 +266,95 @@ def _zoom(img, s):
     return img[yy][:, xx]
 
 
+def _largest_blob(mask):
+    """The largest 4-connected region of a small boolean mask."""
+    seen = np.zeros_like(mask, bool)
+    best, h, w = [], mask.shape[0], mask.shape[1]
+    for y0, x0 in zip(*np.nonzero(mask)):
+        if seen[y0, x0]:
+            continue
+        seen[y0, x0] = True
+        stack, comp = [(y0, x0)], []
+        while stack:
+            y, x = stack.pop()
+            comp.append((y, x))
+            for yy, xx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+                if 0 <= yy < h and 0 <= xx < w and mask[yy, xx] and not seen[yy, xx]:
+                    seen[yy, xx] = True
+                    stack.append((yy, xx))
+        if len(comp) > len(best):
+            best = comp
+    out = np.zeros_like(mask, bool)
+    if best:
+        ys, xs = zip(*best)
+        out[list(ys), list(xs)] = True
+    return out
+
+
+def shape_wipe(g, j, fps):
+    """A flat shape (a brand star, a circle, a panel) grows over the old picture until it covers the frame.
+    The part not yet covered must still be the old picture: that keeps fades through a colour out."""
+    n = len(g)
+    pad = max(2, int(fps * 0.25))  # the shape often starts growing before the frames that change most
+    lo, hi = max(0, j["s"] - pad), min(n - 1, j["e"] + 2)
+    if hi - lo < 4:
+        return None
+    A = g[lo]
+    cov, still_old, steady, masks = [], [], [], []
+    for m in range(lo, hi + 1):
+        f = g[m]
+        m1, m2 = _box(f, 2), _box(f * f, 2)
+        sd = np.sqrt(np.maximum(m2 - m1 * m1, 0))
+        new = (sd < 0.015) & (np.abs(f - A) > 0.06)
+        cov.append(float(new.mean()))
+        rest = ~_box(new.astype(np.float32), 2).astype(bool)
+        still_old.append(float((np.abs(f - A)[rest] < 0.06).mean()) if rest.sum() > 20 else 1.0)
+        # a shape keeps its colour while it grows; a fade or a flicker keeps changing it
+        both = new & masks[-1] if masks else new[:0]
+        steady.append(float((np.abs(f - g[m - 1])[both] < 0.02).mean()) if both.sum() > 20 else 1.0)
+        masks.append(new)
+    cov = np.array(cov)
+    top = int(cov.argmax())
+    if cov[top] < 0.75 or cov[0] > 0.1:
+        return None
+    # a designed shape is one to three flat colours; smooth footage (sky, a wall, a dark scene) spreads over many
+    vals = g[lo + top][masks[top]]
+    hist = np.bincount(np.clip((vals * 50).astype(int), 0, 50), minlength=51).astype(float)
+    held = 0.0
+    for _ in range(3):  # three colours, each allowed to spread over three neighbouring levels
+        i = int(np.convolve(hist, np.ones(3), mode="same").argmax())
+        held += hist[max(0, i - 1):i + 2].sum()
+        hist[max(0, i - 1):i + 2] = 0
+    if held < 0.9 * len(vals):
+        return None
+    grow = [k for k in range(1, top) if 0.08 <= cov[k] <= 0.7 and still_old[k] >= 0.7 and steady[k] >= 0.7]
+    if len(grow) < 2 or any(cov[i + 1] < cov[i] - 0.03 for i in range(grow[0], top)):
+        return None
+    k = grow[len(grow) // 2]
+    mk = _box(masks[k].astype(np.float32), 2) > 0.5  # close the holes paper grain or noise leaves in a flat shape
+    if mk.sum() < 20:
+        mk = masks[k]
+    h, w = mk.shape
+    yy, xx = np.nonzero(mk)
+    cx, cy = xx.mean() / w - 0.5, yy.mean() / h - 0.5
+    if max(abs(cx), abs(cy)) < 0.15:
+        where = "the centre"
+    elif abs(cx) >= abs(cy):
+        where = "the right" if cx > 0 else "the left"
+    else:
+        where = "the bottom" if cy > 0 else "the top"
+    blob = _largest_blob(mk)
+    if blob.sum() < 0.8 * mk.sum():
+        shape = "unclear (several pieces: look at the frames)"
+    else:
+        by, bx = np.nonzero(blob)
+        fill = float(blob.sum() / ((bx.max() - bx.min() + 1) * (by.max() - by.min() + 1)))
+        shape = "a straight-edged panel or bar" if fill > 0.85 else "a curved or pointed shape (circle, star, blob, logo)"
+    first = lo + grow[0]
+    return {"kind": "shape wipe", "shape": shape, "from": where,
+            "cover_seconds": round((lo + top - first + 1) / fps, 2)}
+
+
 def classify(j, gray, stats, mot, fps):
     g = gray.astype(np.float32) / 255
     n = len(g)
@@ -284,10 +373,15 @@ def classify(j, gray, stats, mot, fps):
         if s != 1.0:
             out["scale"] = round(s, 2)
         return out
+    sw = shape_wipe(g, j, fps)
+    if sw:
+        out.update(sw)
+        return out
     if lo < 0.07 and lo < edge[0] - 0.08:
         out["kind"] = "dip to black" if out["seconds"] >= 0.2 else "black flash"
         return out
-    if hi > 0.82 and hi > edge[1] + 0.12:
+    # a flash is brighter than the pictures on both sides; a cut to a bright picture is not a flash
+    if hi > 0.82 and hi > edge[1] + 0.12 and hi > max(lum[a], lum[b]) + 0.06:
         out["kind"] = "dip to white" if out["seconds"] >= 0.25 else "white flash"
         return out
     bright = lum[j["s"]: j["e"] + 1]
@@ -463,10 +557,80 @@ def describe_shot(a, b, mot, stats, gray, fps, w_px):
                 out["speed_change"] = {"slow_at": round((a + int(w.argmin()) + k / 2) / fps, 2),
                                        "fast_at": round((a + int(w.argmax()) + k / 2) / fps, 2),
                                        "ratio": round(hi / max(lo, 0.0015), 1)}
+        t = shot_timing(d, fps)
+        if t:
+            out["timing"] = t
     st = stats[a:b]
     out["look"] = look(st, gray[a:b])
     out["camera"] = camera_words(out)
     return out
+
+
+STILL = 0.0015  # mean change between frames below this is a still picture
+
+
+def _runs(mask):
+    runs, start = [], None
+    for i, v in enumerate(mask):
+        if v and start is None:
+            start = i
+        elif not v and start is not None:
+            runs.append((start, i))
+            start = None
+    if start is not None:
+        runs.append((start, len(mask)))
+    return runs
+
+
+def _shape(seg):
+    if len(seg) < 4:
+        return None
+    h = len(seg) // 2
+    r = float(seg[:h].mean() / (seg[h:].mean() + 1e-6))
+    return "fast, then settles" if r > 1.6 else ("slow, then speeds up" if r < 1 / 1.6 else "even speed")
+
+
+def shot_timing(d, fps):
+    """How a designed shot moves: how long things take to come in, how long it holds still, how they leave.
+    d is the mean change between neighbouring frames of the shot."""
+    n = len(d)
+    if n < fps * 0.6:
+        return None
+    still = d < STILL
+    holds = [r for r in _runs(still) if r[1] - r[0] >= max(2, round(fps * 0.2))]
+    if not holds:
+        return None
+    share = float(still.mean())
+    t = {"still_share": round(share, 2)}
+    edge = max(1, round(fps * 0.1))
+    if holds[0][0] >= edge:
+        seg = d[:holds[0][0]]
+        t["enter_s"] = round(holds[0][0] / fps, 2)
+        t["enter"] = _shape(seg)
+    if n - holds[-1][1] >= edge:
+        seg = d[holds[-1][1]:]
+        t["exit_s"] = round((n - holds[-1][1]) / fps, 2)
+        t["exit"] = _shape(seg)
+    between = [r for r in _runs(~still[holds[0][0]:holds[-1][1]]) if r[1] - r[0] >= 2]
+    if between:
+        t["moves_while_holding"] = len(between)
+    if "enter_s" in t and "exit_s" in t:
+        e, x = t["enter_s"], t["exit_s"]
+        t["exit_mirrors_entrance"] = bool(abs(e - x) <= 0.3 * max(e, x) + 1 / fps and t["enter"] == "fast, then settles"
+                                          and t["exit"] == "slow, then speeds up")
+    if share >= 0.2:
+        words = []
+        if "enter_s" in t:
+            words.append(f"comes in over {t['enter_s']} s" + (f", {t['enter']}" if t["enter"] else ""))
+        words.append(f"still for {round(share * 100)} % of the shot")
+        if t.get("moves_while_holding"):
+            words.append(f"{t['moves_while_holding']} smaller move(s) while it holds")
+        if "exit_s" in t:
+            words.append(f"leaves over {t['exit_s']} s" + (f", {t['exit']}" if t["exit"] else ""))
+        if t.get("exit_mirrors_entrance"):
+            words.append("the exit plays the entrance backwards")
+        t["words"] = words
+    return t
 
 
 def camera_words(m):
@@ -864,9 +1028,15 @@ def main():
     text_bands = {}
     for e in events:
         text_bands[e["area"]] = text_bands.get(e["area"], 0) + 1
+    fmt_out = {"width": w, "height": h, "shape": fmt, "fps": info["fps"], "duration": round(info["duration"], 3),
+               "analysed_s": round(n / fps, 2), "analysis_fps": round(fps, 2)}
+    # made to loop: the last frame is the first again, after something moved (a fade from and to black does not count)
+    g0, g1 = gray[0].astype(np.float32) / 255, gray[-1].astype(np.float32) / 255
+    if (n / fps >= dur - 0.2 and float(np.abs(g0 - g1).mean()) < 0.01 and g0.std() > 0.05
+            and max((s.get("activity", 0) for s in shots), default=0) > 0.2):
+        fmt_out["loops"] = True
     result = {"tool": f"video-breakdown analyze.py {VERSION}", "video": str(Path(a.video).resolve()),
-              "format": {"width": w, "height": h, "shape": fmt, "fps": info["fps"], "duration": round(info["duration"], 3),
-                         "analysed_s": round(n / fps, 2), "analysis_fps": round(fps, 2)},
+              "format": fmt_out,
               "pacing": pacing,
               "joins": [{k: v for k, v in j.items() if not k.startswith("_")} for j in joins],
               "shots": shots,
@@ -875,13 +1045,16 @@ def main():
     write_json(out / "breakdown.json", result)
     sheets = draw(a.video, info, result, out)
     # summary for the terminal
-    print(f"{fmt}, {info['duration']:.2f} s at {info['fps']} fps; {len(shots)} shots, {len(joins)} joins {kinds}")
+    print(f"{fmt}, {info['duration']:.2f} s at {info['fps']} fps; {len(shots)} shots, {len(joins)} joins {kinds}"
+          + ("; the last frame is the first again: made to loop" if fmt_out.get("loops") else ""))
     print(f"pacing: median shot {pacing['median_shot_s']} s, {pacing['cuts_per_minute']} joins/min")
     for j in result["joins"]:
-        extra = ", ".join(f"{k} {j[k]}" for k in ("from", "moves", "scale") if k in j)
+        extra = ", ".join(f"{k} {j[k]}" for k in ("shape", "from", "moves", "scale", "cover_seconds") if k in j)
         print(f"  join {j['at']:7.2f}s  {j['kind']:<24} {j['seconds']} s {extra}")
     for s in shots:
         print(f"  shot {s['n']:>2} {s['start']:6.2f}-{s['end']:6.2f}s  {'; '.join(s['camera'])}  | look: {', '.join(s['look']['words']) or '-'}")
+        if s.get("timing", {}).get("words"):
+            print(f"           timing: {'; '.join(s['timing']['words'])}")
     print(f"overlay events: {len(events)} {text_bands}; persistent regions: {len(result['overlays']['persistent'])}")
     if aud.get("has_audio"):
         mu = aud.get("music", {})

@@ -4,7 +4,7 @@
 audio at 22 kHz. Everything below is what each field means, how far it was right on videos where the answer was
 known, and what to search for in EditAtlas.
 
-## How well it was measured (2026-11-09, version 0.1.0 and 0.2.0)
+## How well it was measured (2026-11-09 and 2026-11-10, versions 0.1.0 to 0.4.0)
 
 On the 24 EditAtlas transition demos (two shots joined by one known FFmpeg transition, 16:9, 24 fps):
 
@@ -40,6 +40,22 @@ For the words, use the `transcribe` skill.
 
 Run time: 9 to 15 s for a 12 to 34 s 720x1280 video on one desktop CPU, sheets included.
 
+On 12 public motion-graphics demos from a design-tool maker (2026-11-10, version 0.4.0; logos, titles, a chart, a
+brand-guideline reel, looping banners, 3 to 82 s):
+
+- Before 0.4.0, the three brand-shape transitions of the guideline reel (a star, a star inside a circle, a paper
+  panel opening from the middle) came out as `dip through a bright colour` and two `zoom transition`s. They are now
+  `shape wipe`, with the side right in 3 of 3 and the outline right in 3 of 3.
+- Two cuts from a red card to a white page were called `white flash`; they are now `cut`. A flash must be brighter
+  than the pictures on both sides.
+- The timing of a logo sting matched what the frames show: comes in over 0.7 s, fast then settles, still 71 % of
+  the shot, leaves over 0.8 s speeding up, the exit the entrance backwards.
+- The three banners whose last frame is their first were marked `loops`; none of the others was.
+- On the 24 transition demos, the full EditAtlas edits and the five live-action test videos no join changed. An
+  early version also called a fade over pillarbox bars and a flickering silent film `shape wipe`; a shape now has
+  to keep its colours while it grows and only grow. `timing` words appeared on 5 of 33 live-action shots, all
+  freeze frames, title cards or locked-off shots that hold still.
+
 ## Joins
 
 | Field | Meaning |
@@ -47,7 +63,9 @@ Run time: 9 to 15 s for a 12 to 34 s 720x1280 video on one desktop CPU, sheets i
 | `start`, `end`, `at` | first and last changed frame, and the middle, in seconds |
 | `seconds` | length of the join; a cut is one or two frames (0.03 to 0.08 s) |
 | `kind` | see below |
-| `from` | wipes: the side the new picture comes from, or `center outward` / `edges inward` |
+| `from` | wipes: the side the new picture comes from, or `center outward` / `edges inward`; shape wipes: where the shape starts |
+| `shape` | shape wipes: `a straight-edged panel or bar`, `a curved or pointed shape`, or unclear |
+| `cover_seconds` | shape wipes: from the first growth to the frame most covered |
 | `moves` | pushes: the direction the picture travels |
 | `scale` | snap zoom or punch-in: how much closer the new frame is |
 | `blend_fit` | how well the middle frames are a mix of the two pictures (low = a dissolve) |
@@ -62,6 +80,7 @@ Run time: 9 to 15 s for a 12 to 34 s 720x1280 video on one desktop CPU, sheets i
 | `dip to white`, `white flash`, `bright flash` | fade through white, or a flash frame on the cut | `white flash transition`, `flash cut` |
 | `dip through a flat colour` | fades through grey or a colour | `fade through color` |
 | `wipe` + `from` | a line or shape reveals the new picture | `wipe from right`, `iris open`, `barn door`, `clock wipe` |
+| `shape wipe` + `shape`, `from` | a flat shape grows over the old picture until it covers it; often the brand's own mark | `shape mask wipe`, `logo transition`, `ink stamp transition` for a rough one |
 | `push or slide` + `moves` | the picture travels across the frame | `push left`, `slide up`, `cover slide` |
 | `whip or push` | the picture travels and blurs | `whip pan transition` |
 | `zoom transition` | scale change across the join | `zoom in transition`; often a crash zoom inside one shot |
@@ -85,6 +104,7 @@ Run time: 9 to 15 s for a 12 to 34 s 720x1280 video on one desktop CPU, sheets i
 | `activity` | how much the picture changes per frame, any cause |
 | `hold` | a run of still frames after movement: a freeze frame, or a subject that stops |
 | `speed_change` | motion 4 or more times faster in one part of the shot than another: a speed ramp, slow motion, or just action |
+| `timing` | shots that hold still for 0.2 s or more: `still_share`, `enter_s` and `enter` (how long until the first hold, and `fast, then settles`, `slow, then speeds up` or `even speed`), `exit_s` and `exit`, `moves_while_holding`, `exit_mirrors_entrance`; `words` when the shot is still 20 % of the time or more |
 | `look` | median brightness, contrast, saturation, warmth; words for black and white, warm, cool, dark, flat, black bars, dark corners (vignette) |
 
 Search terms: `crash zoom`, `snap zoom`, `slow push in`, `Ken Burns`, `camera shake`, `freeze frame`,
@@ -93,6 +113,29 @@ Search terms: `crash zoom`, `snap zoom`, `slow push in`, `Ken Burns`, `camera sh
 The camera numbers cannot tell a real camera move from a zoom added in the edit, and they read subject motion as
 camera motion when the subject fills the frame. Grain, light leaks, glitches, colour shifts and most filters are
 not measured; name them from the frames.
+
+## Designed motion: titles, logos, charts, graphic videos
+
+What makes motion graphics read as polished is mostly timing, and `timing` measures it. On the demos above:
+things come in within 0.3 to 0.9 s, fast at first and settling; the picture then holds completely still for half
+to nine tenths of the shot; it leaves by playing the entrance backwards, speeding up; words and pieces come in
+about 0.15 s apart; and banners end on their first frame so they loop. Put these numbers in the recipe ("comes in
+over 0.7 s, fast then settles, holds 3.8 s, leaves over 0.6 s"); they are what a remake usually gets wrong.
+
+`fast, then settles` is an ease-out (or a spring that settles); `slow, then speeds up` an ease-in; `even speed`
+is linear, which is normal for a counter or a bar that grows. The numbers are durations and a shape, not the
+curve: say "about" and check the frames with `frames.py --step 0.04`.
+
+On a plain background, a graphic that appears or grows is not a join but the analyzer may report one: a card
+growing from a line reads as `jump cut`, `snap zoom or punch-in` or `zoom transition`, a burst coming in as
+`dip through a bright colour`. Look at `joins_NN.png`; if the background stays and an element changes, write a
+`corrections` line and name the element's entrance instead (`pop in`, `scale in`, `logo reveal`).
+
+`format.loops: true` means the last frame is the first again after something moved: the piece was made to loop
+(a banner, a sticker, a background). Search `looping`, `seamless loop`.
+
+Search terms: `logo reveal`, `logo morph`, `shape mask wipe`, `per-word stagger`, `focus pull text`, `animated
+bar chart`, `counter`, `stroke to fill`, `looping abstract plate`, `kinetic typography`.
 
 ## Overlays
 

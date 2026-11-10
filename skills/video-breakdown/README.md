@@ -4,7 +4,7 @@ Break down a reference video shot by shot and name what it does, with the [EditA
 technique for each transition, camera move, text style and sound, and a recipe to make one like it. Claude measures
 the video, looks at frame sheets, searches EditAtlas and writes a report.
 
-Status: beta (0.3.0).
+Status: beta (0.4.0).
 
 ## Needs
 
@@ -20,7 +20,7 @@ Status: beta (0.3.0).
 | `SKILL.md` | The workflow Claude follows |
 | `references/reading-the-numbers.md` | Every measurement, how often it was right on known videos, search terms per label |
 | `references/notes-format.md` | The notes Claude writes, with an example |
-| `scripts/analyze.py` | Joins and their kind, camera moves, look, overlay events, pacing, tempo and cuts on the beat, sound hits, frame sheets |
+| `scripts/analyze.py` | Joins and their kind (shape wipes included), camera moves, timing of designed motion (in, hold, out, loops), look, overlay events, pacing, tempo and cuts on the beat, sound hits, frame sheets |
 | `scripts/frames.py` | Frames around a time, at chosen times, or a cropped part of the frame |
 | `scripts/text_look.py` | One piece of text: fill colour or gradient stops, outline, shadow or glow, lean, stroke weight and contrast, and free lookalike fonts drawn beside it |
 | `scripts/report.py` | Checks the notes (and, with `--check-api`, every slug and sound id) and writes the report |
@@ -71,3 +71,20 @@ can remake it"), graded on ten points checked by hand:
 | Time, tokens | 312 s, 140k | 435 s, 158k |
 
 One run each; the 0.2.0 agent also found one gradient by sampling pixels itself.
+
+### 0.4.0: timing of designed motion
+
+People call some motion graphics "premium"; on 12 public demos from a design-tool maker (logos, titles, a chart,
+a brand-guideline reel, looping banners) the difference is mostly timing. 0.4.0 measures it: per shot, how long
+things take to come in and whether they settle or speed up, how much of the shot holds still, how they leave, and
+whether the exit plays the entrance backwards; whether the video ends on its first frame (made to loop); and a
+`shape wipe` join for a flat shape, often the brand's own mark, that grows over the picture.
+
+| Check, the same videos before and after | 0.3.0 | 0.4.0 |
+|---|---|---|
+| Brand-shape transitions in the guideline reel named as a shape wipe | 0 of 3 (dip, zoom, zoom) | 3 of 3, side and outline right |
+| Cuts to a white page called `white flash` | 2 | 0 |
+| Banners that end on their first frame marked as loops | not measured | 3 of 3, no false ones |
+| Joins changed on the 24 transition demos, the full edit demos and 5 live-action test videos | | none |
+| Shots with timing words on the 5 live-action videos | | 5 of 33: freeze frames, title cards, locked-off holds |
+

@@ -1,11 +1,11 @@
 ---
 name: video-breakdown
-description: Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, iris, push, zoom, flash), camera moves (crash zoom, push in, shake, speed change), text and graphics coming on screen, each text's colours (gradient stops, outline, glow) and free lookalike fonts, the look, pacing, the beat and sound hits; you look at the frame sheets, then look up each element in EditAtlas and write a report with technique names, links, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says "video này dùng hiệu ứng gì", "phân tích video mẫu", "làm sao để edit giống video này", "hiệu ứng chuyển cảnh này tên gì", "reverse engineer this edit", "what transition is this". Works on a file on this machine. Not for downloading videos from TikTok or YouTube, telling filmed from AI footage, or editing the video itself.
+description: Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, shape, iris, push, zoom, flash), camera moves (crash zoom, push in, shake, speed change), text and graphics coming on screen and their timing (in, hold, out), each text's colours (gradient stops, outline, glow) and free lookalike fonts, the look, pacing, the beat and sound hits; you look at the frame sheets, then look up each element in EditAtlas and write a report with technique names, links, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says "video này dùng hiệu ứng gì", "phân tích video mẫu", "làm sao để edit giống video này", "hiệu ứng chuyển cảnh này tên gì", "reverse engineer this edit", "what transition is this". Works on a local file. Not for downloading videos from TikTok or YouTube, telling filmed from AI footage, or editing the video itself.
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step, font lookalikes (downloaded once from Google Fonts) and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.3.0"
+  version: "0.4.0"
   status: beta
   library: techniques sfx
   mcp-tools: search_techniques get_technique search_sfx get_workflow
@@ -58,8 +58,8 @@ Run `analyze.py`. It prints a summary and writes `breakdown.json` with:
 |---|---|
 | `format` | size, shape (9:16, 16:9), fps, duration |
 | `pacing` | shots, joins a minute, median / shortest / longest shot, joins in the first 3 s, regularity |
-| `joins` | each change of shot: time, length, kind (`cut`, `cross-dissolve`, `dip to black`, `white flash`, `bright flash`, `wipe` with the side it comes from, `push or slide` with the direction, `zoom transition`, `blur transition`, `snap zoom or punch-in`, `jump cut`, `gradual (other)`) |
-| `shots` | per shot: measured camera words (push in, fast zoom, pan, shake, hold, speed change) and the look (dark, warm, black and white, black bars, dark corners) |
+| `joins` | each change of shot: time, length, kind (`cut`, `cross-dissolve`, `dip to black`, `white flash`, `bright flash`, `wipe` with the side it comes from, `shape wipe` (a flat shape grows over the picture) with its outline and side, `push or slide` with the direction, `zoom transition`, `blur transition`, `snap zoom or punch-in`, `jump cut`, `gradual (other)`) |
+| `shots` | per shot: measured camera words (push in, fast zoom, pan, shake, hold, speed change), the look (dark, warm, black and white, black bars, dark corners), and for shots that hold still, the timing: how long things take to come in, how long it holds, how they leave |
 | `overlays` | `events`: moments one band of the frame changes while the rest holds (text, stickers, graphics coming or going); `persistent`: regions that stay through joins (logo, frame, caption bar) |
 | `audio` | loudness, speech-like share, tempo candidates and whether cuts land on the beat, transients (sudden sounds) with the nearest picture event, swells (rises into a moment) |
 
@@ -116,6 +116,15 @@ is not plain subtitles, find these five things:
    scripts. Name one or two free lookalikes and say they are lookalikes, not the creator's font.
 5. **Place and size**: where it sits, its height as a share of the frame, and how long it stays.
 
+### Designed motion
+
+For logos, titles, charts and graphic videos, the timing is what makes them look finished, and what a remake
+gets wrong. Read each shot's `timing` (`comes in over 0.7 s, fast, then settles; still for 71 % of the shot;
+leaves over 0.8 s, slow, then speeds up`) and `format.loops`, check them in the frames, and put the numbers in
+the element's `seen` or `note` and in the recipe. On a plain background, a graphic that grows or appears can be
+reported as a join (`jump cut`, `snap zoom`, `zoom transition`): if the background stays, it is the element's
+entrance. Details: "Designed motion" in `references/reading-the-numbers.md`.
+
 ## 3. Name it with EditAtlas
 
 For each element, search by the result, not by a guessed name:
@@ -156,7 +165,8 @@ Give the person, in their language:
 3. The recipe: steps with their own footage, technique by technique. Offer to do the edit, which starts with
    `get_workflow`; and for the sounds, the `sound-design` skill (`get_skill`).
 4. What is measured, what you looked at, and what is unknown: the creator's actual font (you give free
-   lookalikes), exact speeds and curves, what each sound actually is, whether footage was filmed or generated.
+   lookalikes), the exact easing curves (`timing` gives durations and a shape, not the curve), what each sound
+   actually is, whether footage was filmed or generated.
 5. The report file (`result/breakdown.md`).
 
 After delivery, ask whether the names and techniques were right and send the answer with `send_feedback` when
