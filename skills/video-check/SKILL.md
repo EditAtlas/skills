@@ -5,8 +5,8 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline. Designed for Claude Code and other agents with a shell that can read images; a reviewer subagent is used when the agent can start one.
 metadata:
   author: EditAtlas
-  version: "0.1.0"
-  status: draft
+  version: "0.2.0"
+  status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_workflow
 ---
@@ -38,18 +38,25 @@ below for the rest.
 1. **Measure.** Pass what was planned, so the script can tell a fault from a choice:
 
    ```
-   python scripts/check.py edit/final.mp4 --out work/check1 --expect 1080x1920 --fps 30 --duration 32 \
-       --loudness -14 --holds 28.5-32 --flashes 12.4
+   python scripts/check.py final.mp4 --out work/check1 --loudness -14
    ```
 
+   When you made the video, or the person told you the plan, add it: for example `--expect 1080x1920 --fps 30
+   --duration 32 --holds 28.5-32 --flashes 12.4`. Never guess size, frame rate or length from the platform: a
+   960x540 file nobody asked to be 1080p is not a size fault, so leave `--expect` out when nobody planned it.
    `--holds` lists still stretches on purpose (an end card, a title held still); `--flashes` lists planned
    one-frame flashes and dips; `--loop` for a piece made to loop; `--audio none` for a silent piece. Online video
-   is normalized to about -14 LUFS; use -16 for podcasts and -23 for broadcast. It prints findings as
-   `P0/P1/P2 t=… code: what -> fix` and writes `check.json`, `overview_NN.png` and `findings.png`.
+   is normalized to about -14 LUFS; use -16 for podcasts and -23 for broadcast. It prints findings as `P0/P1/P2
+   t=… code: what -> fix` and writes `check.json`, `overview_NN.png` and `findings.png`.
    `references/reading-the-checks.md` says what each check catches and what it misses.
 
 2. **Fix the P0s now.** Wrong size, wrong frame rate, wrong length, no audio when there should be, clipping:
    these are render mistakes, not taste. Fix the command, render again and rerun step 1 before anyone looks.
+   For loudness, clipping and true peak, fix the mix in the edit if you have it (lower the music, the loudest
+   sound). If you only have the finished file, run `python scripts/fix_sound.py in.mp4 out.mp4 --loudness -14`:
+   it limits the peaks, normalizes in two passes and copies the picture untouched, landing within 0.2 LU of the
+   target and under -1.5 dBTP. Single-pass `loudnorm` misses its peak target and a plain limiter leaves the mix
+   quiet; do not hand-tune filters round after round.
 
 3. **Look, with fresh eyes.** Open every overview sheet and `findings.png` with the Read tool. Then get a
    second look from someone who has not seen your plan:
@@ -80,12 +87,17 @@ below for the rest.
 Write `REVIEW.md` next to the video, in the person's language, with the template in
 `references/review-guide.md`:
 
-- the verdict in one line: ready, ready with notes, or not ready;
+- the verdict in one line: ready (nothing left), ready with notes (the notes name every finding still there,
+  and each P1 left needs something you do not have, such as the edit project), or not ready (a P0 is still
+  there, or a P1 you could fix);
 - what the script measured (size, frame rate, length, loudness, true peak, cuts per minute) and the findings
   fixed in each round;
+- each finding left in place with its times and its pattern as `check.py` wrote them (for example "one every 12
+  frames from 0.4 s; every 2-6 frames from 11.7 to 14.9 s"), not only a count;
 - what the reviewer saw, and whether it was a separate reviewer or one context;
 - what still needs a person: listening to the mix and the music choice, spelling and names on screen, lip sync,
-  colour on a real phone, and anything you could not fix.
+  colour on a real phone, and anything you could not fix. Keep the sentence that nobody listened to the sound,
+  in plain words and only in the person's language.
 
 Show the person `before_after.png` from the last round. Never write that the video "has no errors": write what
 was checked.

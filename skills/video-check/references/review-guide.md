@@ -88,6 +88,8 @@ After finding one problem, look for others of the same kind elsewhere in the vid
 # Review: <file name>
 
 **Verdict:** ready / ready with notes / not ready — <one sentence why>
+<!-- ready: no finding left. ready with notes: every finding left is named below, and each P1 left needs something
+     you do not have, such as the edit project. not ready: a P0 is left, or a P1 you could fix. -->
 
 ## Measured (check.py <version>)
 <size> · <fps> fps · <length> s · <LUFS> LUFS · true peak <dBTP> · <cuts per minute> cuts a minute
@@ -99,10 +101,11 @@ After finding one problem, look for others of the same kind elsewhere in the vid
 
 ## Looked at
 Reviewer: separate (saw only the sheets) / one context.
-<the problems found, in the line format above, each marked fixed or left with the reason>
+<the problems found, in the line format above, each marked fixed or left with the reason; for a finding from
+check.py, copy its times and pattern, not only a count>
 
 ## Not checked
-- Nobody listened: the music choice, how the mix sounds, whether speech is clear.
+- Nobody listened to the sound: the music choice, how the mix sounds, whether speech is clear. (Keep this line, translated.)
 - Spelling and names on screen: <checked against the source / not checked>.
 - Lip sync, colour on a real phone screen.
 - <anything else you could not fix or judge>

@@ -70,5 +70,11 @@ were judged from the demo's name and recipe.
 
 **A fix round:** on a demo with true peak +2.1 dBTP and -18.1 LUFS, one `loudnorm` pass to -14 LUFS with a -1.5
 dBTP target gave -15.3 LUFS and -0.8 dBTP. Round 2 with `--before` reported 4 findings gone and 1 new (true peak
-still above -1 dBTP): single-pass `loudnorm` does not hold its peak target, so check again after every fix, and use
-two-pass `loudnorm` or a limiter.
+still above -1 dBTP): single-pass `loudnorm` does not hold its peak target, so check again after every fix.
+
+**`fix_sound.py`** limits the peaks at 192 kHz first, low enough to leave room for the gain, then runs two-pass
+linear `loudnorm` and measures the encoded file, lowering the ceiling and trying again if the peak is still over.
+On four files to -14 LUFS (three demos that clip, from +0.2 to +4.8 dBTP, and one that was already clean) it gave
+-14.0 to -14.2 LUFS and -1.6 to -2.4 dBTP; on the +4.8 dBTP demo to -16 and -23 LUFS, -16.0 and -23.0 LUFS. The
++2.1 dBTP demo needed four tries and a -11 dBFS ceiling, so the script warns that the limiter worked hard. It
+cannot tell whether the result sounds right: a person still has to listen.
