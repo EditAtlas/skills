@@ -87,6 +87,28 @@
       "install_claude_code": "/plugin install video-breakdown@editatlas-skills",
       "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/video-breakdown.zip",
       "eval_cases": 5
+    },
+    {
+      "name": "video-check",
+      "description": "Check a finished video before the person sees it or posts it, then fix what is wrong. Measures the file (size, frame rate, pixel format, length), picture faults (black or white frames, frozen stretches, one-frame glitches, stutter, a loop that jumps or repeats a frame), and sound (loudness, clipping, silences, audio that ends early or stops abruptly); makes frame sheets at phone size with the caption-safe area marked; then a reviewer who has not seen your plan looks at the sheets and lists problems with a time and a fix. Fix the worst three, render again, check again, at most three rounds. Use it after rendering any edit, and when someone asks to check a video before sending or posting it, says \"kiểm tra video trước khi gửi\", \"xem lại bản dựng\", \"video này có lỗi gì không\", \"review my edit\", \"QA this render\". Works on a local file. Not for breaking down someone else's video (use video-breakdown) or for judging footage the person has not edited.",
+      "version": "0.1.0",
+      "status": "draft",
+      "libraries": [
+        "techniques"
+      ],
+      "mcp_tools": [
+        "search_techniques",
+        "get_technique",
+        "get_workflow"
+      ],
+      "compatibility": "Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline. Designed for Claude Code and other agents with a shell that can read images; a reviewer subagent is used when the agent can start one.",
+      "license": "Apache-2.0. LICENSE.txt has the complete terms",
+      "path": "skills/video-check",
+      "url": "https://github.com/EditAtlas/skills/tree/main/skills/video-check",
+      "plugin": "video-check",
+      "install_claude_code": "/plugin install video-check@editatlas-skills",
+      "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/video-check.zip",
+      "eval_cases": 3
     }
   ]
 }

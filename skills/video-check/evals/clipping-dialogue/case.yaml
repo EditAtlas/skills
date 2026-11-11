@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: clipping-dialogue
+expected_outcome: |
+  A 15.5 s single-take dialogue clip with subtitles. Its sound clips (true peak about +4.7 dBTP) and is quieter than
+  online video (about -17 LUFS). Claude measures it with check.py, opens the sheets, fixes the sound in the edit
+  command (normalize to about -14 LUFS with a true-peak ceiling of -1 dBTP, picture copied), checks the new file
+  again with --before, and writes REVIEW.md in Vietnamese that says nobody listened. The picture repeats one frame in
+  every 12 (a frame-rate change in the old film copy), and from 11.7 s every 2 to 6 frames: Claude reports both with
+  times and does not present a picture fix as free of cost.
+context:
+  scaffold_script: place-files.sh

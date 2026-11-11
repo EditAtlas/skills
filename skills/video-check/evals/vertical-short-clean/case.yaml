@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: vertical-short-clean
+expected_outcome: |
+  A 13 s vertical edit with word-at-a-time captions. check.py finds no machine faults (-14.4 LUFS, true peak
+  -1.4 dBTP). Claude still opens the sheets, looks at the captions against the marked safe area, and gives a
+  verdict with notes, not a blanket "no errors". It says what nobody checked (listening, spelling, a real phone).
+context:
+  scaffold_script: place-files.sh

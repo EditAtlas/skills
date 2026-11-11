@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: no-video-given
+expected_outcome: |
+  Claude asks for the video file on this machine instead of judging the video from the link. It does not download
+  from TikTok and does not run check.py on nothing.

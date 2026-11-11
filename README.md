@@ -16,6 +16,7 @@ The agent loads it when a task matches its description. Skills here follow the
 | [sound-design](./skills/sound-design) | Sound-designs a finished video with real EditAtlas sounds: finds the moments, places each sound on its frame, renders an MP4 and an SFX track, checks sync, pace and loudness in numbers | Sounds | beta |
 | [transcribe](./skills/transcribe) | Transcribes speech on your machine with Whisper, a time for every word; checks names, numbers and invented lines with you; writes SRT/VTT and lists silences, fillers and retakes to cut | Techniques, Templates | beta |
 | [video-breakdown](./skills/video-breakdown) | Breaks down a video you like shot by shot: measures joins, camera moves, text on screen, pacing and the beat, then names each element with its EditAtlas technique and writes a recipe to make one like it | Techniques, Sounds | beta |
+| [video-check](./skills/video-check) | Checks a finished render before anyone sees it: measures size, frame rate, black, frozen and stray frames, loops, loudness, clipping and silences; makes phone-size frame sheets for a reviewer who has not seen the plan; fixes the worst three problems and checks again, at most three rounds; writes what was checked and what nobody listened to | Techniques | draft |
 
 `skills/index.json` lists the same skills as data: the EditAtlas website reads it to show each skill next to the
 library it works with.
@@ -32,6 +33,7 @@ Add this repository as a plugin marketplace, then install a skill:
 /plugin install sound-design@editatlas-skills
 /plugin install transcribe@editatlas-skills
 /plugin install video-breakdown@editatlas-skills
+/plugin install video-check@editatlas-skills
 ```
 
 Or copy a skill folder to `~/.claude/skills/` (Windows: `%USERPROFILE%\.claude\skills\`).
