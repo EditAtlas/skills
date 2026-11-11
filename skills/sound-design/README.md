@@ -24,6 +24,7 @@ Status: beta (0.3.0).
 | `scripts/sounds.py` | Search the index, download with SHA-256 check, measure, draw candidates |
 | `scripts/mix.py` | Cue sheet → MP4 + SFX WAV + resolved placements |
 | `scripts/check.py` | Sync by waveform matching, pace, holes, loudness, mono, coverage, listen list |
+| `scripts/beat_grid.py` | Tempo, first beat, every beat, a guess at bar starts and their frame numbers, from a music track |
 | `scripts/realsfx_library.py` | Adapter: EditAtlas/sfx as a real-sfx main pack |
 | `evals/` | Test cases in the `claude plugin eval` layout; inputs are downloaded from the EditAtlas site |
 

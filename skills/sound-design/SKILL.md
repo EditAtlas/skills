@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.3.1"
+  version: "0.4.0"
   status: beta
   library: sfx
   mcp-tools: search_sfx get_sfx
@@ -36,7 +36,15 @@ python SKILL/scripts/sounds.py info sfx-ID sfx-ID                       # downlo
 python SKILL/scripts/sounds.py sheet sfx-ID sfx-ID --out work/c.png     # waveform + spectrogram of candidates
 python SKILL/scripts/mix.py work/cues.json --out result/FILM_sfx.mp4    # MP4 + _track.wav + _resolved.json
 python SKILL/scripts/check.py result/FILM_sfx_resolved.json --moments work/moments/moments.json --listen-out result/listen.wav
+python SKILL/scripts/beat_grid.py MUSIC.mp3 --fps 30 --out work/beats.json  # tempo, first beat, every beat, bar starts, frames
 ```
+
+When the film has music with a beat, or you are cutting a new edit to a track, run `beat_grid.py` on the music before
+placing anything: put accents and cuts on `beats` (or `beat_frames`), and big moments on `bar_starts`. It prints
+`weak` when the music has no steady beat (piano, lullabies, speech); then place by the picture and say so. Bar
+starts are a guess from the kick: listen to the first two bars, or ask the person, before cutting a montage on them.
+Measured on generated tracks at 92, 120 and 160.25 BPM: tempo within 0.3 %, every beat within 16 ms (half a frame
+at 30 fps), bar starts right. On five real music clips nobody checked the tempo by ear.
 
 Sounds come from `https://raw.githubusercontent.com/EditAtlas/sfx/main/` and are cached in
 `~/.cache/editatlas-sfx` (`EDITATLAS_SFX_CACHE` moves it). With a local clone of EditAtlas/sfx, pass

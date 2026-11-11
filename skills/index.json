@@ -23,7 +23,7 @@
     {
       "name": "sound-design",
       "description": "Sound-design a finished video with real sound effects from the EditAtlas library (2,278 described sounds, public, downloadable from GitHub with SHA-256 checks). Finds the moments in the picture, lets you look at them as frame sheets, picks sounds by description and measured numbers, places each on its exact frame at a level set by its role, keeps or replaces the film's own music and voice, renders a new MP4 plus a separate SFX WAV, and checks the result in numbers (sync, pace, holes, loudness, mono) before you show it. Use it whenever someone asks to add sound effects, SFX, whooshes, pops, clicks, hits, UI sounds or \"sound design\" to a video, reel, short, promo, motion graphic, product demo or talking-head edit; says a video \"feels silent\", \"needs sound\", \"thêm hiệu ứng âm thanh\", \"lồng SFX\", \"thêm tiếng động\"; or wants EditAtlas sounds placed on a video rather than just found. Not for composing music or generating sound.",
-      "version": "0.3.1",
+      "version": "0.4.0",
       "status": "beta",
       "libraries": [
         "sfx"
@@ -91,7 +91,7 @@
     {
       "name": "video-check",
       "description": "Check a finished video before the person sees it or posts it, then fix what is wrong. Measures the file (size, frame rate, pixel format, length), picture faults (black or white frames, frozen stretches, one-frame glitches, stutter, a loop that jumps or repeats a frame), and sound (loudness, clipping, silences, audio that ends early or stops abruptly); makes frame sheets at phone size with the caption-safe area marked; then a reviewer who has not seen your plan looks at the sheets and lists problems with a time and a fix. Fix the worst three, render again, check again, at most three rounds. Use it after rendering any edit, and when someone asks to check a video before sending or posting it, says \"kiểm tra video trước khi gửi\", \"xem lại bản dựng\", \"video này có lỗi gì không\", \"review my edit\", \"QA this render\". Works on a local file. Not for breaking down someone else's video (use video-breakdown) or for judging footage the person has not edited.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "status": "beta",
       "libraries": [
         "techniques"

@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline. Designed for Claude Code and other agents with a shell that can read images; a reviewer subagent is used when the agent can start one.
 metadata:
   author: EditAtlas
-  version: "0.2.0"
+  version: "0.2.1"
   status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_workflow

@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 STILL = 0.0015      # mean absolute change (0..1) under which two frames count as the same picture
 DUPE = 0.0006       # an exact repeat, after compression noise
 MOVING = 0.004      # change per frame above which the picture is moving
@@ -544,8 +544,14 @@ def main():
     if args.before:
         try:
             before = json.loads(Path(args.before).read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as e:
+        except OSError as e:
             die(f"cannot read --before {args.before}: {e}")
+        except ValueError:
+            # A video or other binary file gives UnicodeDecodeError, a wrong text file JSONDecodeError.
+            die(f"--before takes the check.json an earlier round wrote, such as work/check1/check.json, "
+                f"not a video or another file: {args.before}")
+        if not isinstance(before, dict) or "findings" not in before:
+            die(f"--before {args.before} is not a check.json from check.py: it has no findings")
     sh = sheets(video, info, len(g), fps, findings, args.out, args.every, before)
     result = {"version": VERSION, "video": video, "spec": info, "picture": pic, "sound": snd,
               "findings": findings, "sheets": sh,

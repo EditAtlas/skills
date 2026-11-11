@@ -12,7 +12,7 @@ Prints the loudness and true peak before and after. Never writes over the input.
 import argparse, json, re, subprocess, sys
 from pathlib import Path
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 
 def loudnorm(src, chain, target, peak):
@@ -68,7 +68,9 @@ def main():
               " sound in the mix and render again")
     if ceiling_db < a.peak - max(gain, 0.0) - 4.0:
         print("the limiter had to work hard: listen for pumping or dulled hits before you deliver")
-    print("Run check.py on the new file with --before to confirm; nobody has listened to it yet.")
+    print("Nobody has listened to it yet. Check it again against the round that found the problem, for example:")
+    print(f'  python check.py "{dst}" --out work/check2 --before work/check1/check.json')
+    print("--before takes that round's check.json, not the old video.")
 
 
 if __name__ == "__main__":
