@@ -12,7 +12,7 @@ own computer, without asking Claude to edit and render again. Things they can fi
 
 The copy is optional. Claude offers it when it delivers a video and builds it only when asked.
 
-Status: beta (0.3.1).
+Status: beta (0.3.2).
 
 ## How the person gets it
 
@@ -45,7 +45,7 @@ Every save is a new version in `versions/` (`v1.json`, `v2.json` ...), by Claude
 
 | Element | On the picture | In the panel | On the timeline |
 |---|---|---|---|
-| Text | click, drag (snaps to the centre), corner to resize | text, size, colour, position, timing; for a style, all items or this one | move, trim both ends |
+| Text | click, drag (snaps to the centre), corner to resize | text, size, colour, font (the project's, 18 from EditAtlas with Vietnamese, or a file of their own) and weight, position, timing; for a style, all items or this one | move, trim both ends |
 | Graphics | click, drag, corner to resize | position, size, opacity, timing | move, trim |
 | Sounds and music | | nudge by a frame, level in dB, fades | move, trim, mute a track |
 | Clips | | trim in and out by a frame; what comes after moves with it | trim the edges |

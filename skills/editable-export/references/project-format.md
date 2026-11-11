@@ -36,6 +36,12 @@ Every file the edit uses, by id. `path` is relative to `project.json` (package.p
 Use fonts you may redistribute (Google Fonts are OFL): the font file goes into the package folder, which the
 person keeps and may pass on.
 
+The studio's Font list adds fonts the same way. A font from its set (https://edit.trysometh.ing/studio-fonts/fonts.json:
+18 OFL families with Vietnamese, one WOFF2 per weight) comes with all its weights, as
+`media/fonts/<Family>-<weight>.woff2` (`Anton-400.woff2`, `BeVietnamPro-900.woff2`); a studio or `share.py pull`
+that lacks such a file fetches it from `/studio-fonts/`. A font file of the person's own keeps its file name under
+`media/fonts/`, with `family`, `weight` and `style` read from the file.
+
 ## tracks
 
 Drawn in order: later tracks are on top. Each has `id`, `kind`, `name`, optional `hidden` (picture) or `muted`

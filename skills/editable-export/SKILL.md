@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.3.1"
+  version: "0.3.2"
   status: beta
   library: studio
   mcp-tools: none
@@ -121,7 +121,11 @@ Rules that make the studio useful:
 - **Words stay text.** Draw a card without its words and put each line on it as a text item with `parent` set to
   the card, so a person can fix a word or a price. Give a card or a word its own motion with `keys` (slide, pop,
   dip, fall) instead of baking it into the picture. See "Cards" and "keys" in the format reference.
-- **Add the font file** for every font a style uses. Use fonts you may share: Google Fonts are OFL.
+- **Add the font file** for every font a style uses. Use fonts you may share: Google Fonts are OFL. The studio's
+  own set is a safe choice: 18 OFL families with Vietnamese, listed in
+  https://edit.trysometh.ing/studio-fonts/fonts.json (family, weights, file names). Put a file at
+  `media/fonts/<its file name>` with the `family` and `weight` written there, and the person can switch to its
+  other weights, or to another font of the set, in the studio's Font list.
 - Keep sound levels as rendered (`gain_db` relative to the file). Nothing is normalised later.
 
 ## 2. Build and check
@@ -229,8 +233,8 @@ The browser knows only the folder's name. You know where you built it. In a sand
 attached into a new folder and work there.
 
 1. **With a link, pull first.** `share.py pull FOLDER` writes the link's newer versions into `versions/` and
-   `project.json`, and prints who saved them, their note and the changes. It never fetches media: it lists any
-   media file their version uses that the folder lacks. If you no longer have the folder (a new sandbox), pull the
+   `project.json`, and prints who saved them, their note and the changes. It fetches the fonts they picked from
+   the studio's set (`media/fonts/`), and lists any other media file their version uses that the folder lacks. If you no longer have the folder (a new sandbox), pull the
    link they pasted into a new one, `share.py pull "LINK" --out result/NAME.edit`, and ask for the media it lists
    (the zip they kept) before you render. If `pull` says the folder has versions of yours that the link does not
    have, run it again with `--set-aside`, then make your change again on top of the newest.
@@ -260,7 +264,8 @@ attached into a new folder and work there.
    studio that still has the folder or the link open notices it and offers to open it; otherwise they open the
    link or choose the folder again. Without a link, in a sandbox, zip the folder again for them. **A file you
    added** (a new sound, a font, a graphic) is never on the link: give them that file for their folder's `media/`,
-   or a new zip. Until then the studio shows it as missing.
+   or a new zip. Until then the studio shows it as missing. A font from the studio's set is the exception: the
+   studio fetches it again.
 
 If they send only a `project.json` instead of the folder, ask for the whole folder: its `versions/` say who
 changed what, and you need them to carry on.

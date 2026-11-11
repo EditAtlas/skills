@@ -237,6 +237,28 @@ def folder_versions(folder):
     return have
 
 
+def fetch_studio_fonts(folder, obj, site):
+    """Fonts the person picked from the studio's own set: the studio puts them at media/fonts/<Family>-<weight>.woff2,
+    and, like the studio, this fetches them from the site when the folder lacks them (a link never carries media)."""
+    want = {mid: m for mid, m in (obj.get("media") or {}).items()
+            if m.get("kind") == "font" and str(m.get("path", "")).startswith("media/fonts/") and not (folder / m["path"]).is_file()}
+    if not want:
+        return
+    code, body = call("GET", site + "/studio-fonts/fonts.json", tries=2)
+    if code != 200:
+        return
+    files = {name for f in json.loads(body).get("fonts", []) for name in f.get("files", {}).values()}
+    for mid, m in want.items():
+        name = m["path"].split("/")[-1]
+        if name not in files or m["path"] != "media/fonts/" + name:
+            continue
+        code, data = call("GET", site + "/studio-fonts/" + name, tries=2)
+        if code == 200 and data[:4] == b"wOF2":
+            (folder / "media/fonts").mkdir(parents=True, exist_ok=True)
+            (folder / m["path"]).write_bytes(data)
+            print(f"fetched the studio font {m.get('family')} {m.get('weight', 400)}: {m['path']}")
+
+
 def print_media_gaps(folder, obj):
     """Media the newest version uses that the folder does not hold with the same size."""
     gaps = []
@@ -391,6 +413,7 @@ def cmd_pull(a):
             print(f"changes from v{newest['parent']} to v{target}:" if lines else f"no changes from v{newest['parent']}")
             for line in lines:
                 print("  -", line)
+    fetch_studio_fonts(folder, newest["project"], link.site)
     print_media_gaps(folder, newest)
     print("->", folder / "project.json")
     print(f"edit a copy of it, then package.py save COPY --to {folder} --from {target}, render.py, share.py push.")
