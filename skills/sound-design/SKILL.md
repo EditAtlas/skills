@@ -5,13 +5,15 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.4.0"
+  version: "0.4.1"
   status: beta
   library: sfx
   mcp-tools: search_sfx get_sfx
 ---
 
 # Sound design: real sounds on a finished video
+
+This is sound-design 0.4.1.
 
 The aim: the film sounds as if an editor with a good library cut it. Every sound is a real file from EditAtlas,
 placed on a frame you have looked at, at a level you can justify in numbers.
@@ -139,6 +141,8 @@ in the report ("the 7.8 s hole is a talking stretch, the voice carries it"). Not
 if the moment is the sound's peak, switch that cue to `anchor: peak`. Two or three rounds are normal.
 
 ## 6. Deliver
+
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists sound-design above 0.4.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name sound-design gives the step). Without the MCP, skip it.
 
 Give the person:
 

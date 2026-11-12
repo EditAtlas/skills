@@ -5,13 +5,15 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.2.2"
+  version: "0.2.3"
   status: beta
   library: techniques templates
   mcp-tools: get_technique search_techniques get_workflow
 ---
 
 # Transcribe: word-level transcripts for editing
+
+This is transcribe 0.2.3.
 
 The aim: a transcript the person has checked, with a start and end time for every word, ready for captions and
 cuts. Whisper runs on their machine; nothing is uploaded.
@@ -149,6 +151,8 @@ expressions in `ffmpeg_cut.txt`; picture and sound are cut at the same times. Ca
 each join, so apply it when rendering (`ffmpeg_cut.txt` lists the joins that came from fillers).
 
 ## 6. Deliver
+
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists transcribe above 0.2.3, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name transcribe gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 

@@ -5,13 +5,15 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.3.3"
+  version: "0.3.4"
   status: beta
   library: studio
   mcp-tools: none
 ---
 
 # Editable export: let the person fix small things themselves
+
+This is editable-export 0.3.4.
 
 Here is the result. With the finished video, the person gets the same edit as elements, in a folder, and opens it
 in the EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel.
@@ -173,6 +175,8 @@ fonts, animations and scaling differ. In that case, either deliver the `render.p
 that the first export from the studio will look a little different from the video they have.
 
 ## 4. Hand it over
+
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.4, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy and, with it, a
 link: "the link holds only the project's text and timings, encrypted; your footage stays in the folder." With a yes, build the copy if you have not, and give them the folder:

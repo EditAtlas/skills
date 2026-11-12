@@ -38,6 +38,22 @@ Add this repository as a plugin marketplace, then install a skill:
 
 Or copy a skill folder to `~/.claude/skills/` (Windows: `%USERPROFILE%\.claude\skills\`).
 
+### Updating
+
+Claude Code does not update skills from this marketplace on its own until you ask it to. Open `/plugin`, then
+Marketplaces, `editatlas-skills`:
+
+- **Update marketplace** brings every installed EditAtlas skill to the latest version; then run `/reload-plugins`.
+- **Enable auto-update** does that by itself from then on.
+
+From a shell: `claude plugin marketplace update editatlas-skills && claude plugin update <skill>@editatlas-skills`,
+then restart Claude Code. With `npx skills`, run the install line from the skill's page on
+[edit.trysometh.ing/skills](https://edit.trysometh.ing/skills) again; it names the latest release. For a zip or a
+copied folder, download the zip again and replace the old one.
+
+Each `SKILL.md` names its version near the top. With the EditAtlas MCP connected, the agent checks for a newer
+version when it delivers and may tell you, but it does not always, so turning on auto-update is the sure way.
+
 ### Claude.ai
 
 Download the skill's zip from the [latest release](https://github.com/EditAtlas/skills/releases/latest) and upload

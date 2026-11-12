@@ -100,6 +100,16 @@ def check_skill(folder, errors, warnings, is_template=False):
             errors.append(f"{where}: unknown mcp-tools {sorted(tools - MCP_TOOLS)}")
         if "license" not in fm and not any((folder / n).is_file() for n in ("LICENSE", "LICENSE.txt", "LICENSE.md")):
             warnings.append(f"{where}: no license field and no LICENSE file")
+    # The EditAtlas MCP lists each released version, and an agent compares it with this line to tell the person an
+    # update exists, so the line must follow metadata.version.
+    if isinstance(name, str) and meta.get("version") and f"This is {name} {meta['version']}." not in body:
+        errors.append(f"{where}/SKILL.md: the body must say \"This is {name} {meta['version']}.\" near the top, "
+                      "matching metadata.version (copy the line from template/SKILL.md)")
+    if isinstance(name, str) and meta.get("version"):
+        for seen in re.findall(rf"lists {re.escape(name)} above (\d+\.\d+\.\d+)", body):
+            if seen != meta["version"]:
+                errors.append(f"{where}/SKILL.md: the version check in Deliver says {seen}, metadata.version is "
+                              f"{meta['version']}")
     lines = body.count("\n")
     if lines > 500:
         warnings.append(f"{where}/SKILL.md: body has {lines} lines; move detail into references/")

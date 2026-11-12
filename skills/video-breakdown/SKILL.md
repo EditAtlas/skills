@@ -5,13 +5,15 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step, font lookalikes (downloaded once from Google Fonts) and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.4.0"
+  version: "0.4.1"
   status: beta
   library: techniques sfx
   mcp-tools: search_techniques get_technique search_sfx get_workflow
 ---
 
 # Video breakdown: from a video someone likes to named techniques and a recipe
+
+This is video-breakdown 0.4.1.
 
 The person has a video they like and cannot name what is in it. You give them, shot by shot, the correct name of
 each transition, camera move, text style and sound, the EditAtlas technique that makes it, and the steps to make
@@ -157,6 +159,8 @@ reason, or leave out what was not checked, and with `--check-api` it confirms ev
 EditAtlas and that names match. Fix what it lists and run it again.
 
 ## Deliver
+
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-breakdown above 0.4.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-breakdown gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 

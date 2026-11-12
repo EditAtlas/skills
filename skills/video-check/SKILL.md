@@ -5,13 +5,15 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline. Designed for Claude Code and other agents with a shell that can read images; a reviewer subagent is used when the agent can start one.
 metadata:
   author: EditAtlas
-  version: "0.2.1"
+  version: "0.2.2"
   status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_workflow
 ---
 
 # Video check: find what is wrong with a render before anyone else does
+
+This is video-check 0.2.2.
 
 The person gets a video that has been checked like a professional editor checks an export, and a short
 `REVIEW.md` that says what was measured, what was looked at, what was fixed, and what nobody checked.
@@ -83,6 +85,8 @@ below for the rest.
    does not exist) go to them as questions.
 
 ## Deliver
+
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-check above 0.2.2, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-check gives the step). Without the MCP, skip it.
 
 Write `REVIEW.md` next to the video, in the person's language, with the template in
 `references/review-guide.md`:

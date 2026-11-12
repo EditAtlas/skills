@@ -5,7 +5,7 @@
     {
       "name": "editable-export",
       "description": "Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer, plus if wanted a link with only the encrypted project text; each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for \"an editable version\", \"a project file\", to \"tweak it myself\", pastes a message from EditAtlas Studio, \"chỉnh lại chút\", \"tự sửa\", \"file để sửa\", \"chỉnh cỡ chữ\", or \"âm thanh bị trễ\" after an edit. It is not a full editor; you cannot add new footage there or change effects that are burned into the clips.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "status": "beta",
       "libraries": [
         "studio"
@@ -23,7 +23,7 @@
     {
       "name": "sound-design",
       "description": "Sound-design a finished video with real sound effects from the EditAtlas library (2,278 described sounds, public, downloadable from GitHub with SHA-256 checks). Finds the moments in the picture, lets you look at them as frame sheets, picks sounds by description and measured numbers, places each on its exact frame at a level set by its role, keeps or replaces the film's own music and voice, renders a new MP4 plus a separate SFX WAV, and checks the result in numbers (sync, pace, holes, loudness, mono) before you show it. Use it whenever someone asks to add sound effects, SFX, whooshes, pops, clicks, hits, UI sounds or \"sound design\" to a video, reel, short, promo, motion graphic, product demo or talking-head edit; says a video \"feels silent\", \"needs sound\", \"thêm hiệu ứng âm thanh\", \"lồng SFX\", \"thêm tiếng động\"; or wants EditAtlas sounds placed on a video rather than just found. Not for composing music or generating sound.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "status": "beta",
       "libraries": [
         "sfx"
@@ -44,7 +44,7 @@
     {
       "name": "transcribe",
       "description": "Transcribe the speech in a video or audio file on the person's own machine with Whisper (faster-whisper), with a time for every word, then check it, write SRT/VTT subtitles, and list what an edit could cut (long silences, filler words like um, uh, ờ, ừm, and repeated takes). The checked word-level transcript is what EditAtlas caption techniques, silence and filler removal, retake selection and every template's verified_transcript input need. Use it whenever someone wants a transcript, subtitles, captions or an SRT from a video; asks to \"trích lời\", \"lấy lời thoại\", \"chuyển giọng nói thành chữ\", \"làm phụ đề\", \"làm sub\", \"cắt khoảng lặng\", \"bỏ ờ ừm\", \"speech to text\", \"Whisper\"; or starts an EditAtlas edit that needs word times, even if they never say \"transcript\". Installs Whisper only after asking. Not for translating, cleaning up audio, separating a voice from music, or making a voice.",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "status": "beta",
       "libraries": [
         "techniques",
@@ -67,7 +67,7 @@
     {
       "name": "video-breakdown",
       "description": "Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, shape, iris, push, zoom, flash), camera moves (crash zoom, push in, shake, speed change), text and graphics coming on screen and their timing (in, hold, out), each text's colours (gradient stops, outline, glow) and free lookalike fonts, the look, pacing, the beat and sound hits; you look at the frame sheets, then look up each element in EditAtlas and write a report with technique names, links, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says \"video này dùng hiệu ứng gì\", \"phân tích video mẫu\", \"làm sao để edit giống video này\", \"hiệu ứng chuyển cảnh này tên gì\", \"reverse engineer this edit\", \"what transition is this\". Works on a local file. Not for downloading videos from TikTok or YouTube, telling filmed from AI footage, or editing the video itself.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "status": "beta",
       "libraries": [
         "techniques",
@@ -91,7 +91,7 @@
     {
       "name": "video-check",
       "description": "Check a finished video before the person sees it or posts it, then fix what is wrong. Measures the file (size, frame rate, pixel format, length), picture faults (black or white frames, frozen stretches, one-frame glitches, stutter, a loop that jumps or repeats a frame), and sound (loudness, clipping, silences, audio that ends early or stops abruptly); makes frame sheets at phone size with the caption-safe area marked; then a reviewer who has not seen your plan looks at the sheets and lists problems with a time and a fix. Fix the worst three, render again, check again, at most three rounds. Use it after rendering any edit, and when someone asks to check a video before sending or posting it, says \"kiểm tra video trước khi gửi\", \"xem lại bản dựng\", \"video này có lỗi gì không\", \"review my edit\", \"QA this render\". Works on a local file. Not for breaking down someone else's video (use video-breakdown) or for judging footage the person has not edited.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "status": "beta",
       "libraries": [
         "techniques"

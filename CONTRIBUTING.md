@@ -74,6 +74,9 @@ pull request which evidence meets each one.
 
 ## Versions and releases
 
-Raise `metadata.version` on every change to a skill (patch for fixes, minor for new behaviour). A tag `vX.Y.Z` on
+Raise `metadata.version` on every change to a skill (patch for fixes, minor for new behaviour), and the same number
+in the line near the top of its body ("This is <name> <version>.") and in the version check at the start of its
+Deliver step; `validate.py` checks both. The agent compares them with `get_skill` to tell the person an update
+exists. A tag `vX.Y.Z` on
 `main` runs `.github/workflows/release.yml`, which attaches one zip per skill and `skills/index.json` to a GitHub
 release.
