@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.3.2"
+  version: "0.3.3"
   status: beta
   library: studio
   mcp-tools: none
@@ -106,8 +106,8 @@ Let the imports write the long parts:
 
 Rules that make the studio useful:
 
-- **Put repeated looks in a style.** In the studio, a change to a styled item can go to the whole style ("All 42
-  caption") or to "This one". Without styles, "make the captions bigger" means 42 edits.
+- **Put repeated looks in a style.** In the studio, a change to a styled item goes to "This one" unless the person
+  chooses the whole style ("All 42 caption"). Without styles, "make the captions bigger" means 42 edits.
 - **Give stable ids**: `c1`…, `cap1`…, and names like `s-ding`. A label (`"label": "YES badge"`) helps the person
   find a sound on the timeline.
 - **Use editable text.** Make text a `text` item, not part of an image, so the person can fix typos.

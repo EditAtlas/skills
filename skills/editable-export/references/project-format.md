@@ -59,6 +59,9 @@ Drawn in order: later tracks are on top. Each has `id`, `kind`, `name`, optional
 - `in`/`out`: source time of the part used. The clip lasts `out - in` on the timeline; clips play one after the
   other with no gaps, so changing one clip's length moves everything after it (and the studio moves the overlays
   that start after it by the same amount).
+- The person can split a clip in the studio (the second part gets a new id, `<id>-2`, and the zoom carries on across
+  the cut) and change the order of clips. Text and sounds that sit mostly inside a clip move with it; items over
+  several clips stay where they are. Read the order and the ids from their version; do not assume your own.
 - `fit`: `cover` (fill the canvas, crop) or `contain` (whole frame, bars). `x`, `y`: the point of the source kept
   in the centre when it is cropped (0.5 = middle). `scale`: extra zoom (1 = none). `zoom_to`: if given, the zoom
   moves from `scale` to `zoom_to` over the clip (a slow push-in).

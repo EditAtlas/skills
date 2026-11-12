@@ -45,12 +45,13 @@ Every save is a new version in `versions/` (`v1.json`, `v2.json` ...), by Claude
 
 | Element | On the picture | In the panel | On the timeline |
 |---|---|---|---|
-| Text | click, drag (snaps to the centre), corner to resize | text, size, colour, font (the project's, 18 from EditAtlas with Vietnamese, or a file of their own) and weight, position, timing; for a style, all items or this one | move, trim both ends |
+| Text | click, drag (snaps to the centre), corner to resize | text, size, colour, font (the project's, 18 from EditAtlas with Vietnamese, or a file of their own) and weight, position, timing; for a style, this one (the default) or all items | move, trim both ends |
 | Graphics | click, drag, corner to resize | position, size, opacity, timing | move, trim |
 | Sounds and music | | nudge by a frame, level in dB, fades | move, trim, mute a track |
-| Clips | | trim in and out by a frame; what comes after moves with it | trim the edges |
+| Clips | | trim in and out by a frame; what comes after moves with it; split at the playhead; move earlier or later | trim the edges, split (S), drag to another place |
 
-The studio also has undo and redo, makes the MP4 with **Export MP4**, and saves the person's changes into the
+The picture zooms in (up to 400 %) and **Bigger picture** hides the timeline; **Guides** show the centre lines and, on a
+vertical video, the area that app buttons leave clear. The studio also has undo and redo, makes the MP4 with **Export MP4**, and saves the person's changes into the
 folder as the next version with **Save** (and onto the link, when there is one). **Continue with Claude** saves
 too and gives them a message for Claude; Claude reads their version (`share.py pull` first with a link), saves its own
 as the next one with `package.py save` (then `share.py push`), and the studio offers it when the person comes back. Motion graphics drawn in code stay elements as animated WebP images.
