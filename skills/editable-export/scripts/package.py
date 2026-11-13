@@ -122,6 +122,11 @@ def check(p, base=None):
                     errs.append(f"{where}: media {x.get('media')!r} is not a video in media")
                 if not (isinstance(x.get("in"), (int, float)) and isinstance(x.get("out"), (int, float)) and x["out"] > x["in"] >= 0):
                     errs.append(f"{where}: needs 0 <= in < out (source seconds)")
+                if "speed" in x and not (is_num(x["speed"]) and 0.1 <= x["speed"] <= 10):
+                    errs.append(f"{where}: speed must be a number from 0.1 to 10 (1 = as filmed)")
+                tr = x.get("transition")
+                if tr is not None and not (isinstance(tr, dict) and tr.get("type") in TRANSITIONS and is_num(tr.get("dur", 0.5)) and 0 < tr.get("dur", 0.5) <= 5):
+                    errs.append(f"{where}: transition must be {{\"type\": one of {sorted(TRANSITIONS)}, \"dur\": seconds}}")
                 ids_add(ids, x.get("id"), where, errs)
             continue
         for x in t.get("items") or []:
@@ -138,6 +143,12 @@ def check(p, base=None):
                     errs.append(f"{where}: {len(x['words'])} word times for {len(str(x.get('text', '')).split())} words")
             if k in ("image", "audio") and media.get(x.get("media"), {}).get("kind") != k:
                 errs.append(f"{where}: media {x.get('media')!r} is not an {k} in media")
+            if k == "audio" and "gain_keys" in x:
+                ks = x["gain_keys"]
+                if not (isinstance(ks, list) and all(isinstance(q, dict) and is_num(q.get("t")) and is_num(q.get("db")) for q in ks)):
+                    errs.append(f"{where}: gain_keys must be a list of {{\"t\": seconds into the file, \"db\": change}}")
+                elif any(b["t"] < a["t"] for a, b in zip(ks, ks[1:])):
+                    errs.append(f"{where}: gain_keys must be in time order")
     if nvideo > 1:
         errs.append("use one video track (the footage); put other pictures on image tracks")
     errs += check_cards(p)
@@ -146,6 +157,13 @@ def check(p, base=None):
         if font and font != "sans-serif" and not any(m.get("kind") == "font" and m.get("family") == font for m in media.values()):
             errs.append(f"style {name}: font {font!r} has no font file in media (the studio would fall back to sans-serif)")
     return errs
+
+
+TRANSITIONS = {"dissolve", "black", "white", "slide", "wipe"}
+
+
+def is_num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 KEY_FIELDS = {"dx", "dy", "scale", "rotate", "opacity"}
@@ -235,9 +253,10 @@ def import_cuts(p, cuts_path, media_id):
 def source_to_timeline(p, media_id, s):
     t = 0.0
     for c in next((t for t in p["tracks"] if t["kind"] == "video"), {"clips": []})["clips"]:
-        d = c["out"] - c["in"]
+        sp = c.get("speed") or 1
+        d = (c["out"] - c["in"]) / sp
         if c["media"] == media_id and c["in"] - 1e-6 <= s < c["out"]:
-            return t + (s - c["in"])
+            return t + (s - c["in"]) / sp
         t += d
     return None
 
@@ -565,7 +584,7 @@ MISSING = object()                                    # JS undefined
 NAMES = {"at": "start", "dur": "length", "in": "in point", "out": "out point", "gain_db": "volume (dB)",
          "fade_in": "fade in", "fade_out": "fade out", "x": "x", "y": "y", "width": "width", "size": "size",
          "text": "text", "color": "colour", "rotation": "rotation", "opacity": "opacity", "volume": "volume",
-         "scale": "zoom", "zoom_to": "zoom at the end", "style": "style"}
+         "scale": "zoom", "zoom_to": "zoom at the end", "style": "style", "speed": "speed"}
 
 
 def js_truthy(v):
@@ -723,6 +742,44 @@ def anim(v):
     return js_template(get(v, "type"))
 
 
+def js_plus(v):
+    """+v in JS for a value read from JSON."""
+    if v is MISSING:
+        return math.nan
+    if v is None or v is False:
+        return 0
+    if v is True:
+        return 1
+    if isinstance(v, (int, float)):
+        return v
+    if isinstance(v, str):
+        try:
+            return float(v.strip()) if v.strip() else 0
+        except ValueError:
+            return math.nan
+    return math.nan
+
+
+def trans(v):
+    """A transition into a clip, in words."""
+    if not js_truthy(v) or not js_truthy(get(v, "type")):
+        return "cut"
+    d = js_plus(get(v, "dur"))
+    return f"{js_template(get(v, 'type'))} {js_num(r3(d if js_truthy(d) else 0.5))} s"
+
+
+def pts(v):
+    """The points of a sound's volume line, in words."""
+    if not js_truthy(v) or not isinstance(v, list) or not v:
+        return "flat"
+
+    def one(k):
+        db, t = js_plus(get(k, "db")), js_plus(get(k, "t"))
+        sign = "+" if isinstance(get(k, "db"), (int, float)) and not isinstance(get(k, "db"), bool) and get(k, "db") > 0 else ""
+        return f"{sign}{js_num(r3(db if js_truthy(db) else 0))} dB at {js_num(r3(t if js_truthy(t) else 0))} s"
+    return f"{len(v)} point{'s' if len(v) > 1 else ''} (" + ", ".join(one(k) for k in v[:4]) + (", …" if len(v) > 4 else "") + ")"
+
+
 def change_summary(a, b):
     """The studio's changeSummary(a, b): lines that say what changed from project a to project b."""
     out = []
@@ -752,6 +809,17 @@ def change_summary(a, b):
     ta_title, tb_title = js_or(get(a, "title"), ""), js_or(get(b, "title"), "")
     if not js_is(ta_title, tb_title):
         out.append(f"project name {val(ta_title)} → {val(tb_title)}")
+    ma, mb = js_or(get(a, "media"), {}), js_or(get(b, "media"), {})
+    for k in keys(get(a, "media"), get(b, "media")):
+        x, y = get(ma, k), get(mb, k)
+        m = y if js_truthy(y) else x
+        if js_truthy(x) == js_truthy(y):
+            continue
+        if js_is(get(m, "kind"), "font"):
+            what = f"font {val(get(m, 'family'))} {js_template(js_or(get(m, 'weight'), 400))}{' italic' if js_is(get(m, 'style'), 'italic') else ''}"
+        else:
+            what = js_template(get(m, "kind"))
+        out.append(f"{what} file {js_template(get(m, 'path'))}: {'added' if js_truthy(y) else 'removed'}")
     sa, sb = js_or(get(a, "styles"), {}), js_or(get(b, "styles"), {})
     for k in keys(get(a, "styles"), get(b, "styles")):
         x, y = get(sa, k), get(sb, k)
@@ -790,6 +858,10 @@ def change_summary(a, b):
                 if not same(get(was, f), get(it, f)):
                     if f in ("in", "out") and get(tb, "kind") in ("text", "image"):
                         out.append(f"{label(tb, was)}: {'appears' if f == 'in' else 'disappears'} {anim(get(was, f))} → {anim(get(it, f))}")
+                    elif f == "transition":
+                        out.append(f"{label(tb, was)}: transition into it {trans(get(was, f))} → {trans(get(it, f))}")
+                    elif f == "gain_keys":
+                        out.append(f"{label(tb, was)}: volume line {pts(get(was, f))} → {pts(get(it, f))}")
                     else:
                         out.append(f"{label(tb, was)}: word timings" if f == "words" else
                                    f"{label(tb, was)}: {name(f)} {val(get(was, f))} → {val(get(it, f))}")
@@ -887,7 +959,7 @@ def first_video(p):
 def timeline_duration(p):
     v = next((t for t in p["tracks"] if t["kind"] == "video" and t.get("clips")), None)
     if v:
-        return sum(c["out"] - c["in"] for c in v["clips"])
+        return sum((c["out"] - c["in"]) / (c.get("speed") or 1) for c in v["clips"])
     end = 0.0
     for t in p["tracks"]:
         for x in t.get("items") or []:

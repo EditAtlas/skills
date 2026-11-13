@@ -1,11 +1,11 @@
 ---
 name: editable-export
-description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer, plus if wanted a link with only the encrypted project text; each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", to "tweak it myself", pastes a message from EditAtlas Studio, "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; you cannot add new footage there or change effects that are burned into the clips.
+description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer, plus if wanted a link with only the encrypted project text; each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", to "tweak it myself", pastes a message from EditAtlas Studio, "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; effects burned into the clips cannot be changed there.
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.3.6"
+  version: "0.3.7"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.3.6.
+This is editable-export 0.3.7.
 
 Here is the result. With the finished video, the person gets the same edit as elements, in a folder, and opens it
 in the EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel.
@@ -180,7 +180,7 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.6, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.7, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy and, with it, a
 link: "the link holds only the project's text and timings, encrypted; your footage stays in the folder." With a yes, build the copy if you have not, and give them the folder:
@@ -203,9 +203,11 @@ Tell them how the studio works:
    name and size) and remembers it in that browser.
 2. **Click a thing on the video, or on the timeline, to change it.** The panel on the right has:
    - for text: content, size, colour, position and timing
-   - for sounds: frame nudges and level in dB
+   - for sounds: frame nudges, level in dB, and a volume line on the timeline with points and fades
    - for graphics: position, size and timing
-   - for clips: trims (what comes after moves with the clip)
+   - for clips: trims (what comes after moves with the clip), speed, a transition into the clip, and framing (drag
+     the picture; drag its corner to zoom)
+   - **Add media** brings in footage, pictures or sounds from their computer; Save copies them into the folder
 3. **Use the keys:**
    - Space plays.
    - ←/→ moves one frame (Shift for 10).

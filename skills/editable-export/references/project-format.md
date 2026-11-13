@@ -52,13 +52,23 @@ Drawn in order: later tracks are on top. Each has `id`, `kind`, `name`, optional
 ```json
 {"id": "V1", "kind": "video", "name": "Footage", "clips": [
   {"id": "c1", "media": "a-roll", "in": 0.40, "out": 5.20, "volume": 1.0,
-   "fit": "cover", "x": 0.5, "y": 0.45, "scale": 1.0, "zoom_to": 1.08}
+   "fit": "cover", "x": 0.5, "y": 0.45, "scale": 1.0, "zoom_to": 1.08},
+  {"id": "c2", "media": "b-roll", "in": 2.00, "out": 6.00, "speed": 2,
+   "transition": {"type": "dissolve", "dur": 0.5}}
 ]}
 ```
 
-- `in`/`out`: source time of the part used. The clip lasts `out - in` on the timeline; clips play one after the
-  other with no gaps, so changing one clip's length moves everything after it (and the studio moves the overlays
-  that start after it by the same amount).
+- `in`/`out`: source time of the part used. The clip lasts `(out - in) / speed` on the timeline; clips play one
+  after the other with no gaps, so changing one clip's length or speed moves everything after it (and the studio
+  moves the overlays that start after it by the same amount).
+- `speed` (default 1): how fast the source plays, from 0.1 to 10 (the studio offers 0.25 to 4). 2 is twice as fast
+  and half as long; 0.5 is slow motion. The clip's own sound plays at that speed too, so its pitch goes up or down.
+- `transition` (on a clip after the first): how the cut into this clip looks, `{"type": "dissolve" | "black" |
+  "white" | "slide" | "wipe", "dur": 0.5}` (`black` and `white` dip through that colour; `slide` pushes the clip
+  before out to the left; `wipe` reveals this clip from the left). It sits centred on the cut and changes no timing:
+  the clip before plays on past its `out` for half of `dur`, and this one starts half of `dur` before its `in`, so
+  leave that much spare footage around a cut that has one (a source with nothing there holds its first or last
+  frame). `dur` is at most the length of each clip. The footage's sound still cuts. No `transition` is a plain cut.
 - The person can split a clip in the studio (the second part gets a new id, `<id>-2`, and the zoom carries on across
   the cut) and change the order of clips. Text and sounds that sit mostly inside a clip move with it; items over
   several clips stay where they are. Read the order and the ids from their version; do not assume your own.
@@ -76,8 +86,19 @@ Drawn in order: later tracks are on top. Each has `id`, `kind`, `name`, optional
   and `out` on the item. `package.py changes` names every one of these changes.
 - `fit`: `cover` (fill the canvas, crop) or `contain` (whole frame, bars). `x`, `y`: the point of the source kept
   in the centre when it is cropped (0.5 = middle). `scale`: extra zoom (1 = none). `zoom_to`: if given, the zoom
-  moves from `scale` to `zoom_to` over the clip (a slow push-in).
-- `volume`: the footage's own sound for this clip (0 mutes it).
+  moves from `scale` to `zoom_to` over the clip (a slow push-in). In the studio the person drags the picture to set
+  `x` and `y` (only as far as the footage reaches) and drags its corner to set `scale` (a push-in keeps its ratio).
+- `volume`: the footage's own sound for this clip (0 mutes it; up to 2). The studio shows it as a line on the clip.
+- The person can add footage, pictures and sounds from their computer (a button, or files dropped on the page). Each
+  new file gets a media id from its name (`beach-walk`, then `beach-walk-2`), a `path` of `media/<its file name>`
+  (`-2` added before the extension when that path is taken), a `title`, and what the studio measured: `duration`,
+  `width`, `height` for a video (no `fps` or `has_audio`), `duration` for a sound, `width`, `height` for a picture.
+  Their Save copies the file into the folder's `media/`; a link never carries it, so `share.py pull` lists it as
+  missing until they send the folder or the file. Footage goes in as a clip `c<n>` after the clip under the playhead,
+  and what comes after moves later by its length. A picture becomes `picture-<n>` (3 s, centred, `width` up to 0.6)
+  on the picked graphics layer, the top one, or a new track `G<n>` named "Pictures"; a sound becomes `sound-<n>` with
+  a `label`, on the picked sound layer, the top one, or a new `A<n>` named "Sounds". The same file added again reuses
+  its media id.
 
 ### text: captions, hooks, titles
 
@@ -210,6 +231,12 @@ exit, and a hold of at least 0.5 s between moves. A card's keys carry its words 
 - `at`: when the file starts on the timeline. `in`/`out`: the part of the file used (`out: null` = to its end).
 - `gain_db`: applied to the file as it is (0 = the file's own level). No normalising happens later: what plays in
   the studio is what is exported.
+- `gain_keys` (optional): points on the sound's volume line, `[{"t": 3.0, "db": 0}, {"t": 3.5, "db": -12}]`, in time
+  order. `t` is time in the file, like `in` and `out`, so trimming the sound leaves the points where they were in
+  it; `db` is the change from `gain_db` there. The level goes straight (in dB) from point to point and holds before
+  the first and after the last; fades apply on top. Use them to duck music under speech. In the studio the person
+  drags the line (it changes `gain_db`), double-clicks it to add a point, drags points, and drags the dots on the
+  sound's top edge to set `fade_in` and `fade_out`. Splitting a sound puts a point at the cut on both parts.
 
 ## Ids
 
