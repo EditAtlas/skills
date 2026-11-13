@@ -12,7 +12,7 @@ Prints the loudness and true peak before and after. Never writes over the input.
 import argparse, json, re, subprocess, sys
 from pathlib import Path
 
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 
 
 def loudnorm(src, chain, target, peak):
@@ -26,13 +26,18 @@ def loudnorm(src, chain, target, peak):
     return json.loads(m.group(0))
 
 
+def bitrate_kbps(text):
+    return float(text.lower().rstrip("k")) if text.lower().endswith("k") else float(text) / 1000
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("src")
     ap.add_argument("dst")
     ap.add_argument("--loudness", type=float, default=-14.0, help="target LUFS (online -14, podcast -16, broadcast -23)")
     ap.add_argument("--peak", type=float, default=-1.5, help="true-peak target in dBTP; -1.5 leaves room for the AAC encode")
-    ap.add_argument("--bitrate", default="192k")
+    ap.add_argument("--bitrate", default="256k", help="AAC bitrate; at 192k the encoder adds up to 4 dB of peak on sizzle,"
+                    " ice and other bright noisy sounds, at 256k about none (measured 2026-11-13)")
     a = ap.parse_args()
     src, dst = Path(a.src), Path(a.dst)
     if src.resolve() == dst.resolve():
@@ -43,9 +48,13 @@ def main():
         sys.exit(f"{src} is silent or nearly so ({before['input_i']} LUFS): there is no mix to fix")
     gain = a.loudness - float(before["input_i"])
     # Peaks must sit low enough that the gain loudnorm adds keeps them under the peak target, with 1 dB spare.
-    # The limiter runs at 192 kHz so it catches peaks between samples too. If the encoded file still peaks
-    # above the target, lower the ceiling by the overshoot and try again.
+    # The limiter runs at 192 kHz so it catches peaks between samples too. If the encoded file still peaks above
+    # the target, find out where the excess comes from: measured before encoding, the sound itself may still be
+    # over, and then the ceiling goes down by the overshoot; or the sound is under and the AAC encoder added the
+    # rest, and then a lower ceiling only makes it worse (harder limiting gives the encoder more to overshoot on;
+    # on a sizzle and ice mix 192k went from +0.7 to +3.8 dB over as the ceiling fell), so the bitrate goes up.
     ceiling_db = min(a.peak, a.peak - max(gain, 0.0) - 1.0)
+    bitrate, encoder_over = a.bitrate, None
     for attempt in range(4):
         limiter = (f"aresample=192000,alimiter=limit={10 ** (ceiling_db / 20):.4f}:level=disabled"
                    f":attack=1:release=50,aresample=48000,")
@@ -54,16 +63,37 @@ def main():
                  f":measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}"
                  f":offset={m['target_offset']}:linear=true,aresample=48000")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-map", "0", "-c", "copy", "-c:a", "aac",
-                        "-b:a", a.bitrate, "-af", chain, "-movflags", "+faststart", str(dst)], check=True)
+                        "-b:a", bitrate, "-af", chain, "-movflags", "+faststart", str(dst)], check=True)
         after = loudnorm(dst, "", a.loudness, a.peak)
         over = float(after["input_tp"]) - a.peak
+        # Limiting makes the sound quieter, and the linear gain stops at the peak target, so the loudness can fall
+        # short. Then, and only then, a lower ceiling buys the room.
+        short = a.loudness - float(after["input_i"])
         if over <= 0.05:
+            if short <= 0.5 or attempt == 3:
+                break
+            ceiling_db -= short + 0.3
+            continue
+        unencoded = float(loudnorm(src, chain + ",", a.loudness, a.peak)["input_tp"])
+        if unencoded - a.peak > 0.05:
+            ceiling_db -= unencoded - a.peak + 0.5
+            continue
+        encoder_over = float(after["input_tp"]) - unencoded
+        higher = next((b for b in ("256k", "320k") if bitrate_kbps(b) > bitrate_kbps(bitrate)), None)
+        if not higher:
             break
-        ceiling_db -= over + 0.5
-    print(f"fix_sound {VERSION}: limiter ceiling {ceiling_db:.1f} dBFS (try {attempt + 1}), then two-pass loudnorm to {a.loudness} LUFS")
+        bitrate = higher
+    print(f"fix_sound {VERSION}: limiter ceiling {ceiling_db:.1f} dBFS (try {attempt + 1}), then two-pass loudnorm to {a.loudness} LUFS, AAC {bitrate}")
     print(f"before: {float(before['input_i']):.1f} LUFS, true peak {float(before['input_tp']):+.1f} dBTP")
     print(f"after:  {float(after['input_i']):.1f} LUFS, true peak {float(after['input_tp']):+.1f} dBTP")
-    if over > 0.05:
+    if over <= 0.05 and short > 0.5:
+        print(f"{short:.1f} LU under the loudness target: the peaks leave no more room. Lower the loudest sound in the"
+              " mix, or accept it a little quieter")
+    if over > 0.05 and encoder_over is not None:
+        print(f"still {over:.1f} dB above the peak target: the sound is under it before encoding, and the AAC encoder"
+              f" adds {encoder_over:.1f} dB at {bitrate}. Lowering the limiter would not help; deliver with --peak"
+              f" {a.peak - over - 0.2:.1f}, or lower the brightest sound in the mix and render again")
+    elif over > 0.05:
         print(f"still {over:.1f} dB above the peak target after {attempt + 1} tries: lower the music or the loudest"
               " sound in the mix and render again")
     if ceiling_db < a.peak - max(gain, 0.0) - 4.0:

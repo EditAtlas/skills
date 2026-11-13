@@ -78,3 +78,13 @@ On four files to -14 LUFS (three demos that clip, from +0.2 to +4.8 dBTP, and on
 -14.0 to -14.2 LUFS and -1.6 to -2.4 dBTP; on the +4.8 dBTP demo to -16 and -23 LUFS, -16.0 and -23.0 LUFS. The
 +2.1 dBTP demo needed four tries and a -11 dBFS ceiling, so the script warns that the limiter worked hard. It
 cannot tell whether the result sounds right: a person still has to listen.
+
+**Peaks the encoder adds (0.2.3).** At AAC 192k the encoder itself raised the peak of bright, noisy sounds such as a
+sizzle or ice: on a 12 s sizzle and ice mix the sound was at -1.5 dBTP before encoding and -0.8 after, and up to
++0.8 after harder limiting, because the limiter's work gives the encoder more to overshoot on. The old loop answered
+by lowering the ceiling again, down to -22.7 dBFS on that mix (-20.6 on a reel), and the peak stayed over. At 256k the
+same sound stayed within 0.1 dB. So the default is now 256k, and when the encoded file is over the script measures the
+sound before encoding: if that is over, the ceiling goes down; if not, the bitrate goes up to 320k, and if it is still
+over it says by how much the encoder adds and stops. The ceiling also goes down when the loudness falls more than 0.5
+LU short, which is the one thing a lower ceiling buys. On that mix: ceiling -19.3 dBFS, -14.4 LUFS, -1.5 dBTP; on an
+ordinary kitchen and music mix the result is the same as 0.2.2 (-14.0 LUFS, -2.3 dBTP, one try).
