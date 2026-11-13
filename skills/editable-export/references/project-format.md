@@ -62,6 +62,10 @@ Drawn in order: later tracks are on top. Each has `id`, `kind`, `name`, optional
 - The person can split a clip in the studio (the second part gets a new id, `<id>-2`, and the zoom carries on across
   the cut) and change the order of clips. Text and sounds that sit mostly inside a clip move with it; items over
   several clips stay where they are. Read the order and the ids from their version; do not assume your own.
+- The person can also copy, paste and duplicate clips, text, graphics and sounds. A copy gets a new id, `<id>-copy`
+  (then `<id>-copy-2`, ...), keeps the look and animation, and a copied text has no `words`. Deleting a clip deletes
+  the text and sounds that belong to it by the same rule. "Copy look" sets a text's `style` and look fields from
+  another text and keeps its words, timing and position, so a text may end up with a different `style`.
 - `fit`: `cover` (fill the canvas, crop) or `contain` (whole frame, bars). `x`, `y`: the point of the source kept
   in the centre when it is cropped (0.5 = middle). `scale`: extra zoom (1 = none). `zoom_to`: if given, the zoom
   moves from `scale` to `zoom_to` over the clip (a slow push-in).
