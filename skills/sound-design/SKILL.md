@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.4.1"
+  version: "0.4.2"
   status: beta
   library: sfx
   mcp-tools: search_sfx get_sfx
@@ -13,7 +13,7 @@ metadata:
 
 # Sound design: real sounds on a finished video
 
-This is sound-design 0.4.1.
+This is sound-design 0.4.2.
 
 The aim: the film sounds as if an editor with a good library cut it. Every sound is a real file from EditAtlas,
 placed on a frame you have looked at, at a level you can justify in numbers.
@@ -142,7 +142,7 @@ if the moment is the sound's peak, switch that cue to `anchor: peak`. Two or thr
 
 ## 6. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists sound-design above 0.4.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name sound-design gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists sound-design above 0.4.2, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name sound-design gives the step). Without the MCP, skip it.
 
 Give the person:
 
@@ -156,6 +156,12 @@ Give the person:
    the MP4 again in their browser. Build it only if they want it.
 
 Write the report in the person's language. Do not claim you listened.
+
+**Last, ask once how it went.** If the EditAtlas MCP is connected, ask the person, in one short message in their
+language, about each thing from EditAtlas you used, by name: the techniques, sounds, music, stock clips and this
+skill. Send each answer with `send_feedback`, about `this_item`; an answer only about the whole video goes once, as
+`whole_edit`. Send only what they said, and nothing if they do not answer. Ask once per edit: if you or another
+skill already asked, skip it.
 
 ## Optional: the real-sfx engine
 

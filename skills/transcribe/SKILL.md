@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.2.3"
+  version: "0.2.4"
   status: beta
   library: techniques templates
   mcp-tools: get_technique search_techniques get_workflow
@@ -13,7 +13,7 @@ metadata:
 
 # Transcribe: word-level transcripts for editing
 
-This is transcribe 0.2.3.
+This is transcribe 0.2.4.
 
 The aim: a transcript the person has checked, with a start and end time for every word, ready for captions and
 cuts. Whisper runs on their machine; nothing is uploaded.
@@ -152,7 +152,7 @@ each join, so apply it when rendering (`ffmpeg_cut.txt` lists the joins that cam
 
 ## 6. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists transcribe above 0.2.3, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name transcribe gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists transcribe above 0.2.4, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name transcribe gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 
@@ -167,3 +167,9 @@ Never claim the transcript is word-perfect; say it was checked against the revie
 
 If you then put the captions on a video for them, offer an editable copy once: the editable-export skill opens it in
 the EditAtlas studio, where they fix a word, a timing or the caption size themselves and export the MP4 again.
+
+**Last, ask once how it went.** If the EditAtlas MCP is connected, ask the person, in one short message in their
+language, about each thing from EditAtlas you used, by name: the techniques, sounds, music, stock clips and this
+skill. Send each answer with `send_feedback`, about `this_item`; an answer only about the whole video goes once, as
+`whole_edit`. Send only what they said, and nothing if they do not answer. Ask once per edit: if you or another
+skill already asked, skip it.
