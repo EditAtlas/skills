@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.3.5"
+  version: "0.3.6"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.3.5.
+This is editable-export 0.3.6.
 
 Here is the result. With the finished video, the person gets the same edit as elements, in a folder, and opens it
 in the EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel.
@@ -132,6 +132,10 @@ Rules that make the studio useful:
 
 ## 2. Build and check
 
+Build the folder where the person can open it: on their computer that is Documents, the Desktop or their project
+folder. Chrome will not open a folder inside AppData, Temp or Program Files (on a Mac, Library), so `build` prints a
+note when `--out` is in one of those; move the folder before you hand it over.
+
 Run `package.py build`. It does the following:
 
 - checks the project, and writes nothing if anything is wrong
@@ -176,7 +180,7 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.5, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.6, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy and, with it, a
 link: "the link holds only the project's text and timings, encrypted; your footage stays in the folder." With a yes, build the copy if you have not, and give them the folder:

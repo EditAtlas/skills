@@ -29,6 +29,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -442,6 +443,33 @@ def cmd_build(a):
     write_version(out, p, 1, None, a.note, a.name)
     print_summary(p, total, notes)
     print("->", out, "(version 1)")
+    blocked = chrome_blocked(out)
+    if blocked:
+        print(f"note: Chrome will not let the studio open a folder inside {blocked} (it says the folder \"contains system "
+              f"files\"). Move {out.name} to Documents, the Desktop or the person's project folder before you give it "
+              "to them, or build it there.")
+
+
+def chrome_blocked(folder):
+    """The system folder a path is in that Chrome's folder picker refuses on this computer, or None. Only Windows and
+    macOS: in a sandbox the person downloads the folder anyway."""
+    path = Path(folder).resolve()
+    if sys.platform.startswith("win"):
+        roots = [("AppData", Path.home() / "AppData"), ("Temp", Path(tempfile.gettempdir())),
+                 ("Program Files", Path(os.environ.get("ProgramFiles", r"C:\Program Files"))),
+                 ("Windows", Path(os.environ.get("SystemRoot", r"C:\Windows")))]
+    elif sys.platform == "darwin":
+        roots = [("Library", Path.home() / "Library"), ("a temporary folder", Path(tempfile.gettempdir()).resolve()),
+                 ("System", Path("/System"))]
+    else:
+        return None
+    for name, root in roots:
+        try:
+            path.relative_to(root.resolve())
+            return name
+        except (ValueError, OSError):
+            continue
+    return None
 
 
 # ------------------------------------------------------------------ save: the agent's next version
@@ -686,6 +714,15 @@ def val(v):
     return u16_slice(js_json(v), 60)
 
 
+def anim(v):
+    """How a text or graphic appears or leaves, in words: its style's way when it has none of its own."""
+    if v is MISSING:
+        return "as its style"
+    if v is None or not isinstance(v, dict) or not js_truthy(get(v, "type")):
+        return "off"
+    return js_template(get(v, "type"))
+
+
 def change_summary(a, b):
     """The studio's changeSummary(a, b): lines that say what changed from project a to project b."""
     out = []
@@ -732,6 +769,8 @@ def change_summary(a, b):
         tname = js_template(js_or(get(tb, "name"), get(tb, "id")))
         if ta is None:
             out.append(f"track {tname}: added")
+            for it in js_or(get(tb, "clips"), get(tb, "items"), []):
+                out.append(f"{label(tb, it)}: added")
             continue
         if js_truthy(get(ta, "hidden")) != js_truthy(get(tb, "hidden")):
             out.append(f"track {tname}: {'hidden' if js_truthy(get(tb, 'hidden')) else 'shown'}")
@@ -749,8 +788,11 @@ def change_summary(a, b):
                 continue
             for f in keys(was, it):
                 if not same(get(was, f), get(it, f)):
-                    out.append(f"{label(tb, was)}: word timings" if f == "words" else
-                               f"{label(tb, was)}: {name(f)} {val(get(was, f))} → {val(get(it, f))}")
+                    if f in ("in", "out") and get(tb, "kind") in ("text", "image"):
+                        out.append(f"{label(tb, was)}: {'appears' if f == 'in' else 'disappears'} {anim(get(was, f))} → {anim(get(it, f))}")
+                    else:
+                        out.append(f"{label(tb, was)}: word timings" if f == "words" else
+                                   f"{label(tb, was)}: {name(f)} {val(get(was, f))} → {val(get(it, f))}")
         if js_truthy(get(tb, "clips")) and not same([get(c, "id") for c in ia],
                                                     [get(c, "id") for c in ib if find(ia, get(c, "id")) is not None]):
             out.append(f"track {tname}: clips in a new order")

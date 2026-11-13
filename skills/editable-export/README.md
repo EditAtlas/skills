@@ -45,12 +45,13 @@ Every save is a new version in `versions/` (`v1.json`, `v2.json` ...), by Claude
 
 | Element | On the picture | In the panel | On the timeline |
 |---|---|---|---|
-| Text | click, drag (snaps to the centre), corner to resize | text, size, colour, font (the project's, 18 from EditAtlas with Vietnamese, or a file of their own) and weight, position, timing; for a style, this one (the default) or all items; copy, paste at the playhead, duplicate; copy the look of one text onto another | move, trim both ends |
+| Text | click, drag (snaps to the centre), corner to resize | text, size, colour, font (the project's, 18 from EditAtlas with Vietnamese, or a file of their own) and weight, position, timing, italic, capitals, align, line width, spacing, shadow, how it appears and leaves; for a style, this one (the default) or all items; copy, paste at the playhead, duplicate; copy the look of one text onto another; add a new text; split at the playhead (between the words when they have timings) | move, trim both ends |
 | Graphics | click, drag, corner to resize | position, size, opacity, timing; copy, paste, duplicate | move, trim |
-| Sounds and music | | nudge by a frame, level in dB, fades; copy, paste, duplicate | move, trim, mute a track |
+| Sounds and music | | nudge by a frame, level in dB, fades; copy, paste, duplicate; split at the playhead | move, trim, mute a track |
 | Clips | | trim in and out by a frame; what comes after moves with it; split at the playhead; move earlier or later; duplicate; delete, with the text and sounds on it | trim the edges, split (S), drag to another place |
 
-The picture zooms in (up to 400 %) and **Bigger picture** hides the timeline; **Guides** show the centre lines and, on a
+Several texts, graphics and sounds can be picked at once (Shift or Ctrl+click, a box drawn on the timeline, Ctrl+A for a
+layer) and moved, nudged, resized, coloured, copied or deleted together. The picture zooms in (up to 400 %) and **Bigger picture** hides the timeline; **Guides** show the centre lines and, on a
 vertical video, the area that app buttons leave clear. The studio also has undo and redo, makes the MP4 with **Export MP4**, and saves the person's changes into the
 folder as the next version with **Save** (and onto the link, when there is one). **Continue with Claude** saves
 too and gives them a message for Claude; Claude reads their version (`share.py pull` first with a link), saves its own

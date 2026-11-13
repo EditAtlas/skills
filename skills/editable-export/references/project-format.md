@@ -66,6 +66,14 @@ Drawn in order: later tracks are on top. Each has `id`, `kind`, `name`, optional
   (then `<id>-copy-2`, ...), keeps the look and animation, and a copied text has no `words`. Deleting a clip deletes
   the text and sounds that belong to it by the same rule. "Copy look" sets a text's `style` and look fields from
   another text and keeps its words, timing and position, so a text may end up with a different `style`.
+- The person can add text: a new item `text-<n>` with no `style` and its own `size`, `color`, `stroke`, `x`, `y`, on
+  the layer they picked or the top text layer; in a project with no text layer, a new track `T<n>` named "Text".
+- The person can split a text or a sound at the playhead. The second part gets the id `<id>-2`. A text with `words`
+  is cut between the words, each part keeping its own `words`; without them both parts keep the full `text`. The
+  first part gets `"out": null` and the second `"in": null` (no animation at the cut, overriding the style). A sound's
+  first part ends at `out` = the cut and the second starts there with `in` = the cut, in the same file.
+- In the studio the person can also set a text's `italic`, `case`, `align`, `max_width`, `letter_spacing`, `shadow`
+  and `out` on the item. `package.py changes` names every one of these changes.
 - `fit`: `cover` (fill the canvas, crop) or `contain` (whole frame, bars). `x`, `y`: the point of the source kept
   in the centre when it is cropped (0.5 = middle). `scale`: extra zoom (1 = none). `zoom_to`: if given, the zoom
   moves from `scale` to `zoom_to` over the clip (a slow push-in).
