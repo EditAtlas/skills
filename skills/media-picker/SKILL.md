@@ -1,19 +1,19 @@
 ---
 name: media-picker
-description: Find and pick background music, stock footage (B-roll), photos and sound effects that fit the video, and check each before it goes into the edit. Writes what each slot needs (the line it covers, mood, place, season, frame, length), gathers 3-5 candidates per slot, measures each with measure.py (camera shake, cuts inside a clip, what a 9:16 crop keeps, repeated shots; for music the tempo, intro, energy and length), looks at every frame sheet, drops what does not show the line or breaks the brief, and has the person listen to two or three music options before editing. Use it whenever an edit takes music, B-roll, photos or sounds from search_music, search_videos, search_photos, search_sfx or a stock site, and when someone says a pick does not fit, such as "tìm nhạc nền", "chọn nhạc nền", "nhạc nền không hay", "nhạc không hợp", "tìm b-roll", "cảnh này xấu", "cảnh bị rung", "find background music", "find stock footage". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).
+description: Find and pick B-roll (stock clips for the lines of a voice-over), background music, photos and sound effects that fit the video, and check each before it goes into the edit. Use it before calling search_videos, search_music, search_photos or search_sfx, or downloading from Pexels or Pixabay, whenever a video needs B-roll, cutaway shots or music, and when someone says a pick does not fit. Writes what each slot needs, gathers 3-5 candidates per slot, measures each with measure.py (camera shake, cuts inside a clip, what a 9:16 crop keeps, repeats; for music the tempo, intro, energy, length), looks at every frame sheet, drops what does not show the line, and has the person hear two or three music options first. Triggers include "cần B-roll cho mấy câu này", "tìm cảnh trên Pexels", "tìm b-roll", "tìm nhạc nền", "chọn nhạc nền", "nhạc nền không hay", "cảnh bị rung", "find B-roll for these lines", "find background music". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Needs network access to download candidates, or the files downloaded by the person. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.1.0"
-  status: draft
+  version: "0.2.0"
+  status: beta
   library: sfx
   mcp-tools: search_music search_videos search_photos search_sfx get_sfx send_feedback
 ---
 
 # Media picker: pick music, footage and sounds that fit this video
 
-This is media-picker 0.1.0.
+This is media-picker 0.2.0.
 
 The person gets music, B-roll, photos and sounds chosen for their video and their words, not the first results of a
 search, and an `ASSETS.md` that says what each pick is for, why the others were dropped, and who to credit.
@@ -101,7 +101,7 @@ footage, and never present a stock clip as the person's own product, place or pe
 
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.1.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.2.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
 
 Write `ASSETS.md` next to the edit, in the person's language, with the template in `references/fit-guide.md`: for
 each slot the pick, why it fits, its measured numbers, the in and out times, and the candidates dropped with one

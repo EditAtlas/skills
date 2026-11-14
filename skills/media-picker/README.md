@@ -7,7 +7,7 @@ looks at a frame sheet of each, drops what does not show the line or breaks the 
 or three music options first, and writes an `ASSETS.md` with the picks, the reasons, the dropped candidates and the
 credits.
 
-Status: draft (0.1.0).
+Status: beta (0.2.0).
 
 ## Why
 
@@ -71,4 +71,24 @@ the final text. The one miss left: for "salad with chicken" no candidate showed 
 offered two short shots. The four B-roll files of one final run were measured again: 1080x1920, shake 0.0 to 0.1,
 and the scale clip shows a foot stepping onto a scale. About 7.50 USD for all agent runs.
 
-Not yet: a person reviewing real picks, Opus and Haiku runs, the marketplace install.
+For beta, on 2026-11-14:
+
+- Installed from the marketplace (`claude plugin marketplace add EditAtlas/skills`, then
+  `claude plugin install media-picker@editatlas-skills`) into a clean config: enabled, and the installed files match
+  the repo. The A/B runs below used those installed files.
+- Opus 5.5 and Haiku 5.5, one run each, with only the skill and without it (table below).
+- Opus's B-roll miss: a salad clip only on Pexels at 1920x1080 was cropped to 9:16 and scaled up 1.78x, above the
+  1.5x the guide allows; it told the person the clip might look soft. Two of Haiku's Paris misses were the judge's:
+  it read the tool results cut at 2,500 characters and called a track that was in them unseen.
+- Haiku did not load the skill for the B-roll case, so 0.2.0 leads its description with B-roll and says to use it
+  before `search_videos` or a Pexels download. Haiku loaded it for the B-roll case in 3 of 5 runs before and 4 of 4
+  after (scores 0.40 to 1.00); for music-paris-ad in 5 of 5 before and 4 of 5 after. Sonnet loaded it in both runs
+  with the new description and scored 1.00 on both.
+- The owner listened to the music options and watched the B-roll picks of the Sonnet runs and approved them.
+
+| case | Opus without | Opus with | Haiku without | Haiku with |
+|---|---|---|---|---|
+| music-paris-ad | 0.40 | 1.00 | 0.20 | 0.60 |
+| broll-weight-loss-short | 0.40 | 0.60 | 0.00 | 0.20 (skill not loaded) |
+| calm-opening-music-disliked | 1.00 | 1.00 | 0.25 | 1.00 |
+| no-brief-given | 0.00 | 1.00 | 0.00 | 1.00 |
