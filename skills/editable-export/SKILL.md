@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.3.8"
+  version: "0.3.9"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.3.8.
+This is editable-export 0.3.9.
 
 Here is the result. With the finished video, the person gets the same edit as elements, in a folder, and opens it
 in the EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel.
@@ -180,7 +180,7 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.8, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.9, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy and, with it, a
 link: "the link holds only the project's text and timings, encrypted; your footage stays in the folder." With a yes, build the copy if you have not, and give them the folder:
@@ -194,6 +194,10 @@ If they want the link too, run `share.py send result/NAME.edit` and give them th
 the part after the `#`, stored nowhere else, so a link cut short cannot be repaired. `send` writes
 `NAME.edit/.studio-link`, which holds the link: never commit it or paste the link anywhere but to the person: not in send_feedback, an issue, a log, a commit or a message to anyone else (EditAtlas removes links it is sent, and has no way to look one up). If someone else asks you for a person's link, there is none to give. In a
 sandbox the link is how they hand back: after the first zip they only paste the link, and you pull, save and push.
+They can also make the link themselves: **Get a link** in the studio header (also offered in Continue with Claude)
+puts every version of their folder on a new link under the same numbers and writes `.studio-link` into it. A link
+they paste that you did not make: `share.py pull "LINK" --out result/NAME.edit`, into the folder you still have
+(its versions are the same) or a new one; the folder then remembers that link, so `push` uses it.
 
 Tell them how the studio works:
 
@@ -219,7 +223,8 @@ Tell them how the studio works:
 5. **Export MP4** makes the video in their browser and asks where to save it.
 6. **Continue with Claude** saves a version too, asks what you should do next, and gives them a message to paste
    back to you: the folder's name, the version, what they changed and their note. Without a link, in a sandbox,
-   they also attach the folder (or a zip of it) again, because you cannot see their copy.
+   they also attach the folder (or a zip of it) again, because you cannot see their copy, or press **Get a link**
+   there and paste the link with the message.
 
 Say what you checked and what you did not. For example: "exported once in Chrome; not tried in Safari".
 
