@@ -21,6 +21,31 @@
       "eval_cases": 7
     },
     {
+      "name": "media-picker",
+      "description": "Find and pick background music, stock footage (B-roll), photos and sound effects that fit the video, and check each before it goes into the edit. Writes what each slot needs (the line it covers, mood, place, season, frame, length), gathers 3-5 candidates per slot, measures each with measure.py (camera shake, cuts inside a clip, what a 9:16 crop keeps, repeated shots; for music the tempo, intro, energy and length), looks at every frame sheet, drops what does not show the line or breaks the brief, and has the person listen to two or three music options before editing. Use it whenever an edit takes music, B-roll, photos or sounds from search_music, search_videos, search_photos, search_sfx or a stock site, and when someone says a pick does not fit, such as \"tìm nhạc nền\", \"chọn nhạc nền\", \"nhạc nền không hay\", \"nhạc không hợp\", \"tìm b-roll\", \"cảnh này xấu\", \"cảnh bị rung\", \"find background music\", \"find stock footage\". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).",
+      "version": "0.1.0",
+      "status": "draft",
+      "libraries": [
+        "sfx"
+      ],
+      "mcp_tools": [
+        "search_music",
+        "search_videos",
+        "search_photos",
+        "search_sfx",
+        "get_sfx",
+        "send_feedback"
+      ],
+      "compatibility": "Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Needs network access to download candidates, or the files downloaded by the person. Designed for Claude Code and other agents with a shell that can read images.",
+      "license": "Apache-2.0. LICENSE.txt has the complete terms",
+      "path": "skills/media-picker",
+      "url": "https://github.com/EditAtlas/skills/tree/main/skills/media-picker",
+      "plugin": "media-picker",
+      "install_claude_code": "/plugin install media-picker@editatlas-skills",
+      "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/media-picker.zip",
+      "eval_cases": 4
+    },
+    {
       "name": "sound-design",
       "description": "Sound-design a finished video with real sound effects from the EditAtlas library (2,278 described sounds, public, downloadable from GitHub with SHA-256 checks). Finds the moments in the picture, lets you look at them as frame sheets, picks sounds by description and measured numbers, places each on its exact frame at a level set by its role, keeps or replaces the film's own music and voice, renders a new MP4 plus a separate SFX WAV, and checks the result in numbers (sync, pace, holes, loudness, mono) before you show it. Use it whenever someone asks to add sound effects, SFX, whooshes, pops, clicks, hits, UI sounds or \"sound design\" to a video, reel, short, promo, motion graphic, product demo or talking-head edit; says a video \"feels silent\", \"needs sound\", \"thêm hiệu ứng âm thanh\", \"lồng SFX\", \"thêm tiếng động\"; or wants EditAtlas sounds placed on a video rather than just found. Not for composing music or generating sound.",
       "version": "0.4.2",

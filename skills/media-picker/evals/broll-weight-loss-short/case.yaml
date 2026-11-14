@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: broll-weight-loss-short
+expected_outcome: |
+  A 9:16 weight-loss short needs B-roll for three lines. Claude searches stock video with English words for what
+  is on screen, measures candidates with the target frame, looks at the sheets, drops off-topic and shaky clips,
+  does not use one clip twice, gives in and out times, downloads a size good enough for 1080x1920, and lists credits
+  and the clips it dropped with reasons.

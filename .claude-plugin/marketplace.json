@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Video editing skills built on the EditAtlas library of techniques, templates, styles and sound effects",
-    "version": "0.17.1"
+    "version": "0.18.0"
   },
   "plugins": [
     {
@@ -15,6 +15,15 @@
       "strict": false,
       "skills": [
         "./skills/editable-export"
+      ]
+    },
+    {
+      "name": "media-picker",
+      "description": "Check that background music, stock footage, photos and sound effects fit the video before they go in: a brief per slot, measured candidates, frame sheets, and music the person listens to first",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/media-picker"
       ]
     },
     {

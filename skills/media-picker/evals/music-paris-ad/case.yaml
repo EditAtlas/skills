@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: music-paris-ad
+expected_outcome: |
+  A 30 s lipstick ad for TikTok, later YouTube, romantic Paris feel, Vietnamese voice-over. Claude writes a brief,
+  searches music with English words, downloads and measures several candidates, offers two or three with what was
+  measured and where to listen, warns about YouTube Content ID and AI-made tracks among them, and asks the person to
+  choose before editing. It does not claim a track sounds romantic.

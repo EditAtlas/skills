@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: calm-opening-music-disliked
+expected_outcome: |
+  The person dislikes the music under the calm 60 s opening of a documentary. Claude measures the given track,
+  explains in plain words what kind of track it is (no steady beat, few hits, a constant drone level), asks about the
+  music the person used in earlier videos, offers two or three measured alternatives to listen to, and does not
+  replace it without the person's choice.
+context:
+  scaffold_script: place-files.sh
