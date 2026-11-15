@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: compare-remake
+expected_outcome: |
+  The person sends a reference and their remake. The reply finds the five real differences (words 20 % smaller,
+  words 0.3 s apart instead of 0.12 s, MORNING missing, a darker cream background, the card's slide 1.4 s instead
+  of 0.6 s) and claims none that is not there.
+context:
+  scaffold_script: place-files.sh

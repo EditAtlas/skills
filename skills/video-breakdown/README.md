@@ -1,10 +1,11 @@
 # video-breakdown
 
 Break down a reference video shot by shot and name what it does, with the [EditAtlas](https://edit.trysometh.ing)
-technique for each transition, camera move, text style and sound, and a recipe to make one like it. Claude measures
+technique for each transition, camera move, text style and sound, and a recipe to make one like it. It also
+compares a remake with the reference and says what to fix. Claude measures
 the video, looks at frame sheets, searches EditAtlas and writes a report.
 
-Status: beta (0.4.0).
+Status: beta (0.5.0).
 
 ## Needs
 
@@ -22,9 +23,12 @@ Status: beta (0.4.0).
 | `references/notes-format.md` | The notes Claude writes, with an example |
 | `scripts/analyze.py` | Joins and their kind (shape wipes included), camera moves, timing of designed motion (in, hold, out, loops), look, overlay events, pacing, tempo and cuts on the beat, sound hits, frame sheets |
 | `scripts/frames.py` | Frames around a time, at chosen times, or a cropped part of the frame |
-| `scripts/text_look.py` | One piece of text: fill colour or gradient stops, outline, shadow or glow, lean, stroke weight and contrast, and free lookalike fonts drawn beside it |
+| `scripts/text_look.py` | One piece of text: fill colour or gradient stops, outline, shadow or glow, lean, stroke weight and contrast, free lookalike fonts drawn beside it, and the font size in each |
+| `scripts/elements.py` | Motion graphics: each graphic's entrance, hold and exit, things coming in one after another (stagger), shapes carried across a cut |
+| `scripts/background.py` | A designed background: flat, straight gradient (direction, hex colours, CSS) or radial glow |
+| `scripts/compare.py` | A remake against its reference: timing of moves, cuts, rows of text (how many, how tall, stagger), background and look |
 | `scripts/report.py` | Checks the notes (and, with `--check-api`, every slug and sound id) and writes the report |
-| `evals/` | Test cases in the `claude plugin eval` layout; inputs are downloaded from the EditAtlas site |
+| `evals/` | Test cases in the `claude plugin eval` layout; inputs are downloaded from the EditAtlas site or drawn in code |
 
 ## Verified
 
@@ -88,3 +92,27 @@ whether the exit plays the entrance backwards; whether the video ends on its fir
 | Joins changed on the 24 transition demos, the full edit demos and 5 live-action test videos | | none |
 | Shots with timing words on the 5 live-action videos | | 5 of 33: freeze frames, title cards, locked-off holds |
 
+
+### 0.5.0: motion graphics, backgrounds, font size, comparing a remake
+
+Ideas from studying how motion-graphics tools describe motion, built as five candidate features and tested one by
+one against 0.4.1 on short test videos drawn in code, where every timing, size and colour is known. Fresh Sonnet
+agents ran each case three times; a separate agent graded the replies against the truth.
+
+| Case | 0.4.1 | 0.5.0 |
+|---|---|---|
+| motion-graphics-stagger: words coming in 0.12 s apart, a circle carried across a cut, a card sliding up | 0.73 | 1.00 (3 of 3 full) |
+| compare-remake: a remake with five known differences | 0.56 | 0.83 (all five found in 6 of 6 runs; each run also reported a difference caused by the slower slide or seen by eye) |
+| title-size-background: font size, gradient background | 0.73 | 0.73 (title size right in 3 of 3, against 2 of 3) |
+| comedy-edit (repo case) | 0.80 | 0.93 |
+| space-trailer (repo case) | 0.67 | 0.67 |
+| drink-reel-beat (repo case) | 0.78 | 0.89 |
+| no-video-given (repo case) | 1.00 | 1.00 |
+| vertical-short-captions (repo case) | 0.75 | 0.92 |
+
+Kept: `elements.py`, `compare.py`, `background.py` and the font size per lookalike in `text_look.py`. Dropped after
+the same test: an easing-curve fitter (it named the ease right on 61 of 64 test moves, but agents already guessed
+common eases from the frames, 0.93 without it against 0.80 with it) and a separate remake brief file (0.60 with and
+without; an editor building from the brief alone scored the same). Runs cost about $0.10 to $0.40 each; the four repo
+cases with a video cost about $0.10 more a run than with 0.4.1 (agents take more steps). Not tested: real motion-graphics videos (all test videos were drawn
+in code, and the tools were tuned on them), models other than Sonnet.

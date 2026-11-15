@@ -1,11 +1,11 @@
 ---
 name: video-breakdown
-description: Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, shape, iris, push, zoom, flash), camera moves (crash zoom, push in, shake, speed change), text and graphics coming on screen and their timing (in, hold, out), each text's colours (gradient stops, outline, glow) and free lookalike fonts, the look, pacing, the beat and sound hits; you look at the frame sheets, then look up each element in EditAtlas and write a report with technique names, links, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says "video này dùng hiệu ứng gì", "phân tích video mẫu", "làm sao để edit giống video này", "hiệu ứng chuyển cảnh này tên gì", "reverse engineer this edit", "what transition is this". Works on a local file. Not for downloading videos from TikTok or YouTube, telling filmed from AI footage, or editing the video itself.
+description: Break down a reference video shot by shot and name what it does, so the person can make one like it. Measures cuts and transitions (dissolve, dip, wipe, shape, iris, push, zoom, flash), camera moves (crash zoom, push in, shake, speed change), text and graphics and their timing (in, hold, out, stagger), text colours, gradients, backgrounds, font size and free lookalike fonts, the look, pacing, the beat and sound hits; you look at the frames, look up each element in EditAtlas and write a report with technique names, sounds and a recipe. Use it when someone shares a video they like and asks what effect, transition or edit is in it, how it was made, or how to remake it; says "video này dùng hiệu ứng gì", "phân tích video mẫu", "làm sao để edit giống video này", "hiệu ứng chuyển cảnh này tên gì", "what transition is this"; or asks why their remake does not look like the reference ("so sánh bản làm lại"). Works on a local file. Not for downloading from TikTok or YouTube, telling filmed from AI footage, or editing.
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step, font lookalikes (downloaded once from Google Fonts) and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.4.1"
+  version: "0.5.0"
   status: beta
   library: techniques sfx
   mcp-tools: search_techniques get_technique search_sfx get_workflow
@@ -13,7 +13,7 @@ metadata:
 
 # Video breakdown: from a video someone likes to named techniques and a recipe
 
-This is video-breakdown 0.4.1.
+This is video-breakdown 0.5.0.
 
 The person has a video they like and cannot name what is in it. You give them, shot by shot, the correct name of
 each transition, camera move, text style and sound, the EditAtlas technique that makes it, and the steps to make
@@ -38,6 +38,9 @@ python SKILL/scripts/analyze.py VIDEO --out work/bd                      # break
 python SKILL/scripts/frames.py VIDEO --at 6.8 --span 0.6 --step 0.04 --out work/look   # every frame of a join
 python SKILL/scripts/frames.py VIDEO --at 7.9 --crop 0,60,100,40 --out work/look      # bottom 40 %, to read text
 python SKILL/scripts/text_look.py VIDEO --at 3.6 --crop 12,24,76,11 --text "Caringbah" --fonts sans-heavy --out work/text/title
+python SKILL/scripts/elements.py VIDEO --out work/el                    # motion graphics: each element in, hold, out
+python SKILL/scripts/background.py VIDEO --at 1.2,4.0 --out work/bg     # flat, gradient or radial background, hex
+python SKILL/scripts/compare.py REFERENCE REMAKE --out work/compare      # what a remake does differently
 python SKILL/scripts/report.py work/bd/breakdown.json work/bd/notes.json --out result/breakdown.md --check-api
 ```
 
@@ -116,7 +119,9 @@ is not plain subtitles, find these five things:
    --fonts <groups>` (`--list-fonts` shows them) for the one or two groups that fit, and compare the letters by
    eye: capitals, the shapes of a, g, t, the joins. The match number helps for sans and serif fonts and is weak for
    scripts. Name one or two free lookalikes and say they are lookalikes, not the creator's font.
-5. **Place and size**: where it sits, its height as a share of the frame, and how long it stays.
+5. **Place and size**: where it sits, how long it stays, and the font size. With `--text`, `text_look.py` prints
+   the size in each lookalike (the same letters need a different size in each font): give the size in the font
+   you name ("Oswald, about 120 px on a 1080x1920 frame"). Remakes usually set text too small.
 
 ### Designed motion
 
@@ -126,6 +131,12 @@ leaves over 0.8 s, slow, then speeds up`) and `format.loops`, check them in the 
 the element's `seen` or `note` and in the recipe. On a plain background, a graphic that grows or appears can be
 reported as a join (`jump cut`, `snap zoom`, `zoom transition`): if the background stays, it is the element's
 entrance. Details: "Designed motion" in `references/reading-the-numbers.md`.
+
+For motion graphics on a flat or gradient background, also run `elements.py` and open `timeline.png`: each
+graphic's entrance (slides from which side, scales up, wipes, fades, cuts on), hold and exit, a `stagger` (things
+coming in one after another, with the gap) and what is `carried across the cut` (the same shape in the same place
+on both sides: a graphic match cut). Shots over footage are skipped. For designed backgrounds,
+`background.py --at <a still moment of each shot>` gives the hex colours and the gradient's direction.
 
 ## 3. Name it with EditAtlas
 
@@ -160,7 +171,7 @@ EditAtlas and that names match. Fix what it lists and run it again.
 
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-breakdown above 0.4.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-breakdown gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-breakdown above 0.5.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-breakdown gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 
@@ -171,10 +182,19 @@ Give the person, in their language:
 4. What is measured, what you looked at, and what is unknown: the creator's actual font (you give free
    lookalikes), the exact easing curves (`timing` gives durations and a shape, not the curve), what each sound
    actually is, whether footage was filmed or generated.
-5. The report file (`result/breakdown.md`).
+5. The report file (`result/breakdown.md`), written by `report.py --check-api` with nothing left to fix.
 
 After delivery, ask whether the names and techniques were right and send the answer with `send_feedback` when
 that tool is available.
+
+## When the person sends their remake
+
+If they ask why theirs does not feel the same, run `compare.py REFERENCE REMAKE --out work/compare` (`--offset 0.4`
+if theirs starts 0.4 s later). It prints the differences largest first: how long moves take, cuts, rows of text
+(how many, how tall, how far apart they come in), background colour, the look. Check each in `compare.png` before
+you report it; a change made on purpose is not a fault, and a pair caught mid-move only shows the timing
+difference again. Give each with its time, both numbers and the fix ("your title is 18 % smaller: set it to about
+96 px"). No notes or report file is needed for this.
 
 ## References
 

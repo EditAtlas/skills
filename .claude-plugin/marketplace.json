@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Video editing skills built on the EditAtlas library of techniques, templates, styles and sound effects",
-    "version": "0.19.0"
+    "version": "0.20.0"
   },
   "plugins": [
     {
@@ -46,7 +46,7 @@
     },
     {
       "name": "video-breakdown",
-      "description": "Break down a reference video shot by shot and name each transition, camera move, text style and sound with its EditAtlas technique, plus a recipe",
+      "description": "Break down a reference video shot by shot and name each transition, camera move, text style, motion graphic and sound with its EditAtlas technique, plus a recipe; also says what a remake does differently",
       "source": "./",
       "strict": false,
       "skills": [

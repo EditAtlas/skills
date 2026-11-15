@@ -337,6 +337,14 @@ def render(text, fpath, height, fill_img=None, outline=None, lean=0):
     return out, np.array(m) > 127
 
 
+def font_px(text, fpath, height):
+    """The font size (px) at which this font draws `text` with letters `height` px tall."""
+    from PIL import ImageFont
+    f = ImageFont.truetype(str(fpath), 200)
+    box = f.getbbox(text)
+    return round(200 * height / max(1, box[3] - box[1]))
+
+
 def strokes(m):
     """Stroke weight (median stroke width over the text height) and contrast (thick strokes over thin ones)."""
     m = grow(shrink(m, 1), 1)
@@ -365,6 +373,8 @@ def shape_score(ref, cand):
     from PIL import Image
     ref = grow(shrink(ref, 1), 1)  # drop specks
     ys, xs = np.nonzero(ref)
+    if len(ys) < 10 or not cand.any():
+        return 0.0, 0.0
     y0, y1 = np.percentile(ys, [0.5, 99.5]).astype(int)
     x0, x1 = np.percentile(xs, [0.5, 99.5]).astype(int)
     ref = ref[y0:y1 + 1, x0:x1 + 1]
@@ -433,7 +443,7 @@ def draw(out, crop, lab, res, grads, fonts):
     # font candidates
     if fonts:
         bg = tuple(int(res.get("halo", {}).get("background", "#3c3c3c")[i:i + 2], 16) for i in (1, 3, 5))
-        for name, score, ratio, img, _ in fonts:
+        for name, score, ratio, img, *_ in fonts:
             row = Image.new("RGB", (W, max(big.height, img.height) + 4), bg)
             row.paste(big, (0, 0))
             k = min(1.0, (W - big.width - 30) / max(1, img.width))
@@ -502,6 +512,15 @@ def main():
         diff = np.abs(crop.astype(np.int16) - c0.astype(np.int16)).max(-1)
         changed = shrink(grow(diff > 40, 1), 1)
     res, lab, mask, grads = measure(crop, a.k, chosen, changed)
+    if res.get("text_box_px"):
+        k_src = (info["width"] or fw) / fw  # grabbed frame px -> source px
+        ink = res["text_box_px"][3] * k_src
+        res["size"] = {"frame_px": [info["width"], info["height"]], "letters_tall_px": round(ink),
+                       "letters_tall_pct_of_height": round(ink / (info["height"] or fh) * 100, 2),
+                       "line_wide_px": round(res["text_box_px"][2] * k_src),
+                       # capitals are 0.70 (wide fonts) to 0.88 (narrow display fonts such as Anton) of the font size;
+                       # ascender to descender of lowercase is about 0.95
+                       "font_px_if_capitals_only": [round(ink / 0.88), round(ink / 0.70)], "font_px_if_mixed_case": round(ink / 0.95)}
     if changed is not None:
         res["changed_share"] = round(float(changed.mean()), 3)
     res.update({"video": Path(a.video).name, "at": a.at, "crop": a.crop})
@@ -543,10 +562,10 @@ def main():
                 rc, rw = res["strokes"]["contrast"], res["strokes"]["weight"]
                 score = round(score * np.exp(-abs(np.log(st["contrast"] / rc))) *
                               np.exp(-0.5 * abs(np.log(max(st["weight"], 1e-3) / max(rw, 1e-3)))), 3)
-            rows.append((spec + (f" leaned {lean:+d} deg" if lean else ""), score, ratio, img, st))
+            rows.append((spec + (f" leaned {lean:+d} deg" if lean else ""), score, ratio, img, st, font_px(a.text, fp, ref_h * (info["width"] or fw) / fw)))
         rows.sort(key=lambda r: -r[1])
         fonts = rows[:a.top]
-        res["fonts"] = [{"font": r[0], "match": r[1], "width_ratio": r[2], "strokes": r[4]} for r in rows]
+        res["fonts"] = [{"font": r[0], "match": r[1], "width_ratio": r[2], "strokes": r[4], "font_px": r[5]} for r in rows]
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     write_json(out / "look.json", res)
@@ -575,6 +594,18 @@ def main():
         cs = r["strokes"] or {}
         print(f"  {r['font']:<34} match {r['match']:<6} width x{r['width_ratio']:<5} "
               f"weight {cs.get('weight')} contrast {cs.get('contrast')}")
+    if res.get("size"):
+        s = res["size"]
+        lo, hi = s["font_px_if_capitals_only"]
+        print(f"size: letters {s['letters_tall_px']} px tall in a {s['frame_px'][0]}x{s['frame_px'][1]} frame "
+              f"({s['letters_tall_pct_of_height']} % of the height), line {s['line_wide_px']} px wide")
+        if res.get("fonts"):
+            print("   font size for these letters in each lookalike: " +
+                  ", ".join(f"{r['font']} {r['font_px']} px" for r in res["fonts"][:3]) +
+                  ". Give the size in the font you name: it changes from font to font.")
+        print(f"   without a font: all capitals {lo}-{hi} px (narrow display fonts at the low end); text with lowercase "
+              f"about {s['font_px_if_mixed_case']} px (the letters measured run from the tallest ascender to the lowest "
+              f"descender, about 0.95 of the font size; do not scale from the x-height)")
     print("->", out / "look.png")
     print("->", out / "look.json")
 

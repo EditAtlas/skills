@@ -137,6 +137,36 @@ growing from a line reads as `jump cut`, `snap zoom or punch-in` or `zoom transi
 Search terms: `logo reveal`, `logo morph`, `shape mask wipe`, `per-word stagger`, `focus pull text`, `animated
 bar chart`, `counter`, `stroke to fill`, `looping abstract plate`, `kinetic typography`.
 
+### Each element (elements.py)
+
+`elements.py` reads the video at 360 px wide, finds the background of each shot (flat or a smooth gradient), and
+follows everything in front of it, split by colour, from frame to frame. For each element: the box (x, y, width,
+height in % of the frame, taken in the middle of its hold), `in_s` and how it comes in, `holds_s`, `out_s` and how
+it leaves.
+
+- **how**: `slides from <side>` (with `from outside the frame` when it starts beyond the edge), `scales up from
+  about N %`, `wipes or types on`, `fades in`, `cuts on`, or `there when the shot starts`. A scale up that also
+  fades says both. `over_s` is from the first visible frame to the start of the hold, so it reads short for moves
+  that start outside the frame or from a tiny size: say "about".
+- **stagger**: three or more elements coming in the same way one after another, with a steady gap. Words of one
+  line that come in together are one element. Search `per-word stagger`, `staggered entrance`.
+- **carried across the cut**: an element in the same place and size on both sides of a cut while the rest
+  changes. Search `graphic match cut`, `shape match cut`.
+- **not read**: shots whose background is footage or texture. For graphics over footage use `events.png` and
+  `frames.py`.
+
+Where it fails: a graphic in the background's own colour, thin lines (2 px or less at 360 px are dropped), text
+that changes colour as it comes in, and shapes that cross each other with the same colour (they merge). Check every
+entrance you name with `frames.py --step 0.04`.
+
+### Backgrounds (background.py)
+
+`background.py` samples a grid of colours at each `--at` time, drops cells that look like text or shapes, and fits
+a flat colour, a straight gradient or a radial glow. It prints the kind, the hex colours, the direction in words
+(`top-left to bottom-right`) and a CSS line; the CSS angle follows CSS (0deg points up, 90deg right). Pick still
+moments: a graphic moving across the frame bends the fit. On a filmed background it says so and gives average
+colours only. Put the hex values in the look element and the recipe; they beat colour names.
+
 ## Overlays
 
 `events`: a moment where one horizontal band (`top`, `upper`, `upper middle`, `lower middle`, `lower`, `bottom`)
@@ -178,6 +208,11 @@ from rows dense with sharp edges.
   Brush 2.3 to 4.3; but thin formal scripts (Great Vibes, Pinyon Script, Petit Formal Script) only 1.0 to 1.7,
   because their hairlines are one pixel. So 2.2 or more says thick and thin; a low number does not rule out a
   formal script. A glow thickens the reference's strokes, so its weight reads high.
+- **size**: how tall the letters are in px of the source frame. With `--text`, it also prints the font size in
+  each lookalike, because the same letters need a different font size in each font (capitals take about 0.85 of
+  the size in a tall condensed font such as Anton and about 0.7 in Bebas Neue or Montserrat). Give the size with
+  the font you name. Without a font, it prints a range for capitals only and an estimate for lowercase; do not
+  scale from the x-height.
 - **match**: overlap of the letter shapes, scaled to the same box, weighed by stroke contrast and weight. On a
   bold italic title with a gradient and a drop shadow it put Montserrat Black Italic first, which matched letter
   for letter. On a glowing calligraphic script partly hidden by other words, it ranked brush scripts first, the
@@ -187,6 +222,25 @@ Where it fails: busy backgrounds in the text's colours (raise `--k`, pick cluste
 still moving or fading in (pick a later time), text smaller than about 20 px tall (use a higher resolution source).
 `--before` takes the frame before the text came in and keeps only what changed; it helps on a still shot and fails
 when the camera or the subject moves.
+
+## Comparing a remake (compare.py)
+
+`compare.py REFERENCE REMAKE` matches the two videos second for second (`--offset` moves the remake) and prints,
+largest first:
+
+- **length and cuts**: different lengths, cuts missing or moved.
+- **timing**: stretches where something moves; a move that takes longer or shorter in the remake ("the move at
+  3.5 s takes 0.8 s in the reference and 1.4 s in the remake").
+- **rows**: rows of text or shapes in a still moment of each shot; how many, how tall (`drawn smaller`), and,
+  per shot, how far apart the rows come in (`stagger`). A missing row is usually a missing word or line.
+- **background and look**: the edge colour, brightness, contrast, colour and detail at each matching moment.
+
+Rows, size and place are compared only at moments when neither video moves; it lists the moments it skipped.
+A pair in `compare.png` caught mid-move differs because of the timing, not the layout: do not report it twice.
+
+These are measurements, not faults: a change the person made on purpose stays. Check each in `compare.png`
+(reference left, remake right). With `--region x,y,w,h` it also compares one area, such as a logo. Two videos with
+different footage compare only on timing and layout.
 
 ## Audio
 

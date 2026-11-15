@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: motion-graphics-stagger
+expected_outcome: |
+  A breakdown of a 6 s vertical bakery promo drawn in code. The reply says the four title words come in one after
+  another about 0.12 s apart, each scaling up with a fade; that the gold circle stays in place across the cut at
+  3.0 s (a graphic match cut); and that the white card slides up from below the frame at about 3.6 s over about
+  0.6 s. Claude ran elements.py and checked the entrances in frames.
+context:
+  scaffold_script: place-files.sh

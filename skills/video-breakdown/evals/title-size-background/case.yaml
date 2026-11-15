@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: title-size-background
+expected_outcome: |
+  The person wants to rebuild a title card. The reply gives the title's font size for the font it names (Anton,
+  173 px on 1080x1920; a lookalike with a matching size passes), the subtitle's (61 px), and the background as a
+  diagonal gradient from orange-red at the top left to purple at the bottom right with hex colours.
+context:
+  scaffold_script: place-files.sh
