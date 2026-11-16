@@ -22,6 +22,10 @@ graphic baked into a clip) cannot be changed there. Put text, graphics and sound
 Times are seconds on the timeline (the finished video), unless a field says it is source time. Positions are
 fractions of the canvas: `x: 0.5, y: 0.5` is the centre. Sizes in pixels are canvas pixels.
 
+`canvas.fps` may be left out of the file you give `build`: it then takes the frame rate most of the video track is
+shot at, at most 60 (30 when there is no footage). Since times are seconds, the studio can export at another rate
+and every element keeps its place.
+
 ## media
 
 Every file the edit uses, by id. `path` is relative to `project.json` (package.py copies files into `media/`).
@@ -159,9 +163,10 @@ inside it is fixed. Two extra fields:
 | `loop` | false | repeat the animation for the item's `dur`; otherwise it holds its last frame |
 | `from` | 0 | start this many seconds into the animation |
 
-Make one with Pillow (`frames[0].save("chart.webp", save_all=True, append_images=frames[1:], duration=33, loop=0,
-lossless=False, quality=80)`) or FFmpeg (`ffmpeg -framerate 30 -i f%04d.png -c:v libwebp_anim -lossless 0 -q:v 80
--loop 0 chart.webp`). Keep each one short and only as large as it shows on screen: a full-frame 1080×1920 animation
+Draw its frames at the canvas fps, so a 60 fps video gets 60 fps motion. Make one with Pillow
+(`frames[0].save("chart.webp", save_all=True, append_images=frames[1:], duration=17, loop=0, lossless=False,
+quality=80)`, `duration` = 1000 / fps ms) or FFmpeg (`ffmpeg -framerate 60 -i f%04d.png -c:v libwebp_anim -lossless 0
+-q:v 80 -loop 0 chart.webp`). Keep each one short and only as large as it shows on screen: a full-frame 1080×1920 animation
 of 2 s is about 0.7 MB, a 900×700 chart of 2.5 s about 0.2 MB. Encoders merge repeated frames into one longer
 frame; the studio reads each frame's own duration, so that is fine.
 

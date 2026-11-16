@@ -81,6 +81,27 @@ def find_file(path, bases):
     return Path(path) if Path(path).is_file() else None
 
 
+def footage_fps(p, base):
+    """The frame rate most of the video track is shot at (by time on the timeline), at most 60, or None when it has
+    no footage that can be read. 120 and 240 fps phone footage is slow motion: 60 shows it smoothly."""
+    weight = {}
+    for t in p.get("tracks") or []:
+        if t.get("kind") != "video":
+            continue
+        for c in t.get("clips") or []:
+            m = (p.get("media") or {}).get(c.get("media")) or {}
+            if m.get("kind") != "video":
+                continue
+            rate = m.get("fps")
+            if not rate and m.get("path") and base is not None:
+                f = find_file(m["path"], base if isinstance(base, (list, tuple)) else [base])
+                rate = probe(f).get("fps") if f else None
+            if rate:
+                rate = min(float(rate), 60.0)
+                weight[rate] = weight.get(rate, 0) + max(0.0, float(c.get("out", 0)) - float(c.get("in", 0)))
+    return max(weight, key=weight.get) if weight else None
+
+
 def check(p, base=None):
     """A list of problems; empty when the project can be built. base: a folder, or a list of folders, that media
     paths are relative to (None: do not look for the files)."""
@@ -448,6 +469,7 @@ def cmd_build(a):
             f"package.py versions {out} lists them). If the person has not had this folder yet, you may delete it "
             "and build again.")
     notes = []
+    canvas = p.setdefault("canvas", {})
     if a.cuts:
         n, d = import_cuts(p, a.cuts, a.cuts_media or first_video(p))
         notes.append(f"footage: {n} clips from the cut list, {d:.2f} s kept")
@@ -457,8 +479,16 @@ def cmd_build(a):
         notes.append(f"captions: {n} elements from {w} words")
     if a.sfx:
         notes.append(f"sounds: {import_sfx(p, a.sfx)} elements from the sound-design render")
+    shot = footage_fps(p, [src.parent])
+    if "fps" not in canvas:
+        canvas["fps"] = (int(shot) if shot == int(shot) else shot) if shot else 30
+        notes.append(f"canvas fps: {canvas['fps']:g}, " + ("the footage's own" if shot else "no footage to take it from"))
     report_errors(check(p, src.parent), src)
     total = place_media(p, [src.parent], out)
+    if shot and canvas["fps"] < shot - 0.5:
+        notes.append(f"note: the footage is shot at {shot:g} fps and the canvas is {canvas['fps']:g} fps, so the video "
+                     f"leaves out frames the footage has. Unless that is on purpose, leave fps out of canvas (build then "
+                     f"takes {shot:g}), delete {out} and build again. The person can also pick {shot:g} fps when they export.")
     write_version(out, p, 1, None, a.note, a.name)
     print_summary(p, total, notes)
     print("->", out, "(version 1)")

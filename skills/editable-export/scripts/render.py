@@ -2,6 +2,7 @@
 
   render.py result/my-video.edit                      # -> result/my-video.edit/<title>.mp4
   render.py result/my-video.edit --out result/final.mp4
+  render.py result/my-video.edit --fps 60             # another frame rate; the project does not change
 
 Opens the studio page in Chrome or Edge without a window (Playwright), gives it the package from this machine,
 runs its Export and saves the MP4. It renders project.json, which is the newest version in the folder; the files in
@@ -34,15 +35,15 @@ def newest_version(pkg):
     return n, json.loads((pkg / "versions" / f"v{n}.json").read_text(encoding="utf-8")).get("project")
 
 
-EXPORT_JS = """async (rate) => {
+EXPORT_JS = """async ([rate, fps]) => {
   await window.EA.ready;
   if (rate) window.EA_EXPORT_RATE = rate;
   const missing = missingFiles();
   if (missing.length) return {missing};
-  const r = await window.EA.exportMp4(() => {});
+  const r = await window.EA.exportMp4(() => {}, fps ? {fps} : {});
   const a = document.createElement('a'); a.href = URL.createObjectURL(r.blob); a.download = 'export.mp4';
   document.body.appendChild(a); a.click();
-  return {frames: r.frames, seconds: r.seconds, size: r.blob.size, peak: r.peak, stats: r.stats};
+  return {frames: r.frames, seconds: r.seconds, size: r.blob.size, peak: r.peak, stats: r.stats, fps: r.fps || null};
 }"""
 
 
@@ -58,7 +59,11 @@ def main():
     ap.add_argument("--browser", default="auto", help="chrome, msedge, chromium or auto")
     ap.add_argument("--timeout", type=float, default=1800, help="seconds")
     ap.add_argument("--rate", type=float, help="playback speed while reading frames (default 1.5)")
+    ap.add_argument("--fps", type=float, help="frame rate of the MP4 (default: the canvas fps); every element keeps its "
+                    "time, footage shot at that rate keeps all its frames")
     a = ap.parse_args()
+    if a.fps is not None and not 0 < a.fps <= 120:
+        die("--fps must be between 0 and 120")
     pkg = Path(a.package).resolve()
     pj = pkg / "project.json"
     if not pj.is_file():
@@ -72,7 +77,10 @@ def main():
     gone = [str(f) for f in files if not f.is_file()]
     if gone:
         die("missing from the package: " + ", ".join(gone) + "; run package.py build again")
-    out = Path(a.out) if a.out else pkg / (((proj.get("title") or pkg.stem).strip().replace(" ", "-").lower() or "video") + ".mp4")
+    canvas_fps = (proj.get("canvas") or {}).get("fps")
+    fps = a.fps if a.fps and a.fps != canvas_fps else None
+    rate_tag = f"-{a.fps:g}fps".replace(".", "") if fps else ""
+    out = Path(a.out) if a.out else pkg / (((proj.get("title") or pkg.stem).strip().replace(" ", "-").lower() or "video") + rate_tag + ".mp4")
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -111,10 +119,13 @@ def main():
         except Exception:
             die("the studio did not open the package: " + (pg.locator("#open-msg").inner_text() or "; ".join(logs) or "no message"))
         with pg.expect_download(timeout=a.timeout * 1000) as dl:
-            info = pg.evaluate(EXPORT_JS, a.rate)
+            info = pg.evaluate(EXPORT_JS, [a.rate, fps])
             if info.get("missing"):
                 die("the studio could not match these media ids to files: " + ", ".join(info["missing"])
                     + ". Two files in media/ may share a name; run package.py build again.")
+        if fps and info.get("fps") != fps:
+            die(f"the studio at {a.site} does not take a frame rate yet, so the video came out at the canvas's "
+                f"{canvas_fps} fps; nothing was saved. Render without --fps, or set canvas.fps and save a version.")
         out.parent.mkdir(parents=True, exist_ok=True)
         dl.value.save_as(str(out))
         print(f"{browser.version}: {info['frames']} frames in {info['seconds']:.1f} s "

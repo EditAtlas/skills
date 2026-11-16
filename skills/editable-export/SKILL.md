@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.3.9"
+  version: "0.4.0"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.3.9.
+This is editable-export 0.4.0.
 
 Here is the result. With the finished video, the person gets the same edit as elements, in a folder, and opens it
 in the EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel.
@@ -85,7 +85,8 @@ so.
 
 Write `work/project.json` in the format of `references/project-format.md` (`editatlas-project/1`). In short:
 
-- `canvas`: size and fps.
+- `canvas`: size, and fps only when you mean a rate. Left out, `build` takes the frame rate most of the footage
+  is shot at (60 at most), so a phone video shot at 60 fps stays at 60. Do not write 30 out of habit.
 - `media`: every file by id.
 - `styles`: shared looks for text, such as `caption` and `hook`.
 - `tracks`, drawn in order:
@@ -158,6 +159,11 @@ Run `render.py`. It opens the studio in Chrome or Edge without a window, gives i
 and runs the studio's own **Export MP4**. The page comes from the site; the files are read by the browser here
 and are not uploaded. The output is H.264 at the canvas size and fps, with AAC sound at 48 kHz.
 
+If the person wants another frame rate, such as 60 fps from footage shot at 60, run `render.py FOLDER --fps 60`.
+Do not rebuild or re-edit anything: every element keeps its time in seconds, and the studio draws each frame
+again from the footage. Footage shot at 30 fps gets no smoother at 60; text and moves do. The person can also
+pick the frame rate themselves in the studio's Export dialog.
+
 It prints:
 
 - frames and seconds
@@ -180,7 +186,7 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.3.9, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.4.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy and, with it, a
 link: "the link holds only the project's text and timings, encrypted; your footage stays in the folder." With a yes, build the copy if you have not, and give them the folder:
