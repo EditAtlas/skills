@@ -1,0 +1,60 @@
+# How cuts are placed, and what the check can and cannot catch
+
+## Measuring the sound
+
+The recording's level is measured every 10 ms. "Quiet" is under whichever is higher: the room's own noise floor plus
+6 dB, or 35 dB below the typical loudest part of a word. `takes.md` prints both numbers.
+
+## Why word times are not trusted
+
+Whisper's words are usually right; its times are often not. On a test take with known timings:
+
+- The first word after a pause started up to 1.1 s early, across the pause and over the tail of the word before
+  (one word was given 39.18 s; its voice starts at 40.15 s).
+- A word said into a silence it could not place got a 1 s span of silence.
+- Word ends were the most reliable: usually within 0.15 s.
+
+An edge placed on such a start cuts the word before it, or leaves a pause in. So `tighten()` in `common.py` splits
+the sound into chunks wherever it is quiet for 0.1 s or more, gives each word to the chunk that holds its end
+(a word whose end sits in a pause goes to the next chunk, unless 0.25 s or more of it lies in the chunk before),
+and clips its times into that chunk. A chunk's first word starts and its last word ends exactly where the sound
+does. Times inside a chunk stay Whisper's.
+
+## Placing a cut
+
+For every run of kept words:
+
+1. Its start and end are the measured sound edges.
+2. The quiet on either side is measured (up to 3 s).
+3. At each join, the pause the pace asks for is split: about 55% after the last word (a word's release is quiet
+   and is clipped first), the rest before the next word, and more from either side when one side has too little.
+4. Each edge moves onto the frame grid when a grid point lies inside the quiet, so the picture and the sound are
+   cut at the same instant.
+5. When kept and removed words touch with no pause between them (a doubled word said in one breath), the cut goes
+   at the quietest 10 ms near the word boundary and is marked "cut inside sound".
+
+`render.py` trims every piece from the source in one FFmpeg pass and joins them with the concat filter. Each join
+gets a 20 ms fade out and in on the sound. On the test takes the cut's picture-to-sound offset was the same as the
+source's at every kept line (3 to 30 ms, from frame rounding), and the picture and sound lengths were equal.
+
+## What verify.py catches
+
+It transcribes the cut film again (no previous-text conditioning, so repeats are not smoothed away) and aligns the
+words with the plan's kept words:
+
+- a removed attempt or note that is still in: EXTRA (on a test cut that left in a note to the editor and a
+  doubled phrase, both were found, the doubled one also as DOUBLED);
+- a kept word that is gone or clipped beyond recognition: MISSING;
+- fillers left in, joins in sound, joins with under 0.08 s of quiet, pauses longer than the pace allows, and a
+  picture/sound length mismatch.
+
+## What it cannot catch
+
+- **A clipped consonant that Whisper still recognises.** The word is heard, so nothing is listed. The edges come from
+  the measured sound, which is what prevents this, but only a person listening can confirm it.
+- **A mistake Whisper did not hear in either pass**, such as a mumbled false start under 0.25 s.
+- **Meaning.** Whether the right take was kept, whether a lead-in was needed, whether a "so" was a filler: that is
+  your decision in step 4, and the person's.
+- **A jump in the picture.** `seams.jpg` shows the frames at each join; you have to look at it.
+
+Always tell the person which of these were not checked.

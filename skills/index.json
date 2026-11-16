@@ -67,6 +67,29 @@
       "eval_cases": 3
     },
     {
+      "name": "talking-head-cut",
+      "description": "Cut a raw talking-head recording (one person speaking to camera, a lesson, a vlog, a voice-over take) into a clean video. Takes out false starts, failed and repeated takes, words said to the editor (\"take two\", \"nói lại nhé\"), doubled words and um/uh/ờ/ừm. Shortens long pauses to a natural breath and keeps everything the speaker meant to say. You quote the words to remove; the scripts find them, put every cut in silence, render picture and sound in step, then transcribe the cut again to catch leftovers and clipped words. Use it when someone asks to \"cut my mistakes out\", \"clean up this take\", \"remove the retakes\", \"tighten the pacing\", \"rough cut\", \"cắt video nói chuyện\", \"cắt chỗ nói hỏng\", \"bỏ đoạn nói lại\", \"cắt ờ ừm và khoảng lặng\", \"dựng video nói cho gọn\". Needs the transcribe skill's word-level transcript. Not for a transcript or subtitles alone (transcribe), picking highlights from a long video, multi-camera edits, or adding music, B-roll or captions (do those after the cut).",
+      "version": "0.1.0",
+      "status": "draft",
+      "libraries": [
+        "techniques"
+      ],
+      "mcp_tools": [
+        "search_techniques",
+        "get_technique",
+        "get_skill",
+        "send_feedback"
+      ],
+      "compatibility": "Requires Python 3.9+ with numpy, FFmpeg with ffprobe, and the EditAtlas transcribe skill (faster-whisper) for the transcript and for verify.py. Runs on the person's machine; nothing is uploaded. Designed for Claude Code and other agents with a shell.",
+      "license": "Apache-2.0. LICENSE.txt has the complete terms",
+      "path": "skills/talking-head-cut",
+      "url": "https://github.com/EditAtlas/skills/tree/main/skills/talking-head-cut",
+      "plugin": "talking-head-cut",
+      "install_claude_code": "/plugin install talking-head-cut@editatlas-skills",
+      "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/talking-head-cut.zip",
+      "eval_cases": 4
+    },
+    {
       "name": "transcribe",
       "description": "Transcribe the speech in a video or audio file on the person's own machine with Whisper (faster-whisper), with a time for every word, then check it, write SRT/VTT subtitles, and list what an edit could cut (long silences, filler words like um, uh, ờ, ừm, and repeated takes). The checked word-level transcript is what EditAtlas caption techniques, silence and filler removal, retake selection and every template's verified_transcript input need. Use it whenever someone wants a transcript, subtitles, captions or an SRT from a video; asks to \"trích lời\", \"lấy lời thoại\", \"chuyển giọng nói thành chữ\", \"làm phụ đề\", \"làm sub\", \"cắt khoảng lặng\", \"bỏ ờ ừm\", \"speech to text\", \"Whisper\"; or starts an EditAtlas edit that needs word times, even if they never say \"transcript\". Installs Whisper only after asking. Not for translating, cleaning up audio, separating a voice from music, or making a voice.",
       "version": "0.2.4",

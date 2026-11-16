@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: reels-unlisted-notes
+expected_outcome: |
+  A tight cut of a 46 s raw take for Reels, rendered to out/clean.mp4. The notes to the editor use
+  words the skill's detector does not list ("hmm, hang on, scrap that"; "wait, wrong number"), so the agent must
+  recognise them from the sense. Gone: the blue-button try and its note; the first "The best thing is"; "Uh"; the
+  "four formats" try and its note; the first "This saves me about an hour every week." (said again, better, with no
+  note). Kept: "it works like a checklist" ("like" is a comparison), "so you can tick..." and the deliberate
+  "Really. Really fast." Pauses at the tight pace.
+context:
+  scaffold_script: place-files.sh
+---
+tags: [talking-head-cut]
+max_turns: 80
+timeout_seconds: 3000
+allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]

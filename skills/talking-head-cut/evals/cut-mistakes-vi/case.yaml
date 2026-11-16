@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: cut-mistakes-vi
+expected_outcome: |
+  A clean cut of a 49 s Vietnamese raw take, rendered to out/clean.mp4. Gone: the wrong try "Bạn vo gạo
+  khoảng ba lần rồi đổ" with "à không, làm lại nhé"; the first "Tỉ lệ nước là" of a doubled phrase; "Ờ" and "Ừm";
+  the closing line said again after "Cắt đoạn này, nói lại". Kept, unclipped: the 9 lines the speaker meant,
+  including the "Vì" sentence and the deliberate "Rất, rất quan trọng". Long pauses shortened, picture and sound in
+  step. The reply is in Vietnamese and names what was removed by its words.
+context:
+  scaffold_script: place-files.sh
+---
+tags: [talking-head-cut]
+max_turns: 80
+timeout_seconds: 3000
+allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]

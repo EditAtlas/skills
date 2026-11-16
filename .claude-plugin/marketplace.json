@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Video editing skills built on the EditAtlas library of techniques, templates, styles and sound effects",
-    "version": "0.21.0"
+    "version": "0.22.0"
   },
   "plugins": [
     {
@@ -33,6 +33,15 @@
       "strict": false,
       "skills": [
         "./skills/sound-design"
+      ]
+    },
+    {
+      "name": "talking-head-cut",
+      "description": "Cut a raw talking-head take into a clean video: false starts, retakes, notes to the editor, doubled words and fillers out, long pauses shortened to a breath, every cut placed in silence and checked by transcribing the cut again",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/talking-head-cut"
       ]
     },
     {
