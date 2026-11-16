@@ -2,11 +2,12 @@
 
   check.py VIDEO --out work/check [--expect 1080x1920] [--fps 30] [--duration 30] [--loudness -14]
                  [--audio required|none|any] [--loop] [--holds 4-6,12.5-14] [--flashes 3.2,9.8]
-                 [--before work/check-round1/check.json]
+                 [--before work/check-round1/check.json] [--voice voice.wav --music music.wav]
 
 Writes OUT/check.json, OUT/overview_NN.png (frames at phone size, with the caption safe area marked on vertical
 video) and OUT/findings.png (the frames around each finding). With --before, also OUT/before_after.png and a list
-of findings gone, still there and new.
+of findings gone, still there and new. With --voice and --music (the two tracks as they sit in the mix, from 0 s),
+also how far the music sits under the voice while someone speaks.
 
 The numbers find faults a viewer would notice; they cannot tell whether the edit is good. Open the sheets with
 the Read tool, and read references/reading-the-checks.md for what each check misses.
@@ -22,11 +23,14 @@ from pathlib import Path
 
 import numpy as np
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 STILL = 0.0015      # mean absolute change (0..1) under which two frames count as the same picture
 DUPE = 0.0006       # an exact repeat, after compression noise
 MOVING = 0.004      # change per frame above which the picture is moving
 SAFE_TOP, SAFE_BOTTOM = 0.15, 0.25   # caption-safe area on vertical video: stay out of the top 15% and bottom 25%
+# Music under speech, in LU below the voice. Beds under a voice are usually mixed 10 to 16 LU down; past 18 a phone
+# speaker loses them (a user said "the music is still too quiet", 2026-11-14), under 6 they cover the words.
+BED_BURIED, BED_MASKS = 18.0, 6.0
 
 
 def die(msg):
@@ -372,6 +376,64 @@ def sound(video, info, args, findings):
             "silences": silences, "last_30ms_dbfs": end_db, **a}
 
 
+def momentary(path):
+    """Momentary loudness (LUFS, 400 ms window) every 100 ms from 0 s, from FFmpeg's ebur128 filter."""
+    r = run(["ffmpeg", "-v", "info", "-nostdin", "-i", path, "-map", "0:a:0", "-af", "ebur128", "-f", "null", "-"])
+    if r.returncode != 0:
+        die(f"cannot read the audio in {path}: " + (r.stderr.strip().splitlines() or ["no output"])[-1])
+    values = [float(m) for m in re.findall(r"t:\s*[0-9.]+\s+TARGET:.*?M:\s*(-?[0-9.]+|-?inf)", r.stderr)
+              if m not in ("inf", "-inf")]
+    return np.array(values, dtype=np.float64)
+
+
+def balance(voice_path, music_path, info, findings):
+    """How far the music sits under the voice while someone speaks, from the two tracks as placed in the mix."""
+    voice, music = momentary(voice_path), momentary(music_path)
+    for name, x in (("voice", voice), ("music", music)):
+        if abs(len(x) / 10 - info["duration"]) > 0.5:
+            findings.append(dict(level="P2", code="stem_length", t=0, t_end=round(info["duration"], 2),
+                                 what=f"the {name} track lasts {len(x) / 10:.1f} s, the video {info['duration']:.1f} s",
+                                 fix="pass each track as it sits in the mix, starting at 0 s, so times line up"))
+    n = min(len(voice), len(music))
+    voice, music = voice[:n], music[:n]
+    heard = voice[voice > -70]
+    if len(heard) < 20:
+        return {"speech_seconds": 0, "note": "too little voice to measure"}
+    ref = float(np.percentile(heard, 90))
+    speech = voice > max(-60.0, ref - 10)
+    seconds = round(float(speech.sum()) / 10, 1)
+    if seconds < 2:
+        return {"speech_seconds": seconds, "note": "under 2 s of speech: not measured"}
+    voice_level = float(np.median(voice[speech]))
+    under = music[speech]
+    played = under[under > -70]
+    times = np.flatnonzero(speech) / 10
+    t0, t1 = round(float(times[0]), 1), round(float(times[-1]) + 0.1, 1)
+    result = {"speech_seconds": seconds, "voice_lufs": round(voice_level, 1),
+              "music_under_speech_share": round(len(played) / len(under), 2)}
+    between = music[~speech]
+    between = between[between > -70]
+    if len(between):
+        result["music_between_speech_lufs"] = round(float(np.median(between)), 1)
+    if len(played) < len(under) / 2:
+        result["note"] = "the music is off for most of the speech"
+        return result
+    gap = voice_level - float(np.median(played))
+    result.update(music_under_speech_lufs=round(voice_level - gap, 1), gap_lu=round(gap, 1))
+    if gap > BED_BURIED:
+        findings.append(dict(level="P1", code="music_buried", t=t0, t_end=t1,
+                             what=f"the music sits {gap:.0f} LU under the voice while someone speaks: on a phone it is gone",
+                             fix="raise the music bed to 10-16 LU under the voice; set it once, not a low gain, then "
+                                 "ducking, then a loudness pass on top"))
+    elif gap < BED_MASKS:
+        findings.append(dict(level="P1", code="music_masks_voice", t=t0, t_end=t1,
+                             what=(f"the music is only {gap:.0f} LU under the voice" if gap >= 0.5 else
+                                   f"the music is {-gap:.0f} LU louder than the voice" if gap <= -0.5 else
+                                   "the music is as loud as the voice") + ": it covers the words",
+                             fix="lower or duck the music to 10-16 LU under the voice"))
+    return result
+
+
 # ------------------------------------------------------------------ sheets
 def frames_at(video, idx, w, h):
     """RGB frames by decoded index, in one ffmpeg pass."""
@@ -494,12 +556,19 @@ def main():
     ap.add_argument("--flashes", help="planned one-frame flashes or black/white frames, seconds: 3.2,9.8")
     ap.add_argument("--every", type=float, help="seconds between overview frames (default: about 36 frames)")
     ap.add_argument("--before", help="check.json of an earlier round, to list what changed")
+    ap.add_argument("--voice", help="the voice track as it sits in the mix (from 0 s), with --music")
+    ap.add_argument("--music", help="the music track as it sits in the mix (from 0 s), with --voice")
     args = ap.parse_args()
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except AttributeError:
         pass
 
+    if bool(args.voice) != bool(args.music):
+        die("pass --voice and --music together: the voice track and the music track, as they sit in the mix.")
+    for stem in (args.voice, args.music):
+        if stem and not Path(stem).is_file():
+            die(f"no such file: {stem}")
     video = str(Path(args.video).resolve())
     info = probe(video)
     findings = []
@@ -539,6 +608,8 @@ def main():
     g = gray_frames(video, info)
     pic = picture(g, fps, args, findings)
     snd = sound(video, info, args, findings)
+    if args.voice and snd:
+        snd["music_under_voice"] = balance(args.voice, args.music, info, findings)
     findings.sort(key=lambda f: ({"P0": 0, "P1": 1, "P2": 2}[f["level"]], f["t"]))
     before = None
     if args.before:
@@ -556,7 +627,7 @@ def main():
     result = {"version": VERSION, "video": video, "spec": info, "picture": pic, "sound": snd,
               "findings": findings, "sheets": sh,
               "planned": {k: getattr(args, k) for k in ("expect", "fps", "duration", "loudness", "audio", "loop",
-                                                         "holds", "flashes")},
+                                                         "holds", "flashes", "voice", "music")},
               "not_checked": ["whether it is good: story, pacing, taste", "spelling and meaning of on-screen text",
                               "text size and position (look at the sheets)", "what the sound is: nobody listened",
                               "lip sync and sound against picture", "colour and grade"]}
@@ -574,6 +645,10 @@ def main():
     if snd:
         print(f"sound: {snd['lufs']} LUFS (target {args.loudness:g}), true peak {snd['true_peak_dbtp']} dBTP, "
               f"{len(snd['silences'])} silence(s) over 0.5 s")
+        mv = snd.get("music_under_voice")
+        if mv:
+            print("music under voice: " + (f"{mv['gap_lu']} LU under the voice over {mv['speech_seconds']} s of speech "
+                                           f"(aim 10-16; below 0 means louder)" if "gap_lu" in mv else mv.get("note", "")))
     for f in findings:
         span = f"{f['t']:.2f}s" + (f"-{f['t_end']:.2f}s" if f.get("t_end", f["t"]) != f["t"] else "")
         print(f"  {f['level']} t={span} {f['code']}: {f['what']} -> {f['fix']}")

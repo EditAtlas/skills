@@ -28,7 +28,9 @@ A finding is a measurement, not a verdict. A dip to black is "black frames" unti
 | `flash_shot` | a shot under 0.25 s between two cuts | Cut detection is simple (change over 0.08 and 5 times the local median); fast camera moves can look like cuts |
 | `loop_repeat`, `loop_jump` (with `--loop`) | change from the last frame to the first against a normal step: the same picture twice, or a jump over 2.5 times a step | Only the seam; the sound at the seam is not checked |
 | `no_audio`, `silent_track`, `audio_short` | ffprobe and loudness | Whether silence is wanted |
-| `loudness`, `true_peak`, `clipping` | `loudnorm` analysis: integrated LUFS against `--loudness` (±2 LU), true peak over -1 dBTP, over 0 dBTP (over +1 is P0) | Files under about 3 s give unsteady loudness; loudness says nothing about the balance of voice and music |
+| `loudness`, `true_peak`, `clipping` | `loudnorm` analysis: integrated LUFS against `--loudness` (±2 LU), true peak over -1 dBTP, over 0 dBTP (over +1 is P0) | Files under about 3 s give unsteady loudness; loudness says nothing about the balance of voice and music: pass `--voice` and `--music` for that |
+| `music_buried`, `music_masks_voice` (with `--voice` and `--music`) | `ebur128` momentary loudness every 100 ms on each track; speech is where the voice is within 10 LU of its loud parts; the median music level there against the median voice level: more than 18 LU under, or less than 6 | Needs the two tracks as placed in the mix; music that stops under speech is reported, not flagged; the thresholds come from common mixing practice for beds under a voice, not from listening tests |
+| `stem_length` | a `--voice` or `--music` track more than 0.5 s longer or shorter than the video | A track that starts later than 0 s lines up wrong and is not caught |
 | `dead_air`, `silent_start` | `silencedetect` at -50 dB for 0.5 s: 2 s or more in the middle, 1 s or more at the start | Quiet room tone above -50 dB counts as sound |
 | `abrupt_end` | the last 30 ms louder than -30 dBFS and within 6 dB of the last 0.6 s | A hard ending on a hit may be planned |
 
@@ -88,3 +90,11 @@ sound before encoding: if that is over, the ceiling goes down; if not, the bitra
 over it says by how much the encoder adds and stops. The ceiling also goes down when the loudness falls more than 0.5
 LU short, which is the one thing a lower ceiling buys. On that mix: ceiling -19.3 dBFS, -14.4 LUFS, -1.5 dBTP; on an
 ordinary kitchen and music mix the result is the same as 0.2.2 (-14.0 LUFS, -2.3 dBTP, one try).
+
+**Music under the voice (0.2.5).** A user said "the music is still too quiet" after an agent mixed a bed at 0.34
+gain, ducked it to 0.55 under speech and then normalized the whole mix (2026-11-14). The final loudness was right, so
+nothing flagged it. With `--voice` and `--music`, check.py now measures the gap while someone speaks. On test tracks
+(pink noise in speech-like bursts and a noise-and-tone bed at four levels) it read 13.4 LU (no finding), 25.4 and 35.3
+LU (`music_buried`) and 2.7 LU louder than the voice (`music_masks_voice`); a bed that stops under speech gave a note
+and no finding, and a 6 s bed on a 10 s video gave `stem_length`. On a 13.5 s synthetic voice from a TTS model it found
+9.5 s of speech and read the gap the same way. Nobody has checked these numbers by ear or on a real edit's tracks.

@@ -18,7 +18,7 @@ Status: beta (0.2.0).
 | Path | What |
 |---|---|
 | `SKILL.md` | The workflow Claude follows |
-| `scripts/check.py` | File spec, black, white, frozen, stray and repeated frames, cuts, loop seam, loudness, true peak, silences, audio length and ending; overview and findings sheets; `--before` compares with an earlier round |
+| `scripts/check.py` | File spec, black, white, frozen, stray and repeated frames, cuts, loop seam, loudness, true peak, silences, audio length and ending, music under the voice (with the two tracks); overview and findings sheets; `--before` compares with an earlier round |
 | `scripts/fix_sound.py` | Loudness and true peak fixed on a finished file in one go: peaks limited, two-pass `loudnorm`, picture copied, result measured |
 | `references/reading-the-checks.md` | Every check, its thresholds, what it misses, and the results on known videos |
 | `references/review-guide.md` | The brief for a fresh reviewer, the tells of a template-made edit, the problem format, the `REVIEW.md` template |

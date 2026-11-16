@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline. Designed for Claude Code and other agents with a shell that can read images; a reviewer subagent is used when the agent can start one.
 metadata:
   author: EditAtlas
-  version: "0.2.4"
+  version: "0.2.5"
   status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_workflow
@@ -13,7 +13,7 @@ metadata:
 
 # Video check: find what is wrong with a render before anyone else does
 
-This is video-check 0.2.4.
+This is video-check 0.2.5.
 
 The person gets a video that has been checked like a professional editor checks an export, and a short
 `REVIEW.md` that says what was measured, what was looked at, what was fixed, and what nobody checked.
@@ -47,7 +47,10 @@ below for the rest.
    --duration 32 --holds 28.5-32 --flashes 12.4`. Never guess size, frame rate or length from the platform: a
    960x540 file nobody asked to be 1080p is not a size fault, so leave `--expect` out when nobody planned it.
    `--holds` lists still stretches on purpose (an end card, a title held still); `--flashes` lists planned
-   one-frame flashes and dips; `--loop` for a piece made to loop; `--audio none` for a silent piece. Online video
+   one-frame flashes and dips; `--loop` for a piece made to loop; `--audio none` for a silent piece. When someone
+   speaks over music and you have the two tracks as they sit in the mix (from 0 s, before the final loudness pass),
+   add `--voice voice.wav --music music.wav`: it measures how far the music sits under the voice while someone
+   speaks (aim 10 to 16 LU) and flags a bed that is buried or covers the words. Online video
    is normalized to about -14 LUFS; use -16 for podcasts and -23 for broadcast. It prints findings as `P0/P1/P2
    t=… code: what -> fix` and writes `check.json`, `overview_NN.png` and `findings.png`.
    `references/reading-the-checks.md` says what each check catches and what it misses.
@@ -55,7 +58,8 @@ below for the rest.
 2. **Fix the P0s now.** Wrong size, wrong frame rate, wrong length, no audio when there should be, clipping:
    these are render mistakes, not taste. Fix the command, render again and rerun step 1 before anyone looks.
    For loudness, clipping and true peak, fix the mix in the edit if you have it (lower the music, the loudest
-   sound). If you only have the finished file, run `python scripts/fix_sound.py in.mp4 out.mp4 --loudness -14`:
+   sound). Fix `music_buried` or `music_masks_voice` in the mix too: set the music level under speech once, not a
+   low gain, then ducking, then a loudness pass on top. If you only have the finished file, run `python scripts/fix_sound.py in.mp4 out.mp4 --loudness -14`:
    it limits the peaks, normalizes in two passes and copies the picture untouched, landing within 0.2 LU of the
    target and under -1.5 dBTP. Single-pass `loudnorm` misses its peak target and a plain limiter leaves the mix
    quiet; do not hand-tune filters round after round.
@@ -86,7 +90,7 @@ below for the rest.
 
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-check above 0.2.4, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-check gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-check above 0.2.5, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-check gives the step). Without the MCP, skip it.
 
 Write `REVIEW.md` next to the video, in the person's language, with the template in
 `references/review-guide.md`:
