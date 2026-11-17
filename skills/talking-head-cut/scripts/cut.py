@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
-from common import (HOP, clock, decode, die, ends_sentence, envelope_db, is_sure_filler, levels, norm, probe, read_json,
+from common import (HOP, clock, decode, die, ends_sentence, envelope_db, is_sure_filler, islands, levels, norm, probe, read_json,
                     tighten, utf8_stdout, word_tokens, write_json)
 
 # Pauses, in seconds. keep_up_to: a pause this short inside kept speech is left as it is. sentence / phrase: what a
@@ -101,6 +101,17 @@ def quietest(env, a, b):
     return (i0 + int(np.argmin(env[i0:i1]))) * HOP + HOP / 2
 
 
+def voiced_between(env, thr, a, b):
+    """True when the gap between two kept words holds 0.15 s or more of sound: words Whisper did not write (SOUND? in
+    takes.md). Such a gap is not shortened, so unwritten speech is never cut as if it were a pause; the plan removes
+    it by "from"/"to" when it should go."""
+    i0, i1 = int((a + 0.1) / HOP), int((b - 0.1) / HOP)
+    if i1 <= i0:
+        return False
+    # one unbroken stretch (gaps under 50 ms bridged): noise in a cafe pops over the threshold only briefly
+    return any((y - x) * HOP >= 0.15 for x, y in islands(env[i0:i1] > thr, 5))
+
+
 def on_grid(t, fps, lo, hi):
     """t moved onto the frame grid if a grid point lies within [lo, hi], so picture and sound cut at the same time."""
     for g in sorted((math.floor(t * fps) / fps, math.ceil(t * fps) / fps), key=lambda g: abs(g - t)):
@@ -175,7 +186,8 @@ def main():
                 atoms.append(cur)
                 cur = []
             continue
-        if cur and words[i]["start"] - words[cur[-1]]["end"] > pace["keep_up_to"]:
+        if cur and words[i]["start"] - words[cur[-1]]["end"] > pace["keep_up_to"] and not voiced_between(
+                env, thr, words[cur[-1]]["end"], words[i]["start"]):
             atoms.append(cur)
             cur = []
         if cur and any(s_ < words[i]["start"] and e_ > words[cur[-1]]["end"] for s_, e_, _ in sound_cuts):
@@ -229,10 +241,22 @@ def main():
             merged[-1][1] = max(merged[-1][1], e_)
         else:
             merged.append([s_, e_])
-    pos, pieces = 0.0, []
+    # Picture and sound are cut over the same whole frames ("in", "out"), so they stay in step at every join however
+    # many there are. The sound is kept from "sound_in" to "sound_out", the measured cut points; render.py fades the
+    # sliver of sound outside them (less than a frame) to silence.
+    pos, pieces, prev = 0.0, [], 0.0
+    end_grid = math.floor(duration * fps + 1e-6) / fps if duration else None
     for s_, e_ in merged:
-        pieces.append({"in": round(s_, 6), "out": round(e_, 6), "at": round(pos, 6)})
-        pos += e_ - s_
+        gi = max(math.floor(s_ * fps + 1e-6) / fps, prev)
+        go = math.ceil(e_ * fps - 1e-6) / fps
+        if end_grid is not None and go > end_grid:
+            go = max(end_grid, gi + 1 / fps) if e_ > end_grid else end_grid
+        if go - gi < 1 / fps - 1e-6:
+            continue
+        pieces.append({"in": round(gi, 6), "out": round(go, 6), "at": round(pos, 6),
+                       "sound_in": round(max(s_, gi), 6), "sound_out": round(min(e_, go), 6)})
+        pos += go - gi
+        prev = go
 
     def to_cut(x):
         for pc in pieces:
@@ -259,13 +283,14 @@ def main():
     join_list = []
     for k in range(1, len(pieces)):
         a_, b_ = pieces[k - 1], pieces[k]
-        lw = max((w for i, w in enumerate(words) if keep[i] and w["end"] <= a_["out"] + 1e-6), key=lambda w: w["end"])
-        rw = min((w for i, w in enumerate(words) if keep[i] and w["start"] >= b_["in"] - 1e-6), key=lambda w: w["start"])
-        gone = [r for r in removed if r["from"] >= a_["out"] - 0.2 and r["to"] <= b_["in"] + 0.2]
-        join_list.append({"at": b_["at"], "source_from": a_["out"], "source_to": b_["in"],
-                          "pause": round((a_["out"] - lw["end"]) + (rw["start"] - b_["in"]), 3),
+        ao, bi = a_["sound_out"], b_["sound_in"]
+        lw = max((w for i, w in enumerate(words) if keep[i] and w["end"] <= ao + 1e-6), key=lambda w: w["end"])
+        rw = min((w for i, w in enumerate(words) if keep[i] and w["start"] >= bi - 1e-6), key=lambda w: w["start"])
+        gone = [r for r in removed if r["from"] >= ao - 0.2 and r["to"] <= bi + 0.2]
+        join_list.append({"at": round(b_["at"] + bi - b_["in"], 6), "source_from": ao, "source_to": bi,
+                          "pause": round((ao - lw["end"]) + (rw["start"] - bi), 3),
                           "removed": [g["text"] for g in gone], "why": sorted({g["why"] for g in gone}) or ["pause shortened"],
-                          "inside_sound": any(abs(x[2] - a_["out"]) < 0.05 or abs(x[2] - b_["in"]) < 0.05 for x in tight)})
+                          "inside_sound": any(abs(x[2] - ao) < 0.05 or abs(x[2] - bi) < 0.05 for x in tight)})
 
     cut_words = []
     for i, w in enumerate(words):

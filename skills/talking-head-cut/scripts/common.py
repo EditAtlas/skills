@@ -101,13 +101,22 @@ def envelope_db(x, sr=SR, hop=HOP):
 
 
 def levels(env, words):
-    """(quiet threshold, speech level, floor) in dBFS. Quiet = within 35 dB of the speech's floor, never under
-    the room's own noise plus 6 dB."""
+    """(quiet threshold, speech level, floor) in dBFS.
+
+    Quiet = within 35 dB of the speech, never under the room's own noise: the floor (the quietest 5 %) plus 6 dB, and
+    the level most of the pauses stay under (80 % of the steps 0.15 s or more from any word) plus 3 dB. In a quiet
+    room the floor decides; in a cafe or a street the noise in the pauses does, so it is not taken for speech. The
+    threshold stays at least 12 dB under the speech, so soft words are never taken for quiet."""
     peaks = [env[int(w["start"] / HOP):max(int(w["start"] / HOP) + 1, int(w["end"] / HOP))] for w in words]
     peaks = [p.max() for p in peaks if len(p)]
     speech = float(np.median(peaks)) if peaks else -20.0
     floor = float(np.percentile(env, 5)) if len(env) else -90.0
-    return max(floor + 6.0, speech - 35.0), speech, floor
+    away = np.ones(len(env), bool)
+    for w in words:
+        away[max(0, int((w["start"] - 0.15) / HOP)):int((w["end"] + 0.15) / HOP) + 1] = False
+    noise = float(np.percentile(env[away], 80)) if away.sum() >= 50 else floor
+    thr = max(floor + 6.0, noise + 3.0, speech - 35.0)
+    return min(thr, speech - 12.0), speech, floor
 
 
 def quiet_runs(env, thr, a, b):
@@ -147,7 +156,7 @@ def tighten(words, env, thr, join=0.1):
     Whisper's word times drift: the first word after a pause often starts a second early, across the pause and
     over the tail of the word before, and last words run into the silence. Word ends drift least. So the sound is
     split into chunks wherever it is quiet for `join` seconds or more, each word goes to the chunk holding its end
-    (a word whose end sits in a pause goes to the chunk after it, unless 0.25 s or more of it lies in the chunk before, or Whisper heard it break off),
+    (a word whose end sits in a pause goes to the chunk after it, unless half of it, or 0.25 s, lies in the chunk before, or Whisper heard it break off),
     and its times are clipped into that chunk, the chunk's first word starting and its last word ending with it.
     Chunk edges are measured; times inside a chunk are Whisper's."""
     isl = [(a * HOP, b * HOP) for a, b in islands(env > thr, int(round(join / HOP)))]
@@ -177,7 +186,7 @@ def tighten(words, env, thr, join=0.1):
         k = int(np.searchsorted(starts, t, side="right")) - 1
         if k >= 0 and t <= isl[k][1]:
             w["chunk"] = k
-        elif k >= 0 and (min(isl[k][1], w["end"]) - max(isl[k][0], w["start"]) >= 0.25 or
+        elif k >= 0 and (min(isl[k][1], w["end"]) - max(isl[k][0], w["start"]) >= min(0.25, 0.5 * (w["end"] - w["start"])) or
                          (re.search(r"(\.\.\.|…|-|—)$", w["w"].strip()) and w["start"] <= isl[k][1] + 0.3)):
             w["chunk"] = k            # its end ran on into the pause, but the word itself is in the chunk before
         else:

@@ -5,15 +5,15 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy, FFmpeg with ffprobe, and the EditAtlas transcribe skill (faster-whisper) for the transcript and for verify.py. Runs on the person's machine; nothing is uploaded. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.1.0"
-  status: draft
+  version: "0.2.0"
+  status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_skill send_feedback
 ---
 
 # Talking-head cut: from a raw take to a clean cut
 
-This is talking-head-cut 0.1.0.
+This is talking-head-cut 0.2.0.
 
 The result: the person's raw recording cut so it says what they meant, once, with natural breathing room, and
 nothing they meant to say lost. They also get a list of every cut with the words it removed, and a transcript of
@@ -77,10 +77,21 @@ each, and marks:
 |---|---|---|
 | `NOTE?` | words said to the editor: "sorry, start over", "take two", "cut that", "nói lại nhé", "bỏ câu này" | the note goes, and so does the attempt it replaces |
 | `RETAKE?` | a line said again, nearly the same, a little later | keep the later complete one |
-| `UNFINISHED` | Whisper heard the line break off ("...", "-") | a false start: it goes if a complete version follows |
-| `DOUBLED` | the same words twice in a row ("the best part, the best part is") | the first copy goes |
+| `UNFINISHED` | the line breaks off ("...", "-") and is said again within three lines | a false start: it goes; the complete version stays |
+| `BREAKS OFF` | the line breaks off and the next line goes on with the same sentence ("Và tai này thì... / nó đã có...") | a pause in one sentence: keep both lines; the pause is shortened |
+| `DOUBLED` | the same words twice in a row ("the best part, the best part is"), with the plan item for it | only the first copy goes: use that item, never the whole line, which holds other words |
 | `[um]` | a sure filler | `cut.py` removes these |
 | `SOUND?` | voice with no words in the transcript | often a false start Whisper skipped: look at it |
+| `LONG WORD?` | a word far longer than this speaker's words: Whisper may have written a repeat once | read the `HEARD` mark |
+| `HEARD "..."` | what Whisper hears in a `LONG WORD?` or `SOUND?` line transcribed on its own, when that has more words | the extra words were said: usually a doubled phrase or a false start to remove |
+
+`takes.py` listens again to `LONG WORD?` and `SOUND?` lines by itself (faster-whisper, a few seconds a line). In a
+real recording Whisper often writes a phrase said twice ("and that is that, and that is that every...") only once,
+with one word stretched over both; the second listen, without the rest of the take around it, usually hears it.
+Then the line's words before the long word are usually the first copy, and the long word holds the second: on a test
+take, "And that is that every" was the first "And that is that" plus an "every" lasting 1.1 s over "and that is that
+every". Quote those words with the line (`{"quote": "and that is that", "line": 13, "nth": 1}`), and let `verify.py`
+confirm: MISSING means you took the wrong copy.
 
 Read every line, not only the marked ones: the marks are hints, and a line can be wrong in a way no mark catches.
 
@@ -92,10 +103,12 @@ This is the part that needs you. In order:
    nhé": the note goes, and the attempt it replaces goes with it. That attempt runs back to where the
    speaker started the same idea, which can be one line or several.
 2. **Retakes: keep one complete version of each idea.** Usually the later one, because the speaker redid it for a
-   reason. But keep a lead-in from the earlier attempt if the later one does not repeat it ("Open the settings
+   reason. Keep the earlier one only for a fault you can show: a missing word, a clipped end measured in the
+   levels, a note to the editor. A word Whisper wrote differently ("pay" for "paid") is Whisper, not the take. But keep a lead-in from the earlier attempt if the later one does not repeat it ("Open the settings
    page." before a failed and then a good "Then click Export..."). Never stitch half sentences from two attempts
    into one.
-3. **False starts:** an abandoned beginning followed by a complete version: remove only the abandoned part.
+3. **False starts:** an abandoned beginning followed by a complete version: remove only the abandoned part. A
+   line that stops and then carries on in the next line is not one: nothing was said again, so nothing goes.
 4. **Doubled words:** cut the first copy ("the best part, the best part is" keeps the second).
 5. **Fillers:** um, uh, er, ờ, ừm go (`cut.py` does it). Words that are only sometimes fillers stay unless they are
    pure hesitation: "so" meaning "therefore", "like" in a comparison, "vì", "nên", "thì", "kiểu như" in a real
@@ -143,7 +156,7 @@ python SKILL/scripts/render.py work/cut/edl.json --out work/cut/cut.mp4
 python SKILL/scripts/verify.py work/cut/cut.mp4 --cut work/cut
 ```
 
-`render.py` cuts picture and sound at the same times in one FFmpeg pass, with a 20 ms fade on the sound at each
+`render.py` cuts picture and sound over the same whole frames in one FFmpeg pass, with a 20 ms fade on the sound at each
 join, and says whether picture and sound end together. `verify.py` transcribes the cut film again and lines it up
 with the words the plan kept:
 
@@ -154,6 +167,12 @@ with the words the plan kept:
 - **FILLER**: an um is still in. **JOIN IN SOUND**, **NO BREATH**, **LONG PAUSE**: listen there, or adjust.
 - **Heard differently** ("20" for "twenty") is Whisper, not the cut.
 
+Fix every EXTRA, DOUBLED and MISSING before you deliver: change the plan (a `quote` with `line` or `near` reaches a
+repeat the first transcript wrote once), cut, render and check again, up to three rounds. One EXTRA is not a fault:
+words heard where `takes.md` had `SOUND?` (voice the first transcript wrote nothing for). `cut.py` keeps such voice
+instead of cutting it as a pause, so read what was heard: content stays; a repeat or false start goes with
+`"from"`/`"to"` around it. What is still listed after that goes in your reply with its time and words.
+
 Then look at `seams.jpg` (the frame before and after every join). A talking head jumps at every join; that is
 normal for this style, but a big jump can be covered. Offer it, do not do it unasked: B-roll over the join (the
 EditAtlas media-picker skill) or a punch-in (`search_techniques` "jump cut punch in", then `get_technique`).
@@ -163,7 +182,7 @@ not read.
 
 ## 7. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists talking-head-cut above 0.1.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name talking-head-cut gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists talking-head-cut above 0.2.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name talking-head-cut gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 
@@ -172,7 +191,8 @@ Give the person, in their language:
    'sorry, start over'". Never line numbers or word indexes: the person cannot see them.
 3. **What you kept on purpose** and **what you were unsure about**, as questions.
 4. **The check**: what `verify.py` found and what you did about it; that nobody has listened yet; the joins to
-   listen to first.
+   listen to first. Say the check transcribed the cut again; do not write that you or Whisper listened to it
+   ("nghe lại bản cắt"): that reads as if someone heard it.
 5. **What comes next**, if they want it: captions from `transcript_cut.json` (its times are the cut film's; the
    transcribe skill's `captions.py` writes the SRT), music or B-roll (media-picker), sound effects (sound-design).
    Do these after the cut, never before: every one of them is timed to the cut.

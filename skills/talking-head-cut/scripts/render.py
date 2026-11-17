@@ -5,7 +5,8 @@
 
 Every piece is trimmed from the source in one FFmpeg pass and joined with the concat filter, so sound and picture
 stay in step however many joins there are (cutting pieces to files and joining them with stream copy drifts by a
-fraction of a frame per join). Each join gets a 20 ms fade out and in on the sound: a cut in silence is then
+fraction of a frame per join). Pieces are whole frames, and the sound outside a piece's measured cut points (under a
+frame) is faded to silence. Each join gets a 20 ms fade out and in on the sound: a cut in silence is then
 silent, and a cut that had to land in sound does not click. Afterwards the picture and sound lengths are compared.
 """
 import argparse
@@ -47,11 +48,14 @@ def main():
     graph, labels = [], []
     for k, pc in enumerate(pieces):
         length = pc["out"] - pc["in"]
+        # The piece is whole frames; the sound plays from sound_in to sound_out and is faded to silence outside them.
+        si = max(0.0, pc.get("sound_in", pc["in"]) - pc["in"])
+        so = min(length, pc.get("sound_out", pc["out"]) - pc["in"])
         fades = []
-        if k > 0:
-            fades.append(f"afade=t=in:st=0:d={FADE}")
-        if k < len(pieces) - 1:
-            fades.append(f"afade=t=out:st={max(0.0, length - FADE):.4f}:d={FADE}")
+        if k > 0 or si > 1e-4:
+            fades.append(f"afade=t=in:st={si:.6f}:d={FADE}")
+        if k < len(pieces) - 1 or so < length - 1e-4:
+            fades.append(f"afade=t=out:st={max(0.0, so - FADE):.6f}:d={FADE}")
         if info["has_video"]:
             # A time on the frame grid is given half a frame early, so rounding never drops or adds that frame.
             vs, ve = (round(x * fps) / fps - 0.5 / fps if abs(x * fps - round(x * fps)) < 0.02 else x

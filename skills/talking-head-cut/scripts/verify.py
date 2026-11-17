@@ -170,7 +170,7 @@ def main():
           f"{len(misheard)} word(s) heard differently (usually Whisper, not the cut).", ""]
     if findings:
         md += ["| Kind | Cut time | Source time | What |", "|---|---|---|---|"]
-        md += [f"| {f['kind']} | {clock(f['at'])} | {'' if f['source'] is None else clock(f['source'])} | {f['text']} |"
+        md += [f"| {f['kind']} | {clock(f['at'])} | {'' if f.get('source') is None else clock(f['source'])} | {f['text']} |"
                for f in findings]
     else:
         md.append("Nothing extra, missing or doubled was heard; every join is in a pause.")
