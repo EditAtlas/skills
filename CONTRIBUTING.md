@@ -72,6 +72,24 @@ pull request which evidence meets each one.
 | `beta` | A person checked real results (watched, listened, read) and approved them; a fresh agent with only the skill ran every test case and passed, and did better than the same agent without the skill; it installs from the marketplace |
 | `stable` | Used on real projects with no open bugs; the description was tested for triggering (it loads when it should and not otherwise) |
 
+### Showing it does better than without the skill
+
+Run each test case with the skill and without it, with the same agent, and score both on graders you can measure.
+Then compare the two in pairs as well:
+
+1. Show a judge model one case done both ways, as A and B, without saying which used the skill. Give it the
+   person's own request for that case and ask which result the person would rather use, or whether they are the
+   same.
+2. Ask again with A and B swapped. A result wins the pair only if it wins both times; anything else is a tie. A
+   judge that picks the same letter both times is reacting to the order, and the swap turns that into a tie.
+3. Before trusting the judge, try it on pairs with a known answer (an ideal result against the untouched input must
+   win both times) and count how often it picks the same letter twice.
+4. Remove what your own tools made up before the judge sees it, for example words Whisper writes over silence.
+
+Pairs add to the measured graders and do not replace them: a judge that reads a transcript cannot hear a clipped
+word or see picture and sound drift apart. Report both, with wins, ties and losses. The idea of judging twice with
+the order swapped comes from the SeeCut project.
+
 ## Versions and releases
 
 Raise `metadata.version` on every change to a skill (patch for fixes, minor for new behaviour), and the same number
