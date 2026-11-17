@@ -1,18 +1,21 @@
 """A light studio link for a package folder: the project's versions only, encrypted. Media never leave the folder.
 
-  share.py send result/my-video.edit                  # a new link holding the folder's versions; prints the link
-  share.py push result/my-video.edit                  # your newer versions (package.py save) onto the link
+  share.py pull "https://edit.trysometh.ing/studio#ID.KEY" --out result/my-video.edit   # a link the person gave you
   share.py pull result/my-video.edit                  # the person's newer versions from the link, into the folder
-  share.py pull "https://edit.trysometh.ing/studio#ID.KEY" --out result/my-video.edit   # a link you were given
+  share.py push result/my-video.edit                  # your newer versions (package.py save) onto the link
   share.py versions result/my-video.edit              # the versions on the link (or give the link itself)
-  share.py send result/my-video.edit --site http://127.0.0.1:8799                       # a local studio
+
+Only the EditAtlas studio makes a link: when the person keeps the project in their Google Drive from the studio, the
+studio makes its link and writes it into the folder as .studio-link. This script does not make links (the studio's
+server refuses a new link from anywhere but the studio page); it reads a link it is given and adds versions to it.
+Without a link, the folder alone goes back and forth.
 
 The folder stays the real thing: project.json, media/ and versions/v<n>.json (package.py). A link only carries the
 versions, so the person and you can pass the project back and forth without passing the folder each time. A version
 has the same number in the folder and on the link. Links have no end date for now (EditAtlas may set one later,
 and says so in its answers); the folder keeps every version either way.
 
-Each version is gzip of its JSON, encrypted on this machine with AES-256-GCM and a random key made by `send`. The key
+Each version is gzip of its JSON, encrypted with AES-256-GCM and a random key the studio made with the link. The key
 is only in the link, after the #, which browsers never send to a server, so EditAtlas stores bytes it cannot read.
 Anyone who has the link can read and add versions: give it only to the person. FOLDER/.studio-link holds the link and
 the newest version both have; it contains the key, so never put it in a repository or a message other than to them.
@@ -87,7 +90,8 @@ def refused(code, body, what):
     """The server's own message (413, 400 and 410 come as JSON {error}), and what to do about an expired link."""
     if code in (404, 410):
         msg = body if code == 410 and body else "this link was taken down or does not exist."
-        die(f"{what}: {msg} The folder still has every version: make a new link with share.py send FOLDER --new.")
+        die(f"{what}: {msg} The folder still has every version and works without a link. For a new link the person "
+            "keeps the project in their Google Drive from the studio again, and gives you that link.")
     die(f"the studio refused {what} ({code}): {body}")
 
 
@@ -277,39 +281,10 @@ def print_media_gaps(folder, obj):
 
 
 # ------------------------------------------------------------------ commands
-def cmd_send(a):
-    folder = Path(a.folder).resolve()
-    have = folder_versions(folder)
-    old, _ = read_state(folder)
-    if old and not a.new:
-        die(f"{folder} already has a link. Put your newer versions on it with share.py push {folder}; use --new only "
-            "for a new link (for example when the old one expired).")
-    key = os.urandom(32)
-    link = Link(a.site, "", key)
-    objs = [to_link(folder, pk.read_version(f)) for f in have.values()]
-    if a.name:
-        for o in objs:
-            if o["by"] == "agent" and not o.get("name"):
-                o["name"] = a.name[:40]
-    sizes = [check_size(o) for o in objs]
-    if len(objs) > MAX_OBJECTS or sum(sizes) > MAX_LINK:
-        die(f"{len(objs)} versions, {sum(sizes) / 1024:.0f} KiB encrypted: a link holds at most {MAX_OBJECTS} versions "
-            f"and {MAX_LINK // 1024} KiB. The folder works without a link.")
-    code, body = call("POST", link.api, json.dumps({"bytes": sizes[0], "objects": 1, "write": link.write}).encode(),
-                      {"Content-Type": "application/json"})
-    if code != 201:
-        refused(code, body, "a new link")
-    made = json.loads(body)
-    link.sid = made["id"]
-    for k, o in enumerate(objs):
-        if link.put_version(o, reserve=k > 0) != 201:
-            call("DELETE", f"{link.api}/{link.sid}", None, link.auth(), tries=1)
-            die(f"version {o['version']} was refused while sending; the new link was removed")
-    write_state(folder, link, len(objs))
-    print(f"{len(objs)} version(s), {sum(sizes) / 1024:.1f} KiB encrypted; no media sent")
-    print(f"expires {made.get('expires')}; the folder keeps every version after that" if made.get("expires") else "no end date for now; the folder keeps every version anyway")
-    print("the key is the part after the #. It is stored nowhere else: keep the link whole. Written to", folder / STATE)
-    print("->", link.url)
+NO_SEND = ("Links are made only in the EditAtlas studio, when the person keeps the project in their Google Drive "
+           "there; this script does not make them. Give the person the folder: it works without a link (Choose the "
+           "folder at https://edit.trysometh.ing/studio). If they keep it in Google Drive and give you its link, "
+           "share.py pull \"LINK\" --out FOLDER reads it and push adds your versions.")
 
 
 def cmd_push(a):
@@ -317,7 +292,7 @@ def cmd_push(a):
     have = folder_versions(folder)
     link, mine = read_state(folder)
     if not link:
-        die(f"{folder} has no link yet: share.py send {folder} makes one")
+        die(f"{folder} has no link. " + NO_SEND)
     newest = max(have)
     if newest <= mine:
         print(f"the link already has version {mine}, the folder's newest; nothing sent")
@@ -331,8 +306,8 @@ def cmd_push(a):
     objs = [to_link(folder, pk.read_version(have[n])) for n in range(mine + 1, newest + 1)]
     sizes = [check_size(o) for o in objs]
     if info.get("objects", 0) + len(objs) > MAX_OBJECTS or info.get("bytes", 0) + sum(sizes) > MAX_LINK:
-        die(f"the link is full ({MAX_OBJECTS} versions or {MAX_LINK // 1024} KiB). Make a new one with share.py send "
-            f"{folder} --new and give the person the new link.")
+        die(f"the link is full ({MAX_OBJECTS} versions or {MAX_LINK // 1024} KiB). Nothing sent; the folder keeps every "
+            "version. For a new link the person keeps the project in their Google Drive from the studio again.")
     for o in objs:
         if link.put_version(o) == 409:
             die(f"someone saved version {o['version']} on the link at the same moment. Nothing more sent. Run "
@@ -438,13 +413,10 @@ def cmd_versions(a):
 
 def main():
     pk.utf8_stdout()
+    if sys.argv[1:2] == ["send"]:                    # older instructions: say where a link comes from now
+        die(NO_SEND)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("send", help="make a new link holding the folder's versions")
-    s.add_argument("folder", help="the package folder (NAME.edit)")
-    s.add_argument("--site", default=SITE, help="the studio to use (default: %(default)s)")
-    s.add_argument("--name", default="Claude", help="your name on agent versions that have none (default: %(default)s)")
-    s.add_argument("--new", action="store_true", help="make a new link even though the folder has one")
     p = sub.add_parser("push", help="put the folder's versions newer than the link's onto the link")
     p.add_argument("folder")
     g = sub.add_parser("pull", help="write the link's newer versions into the folder (never media)")
@@ -456,7 +428,7 @@ def main():
     v = sub.add_parser("versions", help="list the versions on a link")
     v.add_argument("source", help="a package folder that has a link, or the whole link in quotes")
     a = ap.parse_args()
-    {"send": cmd_send, "push": cmd_push, "pull": cmd_pull, "versions": cmd_versions}[a.cmd](a)
+    {"push": cmd_push, "pull": cmd_pull, "versions": cmd_versions}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,13 @@
-"""Scaffold helper for continue-from-link: acts as the person in the studio. It reads the newest version on the
-folder's link, makes the title bigger (80 -> 96) and the click 0.1 s later, puts that on the link as the next version
+"""Scaffold helper for continue-from-link: acts as the person in the studio. With --new-link SITE it first keeps the
+project in "Google Drive" the way the studio does, which is the only way a link is made: it puts the folder's versions
+on a new link, sending what the studio page sends (its Origin and from "studio"), and writes .studio-link. Then it
+reads the newest version on the folder's link, makes the title bigger (80 -> 96) and the click 0.1 s later, puts that on the link as the next version
 (by "studio", with a note) and writes message.txt, what the studio gives the person to paste back. It does not touch
 the folder: the person's own copy is elsewhere, so Claude has to pull.
 
-  python studio_saves.py SCRIPTS_DIR FOLDER
+  python studio_saves.py SCRIPTS_DIR FOLDER [--new-link SITE]
 """
-import copy, json, sys
+import copy, json, os, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,6 +16,21 @@ import share  # noqa: E402
 from package import change_summary  # noqa: E402
 
 folder = Path(sys.argv[2])
+if sys.argv[3:4] == ["--new-link"]:
+    site = sys.argv[4].rstrip("/")
+    link = share.Link(site, "", os.urandom(32))
+    have = share.folder_versions(folder)
+    objs = [share.to_link(folder, share.pk.read_version(f)) for f in have.values()]
+    sizes = [share.check_size(o) for o in objs]
+    code, body = share.call("POST", link.api, json.dumps({"bytes": sizes[0], "objects": 1, "write": link.write,
+                            "from": "studio"}).encode(), {"Content-Type": "application/json", "Origin": site})
+    if code != 201:
+        sys.exit(f"studio_saves: the studio refused a new link ({code}): {body}")
+    link.sid = json.loads(body)["id"]
+    for k, o in enumerate(objs):
+        if link.put_version(o, reserve=k > 0) != 201:
+            sys.exit(f"studio_saves: version {o['version']} was refused")
+    share.write_state(folder, link, len(objs))
 link, _ = share.read_state(folder)
 info = link.info()
 was = link.version(info["version"])

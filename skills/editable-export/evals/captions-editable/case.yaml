@@ -3,8 +3,8 @@ name: captions-editable
 expected_outcome: |
   A vertical 1080x1920 MP4 of talk.mp4 with captions from transcript.json, rendered with render.py from a package
   folder such as talk.edit/ (project.json with a shared caption style, media/, versions/v1.json). package.py check
-  passes. Claude looked at frames of the result. It hands over the folder, makes no link without a yes (it may
-  offer one), and says how to open it in the studio (Choose the folder, in Chrome or Edge), change the caption size for all captions at once, save
+  passes. Claude looked at frames of the result. It hands over the folder, makes no link itself (it may
+  say Google Drive in the studio makes one), and says how to open it in the studio (Choose the folder, in Chrome or Edge), change the caption size for all captions at once, save
   (a new version in the folder) and export. It says what it did not test.
 context:
   scaffold_script: place-files.sh

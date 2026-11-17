@@ -276,8 +276,8 @@ NAME.edit/
 ## The light link (optional)
 
 `https://edit.trysometh.ing/studio#<id>.<key>` holds the same versions, with the same numbers, and nothing else: no
-media. `share.py send` makes it, `push` adds the folder's newer versions, `pull` writes the link's newer versions
-into the folder. Links have no end date for now (`expires` is null). `NAME.edit/.studio-link` is
+media. Only the studio makes it, when the person keeps the project in their Google Drive; `share.py push` adds the
+folder's newer versions, `pull` writes the link's newer versions into the folder. Links have no end date for now (`expires` is null). `NAME.edit/.studio-link` is
 `{"link": "<the whole link>", "version": <the newest version both have>}`; it holds the key, so it never goes into Git
 or a message other than to the person.
 

@@ -18,14 +18,15 @@ Status: beta (0.3.2).
 
 A folder, `NAME.edit`, with `project.json`, `media/` and `versions/`. The person opens the studio in Chrome or
 Edge, presses **Choose the folder** and picks it. The page reads the folder and saves into it in the browser; the
-footage is never uploaded and there is no account. In a sandbox such as a Claude.ai chat, Claude zips the folder
+footage is never uploaded and no account is needed. In a sandbox such as a Claude.ai chat, Claude zips the folder
 for download and the person unzips it.
 
-If the person wants it, Claude also makes a light link (`share.py send`, after a yes). It holds only the project's
-versions, the text and timings, gzipped and encrypted on their machine with AES-256-GCM; never a media file. The key
-is the part of the link after the `#`, which browsers never send to a server, so EditAtlas stores bytes it cannot
-read. Links have no end date for now; the folder keeps every version either way. The person opens the link and, the
-first time in that browser, chooses the folder for the media. In a sandbox the link is how they hand back: Claude
+A light link comes only from the studio: when the person keeps the project in their Google Drive there, the studio
+makes its link. Claude does not make links (since 0.5.0 `share.py` has no `send`, and EditAtlas refuses a new link
+that does not come from the studio page). A link holds only the project's versions, the text and timings, gzipped
+and encrypted in the browser with AES-256-GCM; never a media file. The key is the part of the link after the `#`,
+which browsers never send to a server, so EditAtlas stores bytes it cannot read. Links have no end date for now; the
+folder keeps every version either way. In a sandbox the link is how they hand back: the person pastes it, and Claude
 pulls their version, saves its own and pushes it to the same link.
 
 Every save is a new version in `versions/` (`v1.json`, `v2.json` ...), by Claude or by the person, with a note.
@@ -68,7 +69,7 @@ as the next one with `package.py save` (then `share.py push`), and the studio of
 | `references/project-format.md` | `project.json`: an edit as elements (`editatlas-project/1`) |
 | `scripts/package.py` | `build`: checks a project, imports transcribe's cuts and captions and sound-design's sounds, and writes `NAME.edit/` (version 1). `save`: Claude's next version. `versions`, `changes` (in the studio's words) and `check` |
 | `scripts/render.py` | Runs the studio's own export in Chrome or Edge without a window: the video Claude delivers |
-| `scripts/share.py` | The optional link, project versions only: `send` makes it, `pull` writes the person's newer versions into the folder (never media; it lists media the folder lacks), `push` puts Claude's newer versions on it, `versions` lists them |
+| `scripts/share.py` | A link the person gives, project versions only (it makes no link): `pull` writes the person's newer versions into the folder (never media; it lists media the folder lacks), `push` puts Claude's newer versions on it, `versions` lists them |
 | `evals/` | Test cases in the `claude plugin eval` layout |
 
 The studio page and the link service are in the EditAtlas website's repository, not here.
@@ -109,8 +110,8 @@ Beta (0.3.0), on 2026-11-10. The owner read the results and approved; the eviden
 - `share.py` sealing against a WebCrypto reference in Node (AES-GCM with the contract's additional data, HKDF write
   token, gzip): 5 projects up to 7 KB sealed, Python sealed and Node opened, Node sealed and Python opened, the
   write tokens were equal, and a wrong object name or share id was refused on both sides (25 of 25 checks).
-- `share.py` against a local mock of the link API (not the real server): send, a studio version put by the eval
-  helper, versions, pull, save and push; push refused after the studio saved meanwhile, pull refused the clash and
+- `share.py` against a local mock of the link API (not the real server): a link made as the studio makes it, a
+  studio version put by the eval helper, versions, pull, save and push; push refused after the studio saved meanwhile, pull refused the clash and
   `--set-aside` resolved it; a studio version with a new logo listed the missing file; pull of the link into an empty
   folder wrote 5 versions and listed the 3 missing media; an expired link (410) printed the server's message.
 

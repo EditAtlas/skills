@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Input: Claude's edit in work/, its package folder tweak.edit (version 1) with a real light studio link, and the
-# person's version 2 on that link only (title size 96 instead of 80, click 0.1 s later), saved by a helper that acts
-# as the studio. message.txt is what the studio gives the person to paste back, with the link.
+# Input: Claude's edit in work/, its package folder tweak.edit (version 1) with a real light studio link, made as the
+# studio makes it when the person keeps the project in Google Drive, and the person's version 2 on that link only
+# (title size 96 instead of 80, click 0.1 s later), saved by a helper that acts as the studio. message.txt is what the
+# studio gives the person to paste back, with the link.
 # Needs network, the cryptography package, and the studio's share service; set EDITATLAS_INTERNAL for EditAtlas's own
 # runs so they stay out of its numbers. EDITATLAS_SITE points it at another studio (a local one).
 set -eu
@@ -27,5 +28,4 @@ json.dump(p, open("project.json", "w"), indent=1)
 PY
 cd ..
 python "$SCRIPTS/package.py" build work/project.json --out tweak.edit --note "title and click" > /dev/null
-python "$SCRIPTS/share.py" send tweak.edit --site "${EDITATLAS_SITE:-https://edit.trysometh.ing}" > /dev/null
-python "$HERE/studio_saves.py" "$SCRIPTS" tweak.edit > /dev/null
+python "$HERE/studio_saves.py" "$SCRIPTS" tweak.edit --new-link "${EDITATLAS_SITE:-https://edit.trysometh.ing}" > /dev/null

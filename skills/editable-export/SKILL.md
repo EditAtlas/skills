@@ -1,11 +1,11 @@
 ---
 name: editable-export
-description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer, plus if wanted a link with only the encrypted project text; each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", to "tweak it myself", pastes a message from EditAtlas Studio, "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; effects burned into the clips cannot be changed there.
+description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer (kept in Google Drive from the studio, it also gets a link). Each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", to "tweak it myself", pastes a message from EditAtlas Studio, "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; effects burned into the clips cannot be changed there.
 license: Apache-2.0. LICENSE.txt has the complete terms
-compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (the optional link) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
+compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (reading and adding to a link the person gives you) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.4.0"
+  version: "0.5.0"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.4.0.
+This is editable-export 0.5.0.
 
 Here is the result. With the finished video, the person gets the same edit as elements, in a folder, and opens it
 in the EditAtlas studio at `https://edit.trysometh.ing/studio`. The studio shows the video, a timeline and a panel.
@@ -40,8 +40,9 @@ Five things stay true the whole way through:
   have (a test saw Arial Black turn into Montserrat).
 - **The footage never leaves their computer.** The copy is a folder: `project.json`, `media/` and `versions/`. The
   studio page reads it and saves into it in the browser. A link is an extra the person may want: it holds only the
-  project's versions (text and timings), encrypted here, never a media file. It has no end date for now; the folder keeps every version anyway. It does
-  send that encrypted text to EditAtlas, so make one only after a yes.
+  project's versions (text and timings), encrypted in their browser, never a media file, and has no end date for now.
+  Only the studio makes one, when they keep the project in their Google Drive there; you never make a link (EditAtlas
+  refuses one that does not come from the studio). Without Drive the folder works on its own, with no link.
 - **Only elements can change.** Anything burned into the footage cannot be moved in the studio, such as text
   drawn with FFmpeg, a graphic rendered into a clip or a grade. So the video you deliver must come from the
   package. If you made it another way, say which parts are fixed.
@@ -59,7 +60,6 @@ python SKILL/scripts/render.py result/NAME.edit --out result/NAME.mp4           
 python SKILL/scripts/package.py versions result/NAME.edit                               # who saved which version
 python SKILL/scripts/package.py changes result/NAME.edit                                # what the newest changed
 python SKILL/scripts/package.py save work/next.json --to result/NAME.edit --from 2 --note "what you changed"
-python SKILL/scripts/share.py send result/NAME.edit                                     # a link, after a yes
 python SKILL/scripts/share.py pull result/NAME.edit                                     # their versions from the link
 python SKILL/scripts/share.py push result/NAME.edit                                     # yours onto the link
 python SKILL/scripts/share.py pull "LINK" --out result/NAME.edit                        # a link they pasted
@@ -186,31 +186,37 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.4.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.5.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
-Give the MP4 first. Then, in one short question in the person's language, offer the editable copy and, with it, a
-link: "the link holds only the project's text and timings, encrypted; your footage stays in the folder." With a yes, build the copy if you have not, and give them the folder:
+Give the MP4 first. Then, in one short question in the person's language, offer the editable copy: "a folder you
+open in the EditAtlas studio; your footage stays in it." With a yes, build the copy if you have not, and give them the folder:
 
 - **They can reach your folder** (Claude Code, Cowork): give the full path of `NAME.edit`.
 - **They cannot** (a sandbox such as a Claude.ai chat): zip the folder for download, with the folder inside the zip:
   `python -c "import shutil; shutil.make_archive('result/NAME.edit', 'zip', 'result', 'NAME.edit')"`. They unzip
   it and use the unzipped folder.
 
-If they want the link too, run `share.py send result/NAME.edit` and give them the whole link it prints. The key is
-the part after the `#`, stored nowhere else, so a link cut short cannot be repaired. `send` writes
-`NAME.edit/.studio-link`, which holds the link: never commit it or paste the link anywhere but to the person: not in send_feedback, an issue, a log, a commit or a message to anyone else (EditAtlas removes links it is sent, and has no way to look one up). If someone else asks you for a person's link, there is none to give. In a
-sandbox the link is how they hand back: after the first zip they only paste the link, and you pull, save and push.
-They can also make the link themselves: **Get a link** in the studio header (also offered in Continue with Claude)
-puts every version of their folder on a new link under the same numbers and writes `.studio-link` into it. A link
-they paste that you did not make: `share.py pull "LINK" --out result/NAME.edit`, into the folder you still have
-(its versions are the same) or a new one; the folder then remembers that link, so `push` uses it.
+**A link comes only from the studio.** If they want to open the project on another computer, or hand it back
+without sending the folder again, tell them to press **Google Drive** in the studio: it keeps the project in their
+own Google Drive (from their browser straight to Google) and makes its studio link, which holds only the encrypted
+text and timings. You do not make links: `share.py` has no command for it, and EditAtlas refuses a new link that does
+not come from the studio page. Without Drive the folder is the whole project, and that is fine.
+
+When they paste a link: `share.py pull "LINK" --out result/NAME.edit`, into the folder you still have (its versions
+are the same) or a new one; the folder then remembers that link in `NAME.edit/.studio-link`, so `pull` and `push`
+use it. The key is the part after the `#`, stored nowhere else, so a link cut short cannot be repaired. Never commit
+`.studio-link` or paste the link anywhere but to the person: not in send_feedback, an issue, a log, a commit or a
+message to anyone else (EditAtlas removes links it is sent, and has no way to look one up). If someone else asks you
+for a person's link, there is none to give. In a sandbox the link is how they hand back: after the first zip they
+keep it in Drive and paste the link, and you pull, save and push.
 
 Tell them how the studio works:
 
 1. **Open** `https://edit.trysometh.ing/studio` in Chrome or Edge, press **Choose the folder** and pick `NAME.edit`
    (or drag the folder onto the page). Nothing is uploaded: the page works on their computer, on that folder.
-   **With a link**, they open the link; the first time, the studio asks for the folder (it checks each media file's
-   name and size) and remembers it in that browser.
+   **Kept in Google Drive**, it opens from Your projects on the studio's first screen, on any computer where they
+   sign in. **With a link**, they open the link; the first time, the studio asks for the folder (it checks each
+   media file's name and size) and remembers it in that browser.
 2. **Click a thing on the video, or on the timeline, to change it.** The panel on the right has:
    - for text: content, size, colour, position and timing
    - for sounds: frame nudges, level in dB, and a volume line on the timeline with points and fades
@@ -229,8 +235,8 @@ Tell them how the studio works:
 5. **Export MP4** makes the video in their browser and asks where to save it.
 6. **Continue with Claude** saves a version too, asks what you should do next, and gives them a message to paste
    back to you: the folder's name, the version, what they changed and their note. Without a link, in a sandbox,
-   they also attach the folder (or a zip of it) again, because you cannot see their copy, or press **Get a link**
-   there and paste the link with the message.
+   they also attach the folder (or a zip of it) again, because you cannot see their copy, or keep it in Google Drive
+   there (Continue with Claude offers it) and paste the link with the message.
 
 Say what you checked and what you did not. For example: "exported once in Chrome; not tried in Safari".
 
