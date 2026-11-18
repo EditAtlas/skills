@@ -22,8 +22,8 @@
     },
     {
       "name": "media-picker",
-      "description": "Find and pick B-roll (stock clips for the lines of a voice-over), background music, photos and sound effects that fit the video, and check each before it goes into the edit. Use it before calling search_videos, search_music, search_photos or search_sfx, or downloading from Pexels or Pixabay, whenever a video needs B-roll, cutaway shots or music, and when someone says a pick does not fit. Writes what each slot needs, gathers 3-5 candidates per slot, measures each with measure.py (camera shake, cuts inside a clip, what a 9:16 crop keeps, repeats; for music the tempo, intro, energy, length), looks at every frame sheet, drops what does not show the line, and has the person hear two or three music options first. Triggers include \"cần B-roll cho mấy câu này\", \"tìm cảnh trên Pexels\", \"tìm b-roll\", \"tìm nhạc nền\", \"chọn nhạc nền\", \"nhạc nền không hay\", \"cảnh bị rung\", \"find B-roll for these lines\", \"find background music\". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).",
-      "version": "0.2.0",
+      "description": "Find, pick and place B-roll (stock clips for the lines of a voice-over), background music, photos and sound effects that fit the video, and check each before it goes into the edit. Use it before calling search_videos, search_music, search_photos or search_sfx, or downloading from Pexels or Pixabay, whenever a video needs B-roll, cutaway shots or music, when B-roll goes on the words of a voice-over or talking head, and when someone says a pick does not fit. Measures candidates (shake, cuts, crop; music tempo, intro, energy), looks at every frame sheet, has the person hear music options, and places clips on their words, colour-matched, off the face. Triggers include \"cần B-roll cho mấy câu này\", \"chèn B-roll vào video\", \"tìm cảnh trên Pexels\", \"tìm b-roll\", \"tìm nhạc nền\", \"chọn nhạc nền\", \"nhạc nền không hay\", \"cảnh bị rung\", \"find B-roll for these lines\", \"add B-roll to this voice-over\", \"find background music\". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).",
+      "version": "0.3.0",
       "status": "beta",
       "libraries": [
         "sfx"
@@ -68,8 +68,8 @@
     },
     {
       "name": "talking-head-cut",
-      "description": "Cut a raw talking-head recording (one person speaking to camera, a lesson, a vlog, a voice-over take) into a clean video. Takes out false starts, failed and repeated takes, words said to the editor (\"take two\", \"nói lại nhé\"), doubled words and um/uh/ờ/ừm. Shortens long pauses to a natural breath and keeps everything the speaker meant to say. You quote the words to remove; the scripts find them, put every cut in silence, render picture and sound in step, then transcribe the cut again to catch leftovers and clipped words. Use it when someone asks to \"cut my mistakes out\", \"clean up this take\", \"remove the retakes\", \"tighten the pacing\", \"rough cut\", \"cắt video nói chuyện\", \"cắt chỗ nói hỏng\", \"bỏ đoạn nói lại\", \"cắt ờ ừm và khoảng lặng\", \"dựng video nói cho gọn\". Needs the transcribe skill's word-level transcript. Not for a transcript or subtitles alone (transcribe), picking highlights from a long video, multi-camera edits, or adding music, B-roll or captions (do those after the cut).",
-      "version": "0.2.0",
+      "description": "Cut a raw talking-head recording (one person speaking to camera, a lesson, a vlog, a voice-over take) into a clean video. Takes out false starts, failed and repeated takes, words said to the editor (\"take two\", \"nói lại nhé\"), doubled words and um/uh/ờ/ừm, and shortens long pauses to a breath, also with music or noise under the voice. When the script was recorded several times across files, picks the best take of each line. You quote the words; the scripts find them, put every cut in silence, render picture and sound in step, then transcribe the cut again to catch leftovers and clipped words. Use it for \"cut my mistakes out\", \"clean up this take\", \"remove the retakes\", \"pick the best takes\", \"cắt video nói chuyện\", \"cắt chỗ nói hỏng\", \"bỏ đoạn nói lại\", \"chọn take tốt nhất\", \"cắt ờ ừm và khoảng lặng\". Needs the transcribe skill's word-level transcript. Not for subtitles alone (transcribe), highlights from a long video, multi-camera edits, or adding music, B-roll or captions (after the cut).",
+      "version": "0.3.0",
       "status": "beta",
       "libraries": [
         "techniques"
@@ -92,7 +92,7 @@
     {
       "name": "transcribe",
       "description": "Transcribe the speech in a video or audio file on the person's own machine with Whisper (faster-whisper), with a time for every word, then check it, write SRT/VTT subtitles, and list what an edit could cut (long silences, filler words like um, uh, ờ, ừm, and repeated takes). The checked word-level transcript is what EditAtlas caption techniques, silence and filler removal, retake selection and every template's verified_transcript input need. Use it whenever someone wants a transcript, subtitles, captions or an SRT from a video; asks to \"trích lời\", \"lấy lời thoại\", \"chuyển giọng nói thành chữ\", \"làm phụ đề\", \"làm sub\", \"cắt khoảng lặng\", \"bỏ ờ ừm\", \"speech to text\", \"Whisper\"; or starts an EditAtlas edit that needs word times, even if they never say \"transcript\". Installs Whisper only after asking. Not for translating, cleaning up audio, separating a voice from music, or making a voice.",
-      "version": "0.2.4",
+      "version": "0.3.0",
       "status": "beta",
       "libraries": [
         "techniques",
@@ -103,7 +103,7 @@
         "search_techniques",
         "get_workflow"
       ],
-      "compatibility": "Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.",
+      "compatibility": "Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. For English, an optional 95 MB alignment model (Apache-2.0, run by the onnxruntime that faster-whisper installs, no torch) sharpens word times. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.",
       "license": "Apache-2.0. LICENSE.txt has the complete terms",
       "path": "skills/transcribe",
       "url": "https://github.com/EditAtlas/skills/tree/main/skills/transcribe",
@@ -138,8 +138,8 @@
     },
     {
       "name": "video-check",
-      "description": "Check a finished video before the person sees it or posts it, then fix what is wrong. Measures the file (size, frame rate, pixel format, length), picture faults (black or white frames, frozen stretches, one-frame glitches, stutter, a loop that jumps or repeats a frame), and sound (loudness, clipping, silences, audio that ends early or stops abruptly); makes frame sheets at phone size with the caption-safe area marked; then a reviewer who has not seen your plan looks at the sheets and lists problems with a time and a fix. Fix the worst three, render again, check again, at most three rounds. Use it after rendering any edit, and when someone asks to check a video before sending or posting it, says \"kiểm tra video trước khi gửi\", \"xem lại bản dựng\", \"video này có lỗi gì không\", \"review my edit\", \"QA this render\". Works on a local file. Not for breaking down someone else's video (use video-breakdown) or for judging footage the person has not edited.",
-      "version": "0.2.5",
+      "description": "Check a finished video before the person sees it or posts it, then fix what is wrong. Measures the file (size, frame rate, pixel format, length), picture faults (black or white frames, frozen stretches, one-frame glitches and wrong frames at cuts, stutter, loop seams), sound (loudness, clipping, silences, abrupt ends) and text too small or too brief for a phone; makes frame sheets at phone size and a strip around each cut; a reviewer who has not seen your plan judges them by the kind of video (tutorial, talking head, ad, reel, film) and, from round 2, checks each claimed fix on the new frames. Fix the worst three, render again, at most three rounds. Use it after rendering any edit, and when someone asks to check a video before sending or posting it, says \"kiểm tra video trước khi gửi\", \"xem lại bản dựng\", \"video này có lỗi gì không\", \"review my edit\", \"QA this render\". Works on a local file. Not for breaking down someone else's video (use video-breakdown) or for judging footage the person has not edited.",
+      "version": "0.3.0",
       "status": "beta",
       "libraries": [
         "techniques"
@@ -156,7 +156,7 @@
       "plugin": "video-check",
       "install_claude_code": "/plugin install video-check@editatlas-skills",
       "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/video-check.zip",
-      "eval_cases": 3
+      "eval_cases": 4
     }
   ]
 }
