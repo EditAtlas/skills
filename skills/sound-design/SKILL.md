@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.4.2"
+  version: "0.4.3"
   status: beta
   library: sfx
   mcp-tools: search_sfx get_sfx
@@ -13,7 +13,9 @@ metadata:
 
 # Sound design: real sounds on a finished video
 
-This is sound-design 0.4.2.
+This is sound-design 0.4.3.
+
+When `scripts/mix.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
 The aim: the film sounds as if an editor with a good library cut it. Every sound is a real file from EditAtlas,
 placed on a frame you have looked at, at a level you can justify in numbers.
@@ -142,7 +144,7 @@ if the moment is the sound's peak, switch that cue to `anchor: peak`. Two or thr
 
 ## 6. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists sound-design above 0.4.2, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name sound-design gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists sound-design above 0.4.3, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name sound-design gives the step). Without the MCP, skip it.
 
 Give the person:
 

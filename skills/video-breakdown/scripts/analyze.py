@@ -12,6 +12,8 @@ from pathlib import Path
 
 import numpy as np
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
 from common import decode_audio, die, frame_size, grab, iter_frames, lufs, probe, sheet, utf8_stdout, write_json
 
 VERSION = "0.4.0"
@@ -1116,4 +1118,12 @@ def draw(video, info, r, out):
 
 
 if __name__ == "__main__":
-    main()
+    try:  # the run signal, editatlas_signal.py next to this script; the skill never depends on it
+        from editatlas_signal import run
+    except ImportError:
+        run = None
+    # main() outside the except, so an error in the skill is not shown as happening during the ImportError
+    if run is None:
+        main()
+    else:
+        run(main)

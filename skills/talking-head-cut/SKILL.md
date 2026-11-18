@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy, FFmpeg with ffprobe, and the EditAtlas transcribe skill (faster-whisper) for the transcript and for verify.py. Runs on the person's machine; nothing is uploaded. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.3.0"
+  version: "0.3.1"
   status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_skill send_feedback
@@ -13,7 +13,9 @@ metadata:
 
 # Talking-head cut: from a raw take to a clean cut
 
-This is talking-head-cut 0.3.0.
+This is talking-head-cut 0.3.1.
+
+When `scripts/render.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
 The result: the person's raw recording cut so it says what they meant, once, with natural breathing room, and
 nothing they meant to say lost. They also get a list of every cut with the words it removed, and a transcript of
@@ -244,7 +246,7 @@ not read.
 
 ## 7. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists talking-head-cut above 0.3.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name talking-head-cut gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists talking-head-cut above 0.3.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name talking-head-cut gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 

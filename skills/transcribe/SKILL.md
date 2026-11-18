@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. For English, an optional 95 MB alignment model (Apache-2.0, run by the onnxruntime that faster-whisper installs, no torch) sharpens word times. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.3.0"
+  version: "0.3.1"
   status: beta
   library: techniques templates
   mcp-tools: get_technique search_techniques get_workflow
@@ -13,7 +13,9 @@ metadata:
 
 # Transcribe: word-level transcripts for editing
 
-This is transcribe 0.3.0.
+This is transcribe 0.3.1.
+
+When `scripts/transcribe.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
 The aim: a transcript the person has checked, with a start and end time for every word, ready for captions and
 cuts. Whisper runs on their machine; nothing is uploaded.
@@ -166,7 +168,7 @@ each join, so apply it when rendering (`ffmpeg_cut.txt` lists the joins that cam
 
 ## 6. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists transcribe above 0.3.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name transcribe gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists transcribe above 0.3.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name transcribe gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 

@@ -32,6 +32,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
 
 FORMAT = "editatlas-project/1"
 VERSION_FORMAT = "editatlas-version/1"
@@ -1035,4 +1036,16 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Only build is sent: it runs once each time the skill is used; check, save, versions and changes do not.
+    if sys.argv[1:2] != ["build"]:
+        main()
+    else:
+        try:  # the run signal, editatlas_signal.py next to this script; the skill never depends on it
+            from editatlas_signal import run
+        except ImportError:
+            run = None
+        # main() outside the except, so an error in the skill is not shown as happening during the ImportError
+        if run is None:
+            main()
+        else:
+            run(main)

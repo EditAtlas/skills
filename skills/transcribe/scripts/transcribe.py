@@ -367,4 +367,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:  # the run signal, editatlas_signal.py next to this script; the skill never depends on it
+        from editatlas_signal import run
+    except ImportError:
+        run = None
+    # main() outside the except, so an error in the skill is not shown as happening during the ImportError
+    if run is None:
+        main()
+    else:
+        run(main)

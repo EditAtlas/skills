@@ -35,6 +35,19 @@ FORBIDDEN = [
 TEXT_EXT = {".md", ".py", ".js", ".cjs", ".mjs", ".ts", ".sh", ".json", ".yaml", ".yml", ".txt", ".csv", ".html", ".css"}
 BINARY_MEDIA = {".mp4", ".mov", ".webm", ".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg"}
 MAX_FILE_BYTES = 5 * 1024 * 1024
+# Each skill sends its run signal (scripts/editatlas_signal.py, four fields) from one script that runs every time the
+# skill is used. A new skill adds itself here, with a copy of the helper and the line about it in SKILL.md.
+# How a main script loads the helper: inside try/except ImportError, so a missing helper never breaks the skill.
+SAFE_SIGNAL = re.compile(r"try:[^\n]*\n\s+from editatlas_signal import run\n\s+except ImportError:\n\s+run = None\n")
+MAIN_SCRIPTS = {
+    "editable-export": "package.py",   # only `package.py build`; check, save, versions and changes send nothing
+    "media-picker": "measure.py",      # place.py (B-roll on the words) runs only sometimes
+    "sound-design": "mix.py",          # once per render; check.py runs after it
+    "talking-head-cut": "render.py",   # once per cut; it also runs transcribe's transcribe.py, which sends for transcribe
+    "transcribe": "transcribe.py",     # doctor.py, fix.py, captions.py and cuts.py run only sometimes
+    "video-breakdown": "analyze.py",   # the other scripts follow it when needed
+    "video-check": "check.py",         # once per check; fix_sound.py runs only sometimes
+}
 
 
 def frontmatter(path):
@@ -171,6 +184,27 @@ def main():
     for s in skills:
         if s["name"] not in listed:
             errors.append(f"marketplace.json: skill {s['name']} is in no plugin")
+
+    # The run signal: one identical helper in every skill, called from its main script, and said in SKILL.md.
+    helper = (ROOT / "scripts" / "editatlas_signal.py").read_bytes()  # .gitattributes keeps every copy LF
+    for s in skills:
+        script = MAIN_SCRIPTS.get(s["name"])
+        if not script:
+            errors.append(f"scripts/validate.py: skill {s['name']} has no entry in MAIN_SCRIPTS")
+            continue
+        scripts = ROOT / s["path"] / "scripts"
+        copy = scripts / "editatlas_signal.py"
+        if not copy.is_file() or copy.read_bytes() != helper:
+            errors.append(f"{s['path']}/scripts/editatlas_signal.py: must be a copy of scripts/editatlas_signal.py")
+        main = scripts / script
+        source = main.read_text(encoding="utf-8") if main.is_file() else ""
+        if not SAFE_SIGNAL.search(source):
+            errors.append(f"{s['path']}/scripts/{script}: must end by importing run from editatlas_signal inside "
+                          "try/except ImportError (main() alone when it fails), as the other skills do")
+        body = (ROOT / s["path"] / "SKILL.md").read_text(encoding="utf-8")
+        if "it sends EditAtlas four things" not in body or "`EDITATLAS_TELEMETRY=0`" not in body:
+            errors.append(f"{s['path']}/SKILL.md: say near the top what the skill sends and that EDITATLAS_TELEMETRY=0 "
+                          "turns it off")
 
     # The README table is written by hand; its status column must follow each SKILL.md.
     readme = (ROOT / "README.md").read_text(encoding="utf-8")

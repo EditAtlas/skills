@@ -72,6 +72,30 @@ Upload the same zip with the Skills API. See the
 Most skills work better with the EditAtlas MCP server connected, so that search ranks well and records stay
 current. See [edit.trysometh.ing](https://edit.trysometh.ing) for the install line.
 
+## Telemetry
+
+When a skill's main script finishes, it sends EditAtlas four things: the skill's name, its version, whether it
+finished or failed, and how many seconds it took, for example
+`{"skill": "sound-design", "version": "0.4.3", "result": "ok", "seconds": 37}`. Nothing else: no ID, no file names
+or paths, no text, no media, no system details. EditAtlas keeps only daily totals per skill, version and result, and
+deletes them after 180 days ([privacy](https://edit.trysometh.ing/privacy)). It tells us which skills are used and
+which fail, so we know what to fix.
+
+To turn it off, set `EDITATLAS_TELEMETRY=0` (or `false`, `off`, `no`). It is also off when `CI` is set. The send runs
+in the background and gives up after 2 seconds; a skill never fails or waits longer because of it. The code is
+[`scripts/editatlas_signal.py`](./scripts/editatlas_signal.py), copied into each skill's `scripts/`; the script that
+sends it:
+
+| Skill | Sends from | Other scripts (they send nothing) |
+|---|---|---|
+| editable-export | `package.py build` | `package.py check`, `save`, `versions`, `changes`; `render.py`; `share.py` |
+| media-picker | `measure.py` | `place.py`, only when B-roll goes on the words |
+| sound-design | `mix.py`, once per render | `moments.py`, `sounds.py`, `check.py`, `beat_grid.py` |
+| talking-head-cut | `render.py`, once per cut | `cut.py`, `takes.py`, `verify.py`; it also runs transcribe's `transcribe.py`, which sends for transcribe |
+| transcribe | `transcribe.py` | `doctor.py`, `fix.py`, `captions.py`, `cuts.py`, `align.py` |
+| video-breakdown | `analyze.py` | `frames.py`, `text_look.py`, `elements.py`, `background.py`, `compare.py`, `report.py` |
+| video-check | `check.py`, once per check | `fix_sound.py` |
+
 ## Repository layout
 
 ```
@@ -82,13 +106,17 @@ skills/index.json                 written by scripts/validate.py --write-index
 template/SKILL.md                 start a new skill from here
 spec/agent-skills-spec.md         the spec and the EditAtlas metadata keys
 scripts/validate.py               checks every skill; CI runs it
+scripts/editatlas_signal.py       the run signal (see Telemetry); each skill keeps an identical copy
+scripts/test_editatlas_signal.py  its tests, standard library only; CI runs them on Python 3.11 and 3.13
 scripts/package.py                zips each skill for Claude.ai and the API
 ```
 
 ## Make a new skill
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md). In short: copy `template/` to `skills/<name>/`, write it, add test cases,
-add it to `marketplace.json`, run `python scripts/validate.py --write-index`, and report what was measured.
+add it to `marketplace.json`, copy `scripts/editatlas_signal.py` into its `scripts/`, end its main script with
+`run(main)`, add it to `MAIN_SCRIPTS` in `scripts/validate.py` with the line about telemetry near the top of its
+SKILL.md, run `python scripts/validate.py --write-index`, and report what was measured.
 
 ## License
 

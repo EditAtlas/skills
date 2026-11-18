@@ -18,3 +18,16 @@ jobs:
       - name: skills/index.json is up to date
         run: git diff --exit-code skills/index.json
       - run: python scripts/package.py
+
+  signal:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install numpy pillow  # the main scripts' own needs, so each one's --help runs under python -I
+      - run: python scripts/test_editatlas_signal.py
