@@ -3,6 +3,7 @@
   doctor.py                    # report: Python, FFmpeg, faster-whisper, GPU, models already downloaded
   doctor.py --install          # pip install faster-whisper (ask the person first: about 300 MB on disk)
   doctor.py --fetch turbo      # download a model now instead of on first use (sizes below)
+  doctor.py --fetch-align en   # download the word-alignment model for a language (optional, sharper word times)
 
 Exit code 0 when transcribe.py can run, 1 when something is missing.
 """
@@ -66,6 +67,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--install", action="store_true", help="pip install faster-whisper into this Python")
     p.add_argument("--fetch", choices=list(MODELS), help="download this model now")
+    p.add_argument("--fetch-align", metavar="LANG", help="download the alignment model for this language (en, vi)")
     a = p.parse_args()
 
     ok = True
@@ -98,6 +100,24 @@ def main():
     for name, (repo, size) in MODELS.items():
         print(f"  {name:<9} {size:<13} {repo}")
     print("recommended: " + ("turbo (GPU)" if gpus else "turbo for Vietnamese and short films; small for long English on a slow CPU"))
+
+    if have:
+        # align.py needs numpy, which arrives with faster-whisper, so it is read only once that is installed
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import align
+        print("word alignment (optional: sharper word times, flags invented words; runs on onnxruntime, no torch):")
+        for lang, m in align.MODELS.items():
+            print(f"  {lang:<9} {m['size']:<13} {'downloaded' if align.available(lang) else 'not downloaded':<15} {m['repo']}")
+            print(f"  {'':<9} {m['license']}")
+        print("  other languages keep Whisper's word times")
+        if a.fetch_align:
+            if a.fetch_align not in align.MODELS:
+                sys.exit(f"no alignment model for {a.fetch_align}; there is one for {', '.join(align.MODELS)}")
+            m = align.MODELS[a.fetch_align]
+            print(f"downloading {m['repo']} ({m['size']}) ...")
+            print("->", Path(align.hf_download(a.fetch_align, True)[m["file"]]).parent.parent)
+    elif a.fetch_align:
+        sys.exit("install faster-whisper first")
 
     if a.fetch:
         if not have:

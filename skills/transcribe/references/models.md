@@ -74,3 +74,87 @@ Vietnamese clip in about 5 minutes.
 - Word times are good to about 20 ms at word starts in clean speech, but a long spoken number written as one word
   ("400ms" for five syllables) can end 0.3–0.4 s early. `cuts.py` checks every edge against the audio level for
   that reason.
+
+## Word alignment (0.3.0)
+
+`align.py` re-times Whisper's words with a wav2vec2 CTC model on onnxruntime (no torch). Measured on 2026-11-17 on a
+12-thread CPU with 4 alignment threads, against:
+
+- six synthetic takes from Microsoft Edge voices with the synthesizer's own word boundaries (two English and two
+  Vietnamese paragraphs said without pauses, 32–46 s each; one take per language with 1.2–7 s pauses; 4 min 03 s,
+  591 words). Edge's boundary after a pause starts 50–150 ms before the sound, so at pause edges the truth was moved
+  to where the level rises above the room tone (+12 dB); the level-based corrections below are partly scored by the
+  same kind of measure there;
+- edges marked by hand on two real takes (a 14 s English talking head, 23 edges; an 8 s Vietnamese product talk, 17
+  edges), read from spectrograms and level lines at about ±15–30 ms: level onset and offset at pauses, the onset of
+  hiss for s, sh, f, ch, the release for other stops. Nobody listened.
+
+"Tighten" is the correction talking-head-cut applies to Whisper's times (word edges at pauses moved to measured
+sound); "align" is `align.py`. Errors in ms: median / 95th percentile / share over 50 ms.
+
+| English | Whisper | Whisper + tighten | Whisper + align |
+|---|---|---|---|
+| synthetic, starts inside speech (n 251) | 32 / 103 / 31% | 32 / 107 / 32% | **20 / 61 / 8%** |
+| synthetic, ends inside speech | 36 / 88 / 35% | 37 / 89 / 36% | 33 / 68 / 19% |
+| synthetic, starts after a pause (n 34) | 323 / 444 / 88% | 5 / 59 / 6% | 9 / 63 / 9% |
+| synthetic, ends before a pause | 103 / 230 / 83% | 5 / 164 / 17% | 12 / 110 / 25% |
+| real take, starts inside speech (n 12) | 50 / 127 / 50% | 60 / 394 / 50% | **31** / 141 / 33% |
+| real take, edges at pauses (n 11) | 250 / 465 / 91% | 30 / 125 / 30% | 27 / 344 / 45% |
+| synthetic with cafe noise 21 dB under the voice, starts inside speech | 24 / 70 / 15% | 27 / 106 / 24% | 23 / 46 / 3% |
+| the same, starts after a pause / ends before one | 280 / 89% ; 103 / 90% | 5 / 0% ; 25 / 40% | 20 / 22% ; 78 / 100% |
+
+| Vietnamese | Whisper | Whisper + tighten | Whisper + align |
+|---|---|---|---|
+| synthetic, starts inside speech (n 260) | 24 / 63 / 13% | 24 / 68 / 15% | 40 / 66 / 27% |
+| synthetic, starts after a pause (n 28) | 292 / 390 / 96% | 5 / 5 / 0% | 9 / 14 / 0% |
+| real take, starts inside speech (n 11) | 35 / 115 / 27% | 35 / 70 / 27% | 39 / 120 / 27% |
+
+In the noisy rows the last two columns give median / share over 50 ms. Under noise the pause edges come from the voice
+detector, which lets go of a voice 50–80 ms late, so ends before a pause sit that much after the sound.
+
+So alignment ships for English only. Inside continuous speech it is the only one of the three that moves Whisper's
+times closer; at pauses it is about as good as tighten. The CTC letters fire late, so English word boundaries are
+moved 40 ms earlier (`EARLY`); that shift was chosen on the synthetic takes and checked on the hand-marked real take
+(inner bias +42 ms before, +2 ms after). Vietnamese Whisper (turbo) times inside speech are already good, the
+Vietnamese model was later still, and the synthetic and hand-marked takes disagreed on which way to shift it.
+
+Where it goes wrong: on the real English take, in a stretch the model barely recognised ("really fail at, and",
+letter scores 0.0–0.43), "and" was laid on the end of "at" before the pause, 0.52 s early (Whisper: 0.25 s early);
+three other pause edges ended up 0.11–0.17 s off (Whisper itself was 0.05–0.27 s off on those). On that take 29
+of 186 words scored under 0.3. Cuts keep checking every edge against the sound.
+
+### Invented words
+
+Whisper's invented words were placed in every pause of 2 s or more (7 per take): "you" / "Thank you." in English,
+"ạ." / "Cảm ơn." in Vietnamese, either as their own segment in the middle of the pause, or added to the end of the
+sentence before it (Whisper's usual way), with Whisper-like times.
+
+| Take | 0.2.4 level check | voice detector alone | alignment (score < 0.15 and no voice) |
+|---|---|---|---|
+| English, own segment | 7 of 7, no real word flagged | 7 of 7, 1 real word | 7 of 7, none |
+| English, end of sentence | 2 of 7 | 3 of 7, 1 real word | 4 of 7, none |
+| Vietnamese, own segment | 7 of 7 | 7 of 7, 1 real word | 7 of 7, none |
+| Vietnamese, end of sentence | 5 of 7 | 6 of 7, 1 real word | 7 of 7, none |
+| continuous English / Vietnamese (no pauses) | none flagged | 6 and 1 real words | none |
+| English with cafe noise, own segment | 1 of 7 | 7 of 7, 2 real words | 6 of 7, none |
+| English with cafe noise, end of sentence | 0 of 7 | 3 of 7, 2 real words | 3 of 7, none |
+| real English take (186 words) | - | - | none flagged |
+
+A low score alone is not enough: "eye" (heard as "I") and Vietnamese "ý", "ấy" scored under 0.01 although they were
+said, so a word counts as invented only when the voice detector also hears no voice under it.
+
+### Models looked at
+
+Only models already published as ONNX were tried, downloaded at run time from Hugging Face; nothing was converted or
+published. Speed is seconds of audio per second of work, 4 threads.
+
+| Model (Hugging Face) | Language | Size | License (and training data) | Result |
+|---|---|---|---|---|
+| `Xenova/wav2vec2-base-960h`, int8 (5–11x real time; first call includes about 4 s of loading) | English | 95 MB | Apache-2.0 (ONNX copy of facebook/wav2vec2-base-960h; LibriSpeech, CC BY 4.0) | **used** |
+| `linandrea/wav2vec2-large-960h-lv60-self-onnx`, int8 | English | 355 MB | no license on the copy; base Apache-2.0 | later (+84 ms inside speech) |
+| `Xenova/wav2vec2-large-xlsr-53-english`, int8 | English | 318 MB | Apache-2.0 (Common Voice) | same as base, 3x larger |
+| `NewComer00/wav2vec2-xlsr-multilingual-56-ONNX`, q4 | 56 languages incl. en, vi | 248 MB | Apache-2.0 (Common Voice only) | close in English; Vietnamese scores useless (median 0.12) |
+| `XDcobra/wav2vec2-large-xlsr-53-vietnamese-ONNX`, int8 | Vietnamese | 355 MB | Apache-2.0 on the card, but trained on VIVOS (CC BY-NC-SA) besides Common Voice and FOSD | measured above, not shipped |
+| `dragonSwing/wav2vec2-base-vietnamese` | Vietnamese | 378 MB (PyTorch) | Apache-2.0 on the card; fine-tuned on VLSP data, whose own terms are not stated | no ONNX copy; not tried |
+| `nguyenvulebinh/wav2vec2-base-vi-vlsp2020` (WhisperX's default) | Vietnamese | 385 MB | CC BY-NC 4.0 | not usable |
+| MMS forced aligner ONNX copies | many | 317 MB int8 | CC BY-NC 4.0 | not usable |

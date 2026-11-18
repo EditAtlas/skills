@@ -13,8 +13,9 @@ Times are seconds from the start of the file, rounded to milliseconds. Text is U
   "model": "turbo",
   "device": "cpu",
   "settings": {"verbatim": false, "prompt": null, "names": ["Minh Anh", "EditAtlas"], "vad_min_silence_ms": 500,
-               "previous_text": true},
+               "previous_text": true, "align": "auto"},
   "checked": false,
+  "alignment": null,
   "words": [
     {"w": "Xin", "start": 0.0, "end": 0.32, "p": 0.98},
     {"w": "chào,", "start": 0.32, "end": 0.66, "p": 0.99}
@@ -33,7 +34,15 @@ Times are seconds from the start of the file, rounded to milliseconds. Text is U
 ```
 
 - `words[].w` keeps the punctuation Whisper attached ("chào,"). In Vietnamese a word is a syllable.
-- `p` is Whisper's own probability for the word, 0–1; under 0.5 is listed for review. A corrected word gets `p` 1.0.
+- `p` is Whisper's own probability for the word, 0–1; under 0.7 is listed for review. A corrected word gets `p` 1.0.
+- `alignment` is null when Whisper's own word times were kept (no alignment model for the language, or `--align off`).
+  When `align.py` re-timed the words it reads
+  `{"model": "Xenova/wav2vec2-base-960h", "aligned": 140, "words": 147, "took_s": 6.1}`, and every word also has:
+  - `score`: 0–1, how sure the alignment model was of the word's letters (null for a word without letters, such as
+    "15");
+  - `aligned`: true when its letters were found in the sound; false when its time came from its neighbours or, for a
+    word with no trace in the sound, stayed Whisper's.
+  Both are optional: readers must not need them, and words that `fix.py` splits or joins lose them.
 - `segments[].first` and `last` index into `words`. A segment with `"second_pass": true` was missed by the first pass and transcribed
   on its own; it is in the review list.
 - `checked` becomes true only through `fix.py ... checked`, after the person confirmed the text. Any later edit sets

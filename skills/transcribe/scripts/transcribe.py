@@ -3,9 +3,13 @@
   transcribe.py VIDEO --out work/transcript                          # language detected, model chosen for you
   transcribe.py VIDEO --out work/transcript --language vi --names "Minh Anh, EditAtlas"   # names are checked after, not fed to Whisper
   transcribe.py VIDEO --out work/transcript --verbatim               # keep um, uh, ờ, ừm (for filler cuts)
+  transcribe.py VIDEO --out work/transcript --align off              # Whisper's own word times only
 
 Writes transcript.json (words, segments, review lists), transcript.srt/.vtt/.txt and review.md: the words a person
 should check before the transcript is used for captions or cuts. Nothing leaves this machine.
+
+When the alignment model for the language is downloaded (align.py --list), every word is re-timed against the sound
+by align.py: sharper edges at pauses, and words the sound gives no trace of are listed as maybe invented.
 """
 import argparse
 import os
@@ -23,6 +27,7 @@ os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
+import align as aligner
 from captions import write_all, write_review
 from common import HOP, SR, clock, decode, die, envelope_db, probe, utf8_stdout, write_json
 
@@ -206,8 +211,9 @@ def second_pass(model, audio, words, segs, lang, prompt):
     return found
 
 
-def review_lists(words, env, segments, names):
-    """Indices of words a person should check, with the reason."""
+def review_lists(words, env, segments, names, invented_idx=()):
+    """Indices of words a person should check, with the reason. invented_idx: words the alignment found no trace
+    of where no voice is heard."""
     out = []
     if len(env):
         spans = [env[int(w["start"] / HOP):max(int(w["start"] / HOP) + 1, int(w["end"] / HOP))] for w in words]
@@ -231,7 +237,9 @@ def review_lists(words, env, segments, names):
         reasons = []
         if w["p"] < LOW_P:
             reasons.append(f"unsure ({w['p']:.2f})")
-        if len(env) and peaks[i] < quiet:
+        if i in invented_idx:
+            reasons.append("no voice and no trace of it in the sound: maybe invented")
+        elif len(env) and peaks[i] < quiet:
             reasons.append("heard in near silence: maybe invented")
         if re.search(r"\d", t):
             reasons.append("number")
@@ -259,6 +267,8 @@ def main():
     p.add_argument("--names", default="", help="names, brands and terms spelled the right way, comma separated")
     p.add_argument("--verbatim", action="store_true", help="keep fillers (um, uh, ờ, ừm) and false starts")
     p.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
+    p.add_argument("--align", default="auto", choices=["auto", "on", "off"],
+                   help="re-time words with align.py: auto when its model for the language is downloaded, on downloads it")
     a = p.parse_args()
 
     src = Path(a.input).resolve()
@@ -310,7 +320,10 @@ def main():
     if not words:
         die("Whisper heard no words. Is there speech? Try --language, or a bigger --model.")
 
-    review = review_lists(words, env, segs, names)
+    aligned = None
+    if a.align != "off" and lang in aligner.MODELS and (a.align == "on" or aligner.available(lang)):
+        aligned = aligner.align(audio, words, segs, lang, fetch=a.align == "on")
+    review = review_lists(words, env, segs, names, set(aligned["low_score"]) if aligned else ())
     if duration - words[-1]["end"] < 0.15:
         # The file may stop mid-word (a clip cut from a longer video); a caption should not pretend the word is whole.
         review.append({"i": len(words) - 1, "why": "speech runs to the very end of the file: the last word may be cut off"})
@@ -320,7 +333,8 @@ def main():
         "source": str(src), "duration": round(duration, 3), "language": lang,
         "language_probability": round(detected[1], 3) if detected else None, "model": name, "device": dev,
         "settings": {"verbatim": a.verbatim, "prompt": prompt, "names": names, "vad_min_silence_ms": 500,
-                     "previous_text": lang in CONTEXT}, "checked": False,
+                     "previous_text": lang in CONTEXT, "align": a.align}, "checked": False,
+        "alignment": {k: v for k, v in aligned.items() if k != "low_score"} if aligned else None,
         "words": words, "segments": segs, "review": review,
     }
     write_json(out / "transcript.json", data)
@@ -336,6 +350,12 @@ def main():
         print(f"language: {detected[0]} at only {detected[1]:.0%}: ask the person and run again with --language")
     if again:
         print(f"second pass: {again} stretch(es) of voice had no words on the first pass and were transcribed alone (in review)")
+    if aligned:
+        print(f"aligned: {aligned['aligned']} of {aligned['words']} words re-timed against the sound in {aligned['took_s']:.0f} s"
+              + (f"; {len(aligned['low_score'])} with no trace in the sound (in review)" if aligned["low_score"] else ""))
+    elif a.align == "auto" and lang in aligner.MODELS:
+        print(f"word times are Whisper's: the {lang} alignment model is not downloaded "
+              f"(align.py --fetch {lang}, {aligner.MODELS[lang]['size']}; ask first)")
     print(f"words: {len(words)}, mean confidence {mean_p:.2f}, unsure {low} ({low / len(words):.0%}); words cover {speech:.1f} s of {duration:.1f} s")
     print(f"review: {len(review)} items -> {out / 'review.md'}")
     heard = fold(" ".join(w["w"] for w in words))

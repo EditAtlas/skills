@@ -5,7 +5,7 @@ transcript with you, writes SRT/VTT subtitles, and lists what an edit could cut:
 ừm) and repeated takes. The checked transcript feeds the [EditAtlas](https://edit.trysometh.ing) caption techniques,
 silence and filler removal, and the `verified_transcript` input of every template.
 
-Status: beta (0.2.1).
+Status: beta (0.3.0).
 
 ## Needs
 
@@ -13,6 +13,8 @@ Status: beta (0.2.1).
 - FFmpeg with ffprobe in PATH
 - About 1.6 GB of disk for the default model, downloaded from Hugging Face on first use. After that it works offline,
   and no audio leaves the machine.
+- Optional, English only: a 95 MB word-alignment model (`Xenova/wav2vec2-base-960h`, Apache-2.0), downloaded with
+  `doctor.py --fetch-align en`. It runs on onnxruntime, which faster-whisper already installs; no torch.
 
 ## Files
 
@@ -23,6 +25,7 @@ Status: beta (0.2.1).
 | `references/formats.md` | `transcript.json` and `cuts.json` |
 | `scripts/doctor.py` | What is installed, which model fits; installs faster-whisper when asked |
 | `scripts/transcribe.py` | Whisper with word times, review list, subtitles |
+| `scripts/align.py` | Re-times words against the sound with a wav2vec2 model (English); flags invented words |
 | `scripts/fix.py` | Correct words without breaking times; mark the transcript checked |
 | `scripts/captions.py` | SRT, VTT and plain text with the EditAtlas caption rules |
 | `scripts/cuts.py` | Silences, fillers and retakes; keep list, FFmpeg expressions, transcript in cut time |
@@ -54,6 +57,22 @@ captions break at phrase edges instead of inside Vietnamese two-syllable words.
 With the skill, fresh agents passed 8 of 8 checks on three test cases (subtitles in Vietnamese, cuts in English, no
 file given); without it 7 of 8 (no word times for the film after the cuts), and they took about twice as long
 (269 s against 139 s on average).
+
+## Word alignment (0.3.0)
+
+Measured on 2026-11-17 (details in `references/models.md`): six synthetic takes with the voices' own word boundaries
+(4 min, 591 words) and 40 edges marked by hand on two real takes. Median start error / share over 50 ms:
+
+| English | Whisper | Whisper + alignment |
+|---|---:|---:|
+| words inside continuous speech (synthetic) | 32 ms / 31% | 20 ms / 8% |
+| words after a pause (synthetic) | 323 ms / 88% | 9 ms / 9% |
+| words inside speech (real take, hand-marked) | 50 ms / 50% | 31 ms / 33% |
+
+Invented words placed in the pauses of English takes ("you", "Thank you."): caught 11 of 14 in a quiet room and 9 of
+14 under cafe noise, against 9 and 1 of 14 by the level check of 0.2.4, with no real word flagged. Alignment takes
+5–11x real time on 4 CPU threads. Vietnamese keeps Whisper's times: the Vietnamese models found were later than Whisper
+inside speech, and the usable one was trained partly on non-commercial data.
 
 Not yet checked: real Vietnamese conversation between several people, files over 7 minutes, GPUs, and Windows paths
 with spaces.

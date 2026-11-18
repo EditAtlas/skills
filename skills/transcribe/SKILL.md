@@ -2,10 +2,10 @@
 name: transcribe
 description: Transcribe the speech in a video or audio file on the person's own machine with Whisper (faster-whisper), with a time for every word, then check it, write SRT/VTT subtitles, and list what an edit could cut (long silences, filler words like um, uh, ờ, ừm, and repeated takes). The checked word-level transcript is what EditAtlas caption techniques, silence and filler removal, retake selection and every template's verified_transcript input need. Use it whenever someone wants a transcript, subtitles, captions or an SRT from a video; asks to "trích lời", "lấy lời thoại", "chuyển giọng nói thành chữ", "làm phụ đề", "làm sub", "cắt khoảng lặng", "bỏ ờ ừm", "speech to text", "Whisper"; or starts an EditAtlas edit that needs word times, even if they never say "transcript". Installs Whisper only after asking. Not for translating, cleaning up audio, separating a voice from music, or making a voice.
 license: Apache-2.0. LICENSE.txt has the complete terms
-compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
+compatibility: Requires Python 3.9+ with faster-whisper (pip, about 300 MB on disk) and FFmpeg with ffprobe. The first run downloads a Whisper model from Hugging Face (0.5 to 1.6 GB); after that it works offline and no audio leaves the machine. For English, an optional 95 MB alignment model (Apache-2.0, run by the onnxruntime that faster-whisper installs, no torch) sharpens word times. Runs on CPU; an NVIDIA GPU is faster. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.2.4"
+  version: "0.3.0"
   status: beta
   library: techniques templates
   mcp-tools: get_technique search_techniques get_workflow
@@ -13,7 +13,7 @@ metadata:
 
 # Transcribe: word-level transcripts for editing
 
-This is transcribe 0.2.4.
+This is transcribe 0.3.0.
 
 The aim: a transcript the person has checked, with a start and end time for every word, ready for captions and
 cuts. Whisper runs on their machine; nothing is uploaded.
@@ -32,6 +32,7 @@ own (`work/`); never write into the person's project or this skill folder.
 
 ```
 python SKILL/scripts/doctor.py                                   # what is installed, which model fits this machine
+python SKILL/scripts/doctor.py --fetch-align en                  # optional English word alignment model (95 MB)
 python SKILL/scripts/transcribe.py FILM.mp4 --out work/t --names "Minh Anh, EditAtlas"
 python SKILL/scripts/fix.py work/t/transcript.json show 40-60    # words with numbers and times
 python SKILL/scripts/fix.py work/t/transcript.json set 12-13 "EditAtlas"
@@ -58,6 +59,9 @@ missing, tell the person what it is (a local copy of OpenAI's Whisper, about 300
 model on first use) and install only when they agree: `doctor.py --install`, then `doctor.py --fetch turbo` so the download shows before the work starts. On a fast
 line both took under a minute and a half in a fresh Python.
 
+For English, offer the alignment model in the same question (95 MB more, `doctor.py --fetch-align en`): it re-times
+every word against the sound and finds words Whisper invented. Without it everything works, with Whisper's own times.
+
 ## 2. Transcribe
 
 ```
@@ -74,6 +78,15 @@ python SKILL/scripts/transcribe.py FILM.mp4 --out work/t [--language vi] [--name
 - Voice activity detection with a 500 ms silence step is always on: without it, a Vietnamese test film ended with an
   invented "Hãy subscribe cho kênh La La School". It can also make Whisper skip a whole sentence, so any stretch the
   detector calls voice but that got no words is transcribed again on its own and listed for review ("second pass").
+- **Word alignment (English).** When the English alignment model is downloaded, every word is re-timed against the
+  sound with a wav2vec2 model (`scripts/align.py`, on by default; `--align off` skips it, `--align on` downloads the
+  model first). On synthetic English takes with known word times, start errors inside continuous speech fell from a
+  median of 32 ms to 20 ms (over 50 ms: 31% to 8%), and words after a pause, which Whisper starts 0.3 s early,
+  start 9 ms off (median); on a real English take, inner starts went from 50 to 31 ms. It also catches invented
+  words in pauses that the level check misses, most of all under noise (9 of 14 against 1 of 14). Where the model barely
+  recognises a stretch (fast or mumbled words) a word can still land on its neighbour's sound, so cuts still check
+  every edge against the audio. Vietnamese and other languages keep Whisper's times: a Vietnamese model was measured
+  and did not beat them. Details: `references/models.md`.
 - With `--language` given, no language is detected and `language_probability` is null; pass it only when the
   person said which language it is.
 - Look at the summary it prints: language, words, mean confidence, how many words are unsure, second-pass stretches,
@@ -94,6 +107,7 @@ Open `review.md`. Each line is a word or a run of words, with why it is there:
 | number | ask how it should be written (45 giây or bốn mươi lăm giây, $2,500) when it will be on screen |
 | name? | a capital in mid-sentence: confirm the spelling |
 | heard in near silence | likely invented; check the time against the picture |
+| no voice and no trace of it in the sound | the alignment found none of its letters and the voice detector hears nobody there: almost always invented (English, with alignment) |
 | the same words repeat | Whisper looping; delete the extra copies |
 | missed on the first pass | heard on its own after the first pass skipped it; read it with the sentences around it |
 | speech runs to the very end | the file may stop mid-word; ask whether to keep the last word as it is |
@@ -152,13 +166,13 @@ each join, so apply it when rendering (`ffmpeg_cut.txt` lists the joins that cam
 
 ## 6. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists transcribe above 0.2.4, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name transcribe gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists transcribe above 0.3.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name transcribe gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 
 1. The files: `transcript.txt` to read, `.srt`/`.vtt` to upload, `transcript.json` for the edit; `cuts.md` when cuts
    were asked for.
-2. The numbers: model, language, words, unsure words, review items and what was done with each; for cuts, length
+2. The numbers: model, language, whether word times were aligned, words, unsure words, review items and what was done with each; for cuts, length
    before and after and the cuts by kind.
 3. What is still unchecked: names or numbers nobody confirmed, lines kept on the person's word, whether the
    transcript is marked checked.
