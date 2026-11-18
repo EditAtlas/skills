@@ -9,6 +9,23 @@ floor decides. In a cafe or a street the noise in the pauses does: with a cafe b
 floor-only threshold sat under the noise, every pause read as sound, and a 3 s pause was kept. `takes.md` prints the
 threshold and the speech level.
 
+### Music or loud noise under the voice
+
+Music does not stay under one level: its beats and notes rise over any threshold set above its average, so pauses
+read as sound and cuts can land on words. When the bed between words is less than 20 dB under the
+speech, the scripts also run the Silero VAD (the speech detector faster-whisper ships, as an ONNX model read with
+onnxruntime; nothing new to install) and count a step as speech only where the level is over the threshold and the
+detector agrees: a stretch starts where its probability rises over 0.5 and lasts until it falls under 0.35, widened
+by 0.1 s before (the detector's 32 ms windows start late) and 0.2 s after (soft line ends fall under 0.35 while
+still voiced). Inside a stretch the threshold is 6 dB lower, so quiet word ends are not cut; every other step is
+moved 40 dB down, so the rest of the measuring works unchanged. With no music the level alone is used, as in 0.2.0.
+
+Measured on three takes with music mixed 6, 12 and 18 LU under the voice, with the same transcript and plan: with
+the level alone, 42 to 70 % of the pauses between words at 6 LU read as sound, 162 of 189 kept lines came through
+whole and five of nine cuts left a pause over 1.3 s (up to 3.5 s); with the detector, 169 of 189 and three (up to
+1.74 s, all on one take). In a cafe 22 dB under the voice, and on clean takes, the gate stays off and the cut is the
+same as 0.2.0's, byte for byte in `takes.json` and `edl.json`.
+
 ## Why word times are not trusted
 
 Whisper's words are usually right; its times are often not. On a test take with known timings:
@@ -64,6 +81,15 @@ Whisper tidies a repeat away: on a real take, "and that is that, and that is tha
 once, with "every" stretched to 1.1 s. `takes.py` marks words over three times this speaker's time per letter (and
 over 0.9 s) as `LONG WORD?`, transcribes those lines and the `SOUND?` lines again on their own, and shows `HEARD`
 when that finds more words. On that take it heard "And that is that- and that is that every single project you do".
+
+## Several files
+
+A plan with `takes` is cut take by take: each file is measured on its own (levels, music, word times), each take's
+edges and pauses are placed as above, and a join between two takes keeps a pause between sentences. Pieces are cut
+on the frame grid of the cut's frame rate, counted from the start of each file. `render.py` reads every file in one
+FFmpeg pass; a piece from a file with another frame rate is converted with the `fps` filter to exactly the frames
+its length holds, and one with another size is scaled to fit and padded, so picture and sound stay the same length
+at every join.
 
 ## What it cannot catch
 

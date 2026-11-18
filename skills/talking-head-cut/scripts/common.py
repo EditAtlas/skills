@@ -119,6 +119,104 @@ def levels(env, words):
     return min(thr, speech - 12.0), speech, floor
 
 
+def speech_prob(x, sr=SR):
+    """Probability that each HOP step is speech, from the Silero VAD model that faster-whisper ships
+    (faster_whisper/assets/silero_vad_v6.onnx), run with onnxruntime, which faster-whisper installs. None when either
+    is missing. The model reads 32 ms windows (512 samples at 16 kHz, each with the 64 samples before it); each step
+    gets the value of the window that holds its middle."""
+    try:
+        import faster_whisper
+        import onnxruntime
+    except ImportError:
+        return None
+    model = Path(faster_whisper.__file__).resolve().parent / "assets" / "silero_vad_v6.onnx"
+    if sr != 16000 or not model.is_file() or not len(x):
+        return None
+    opts = onnxruntime.SessionOptions()
+    opts.intra_op_num_threads = opts.inter_op_num_threads = 1
+    opts.log_severity_level = 3
+    sess = onnxruntime.InferenceSession(str(model), sess_options=opts, providers=["CPUExecutionProvider"])
+    win, ctx = 512, 64
+    n = -(-len(x) // win)
+    y = np.zeros(n * win, np.float32)
+    y[:len(x)] = x
+    y = y.reshape(n, win)
+    before = np.zeros((n, ctx), np.float32)
+    before[1:] = y[:-1, -ctx:]
+    feed = np.concatenate([before, y], axis=1)
+    h = np.zeros((1, 1, 128), np.float32)
+    c = np.zeros((1, 1, 128), np.float32)
+    probs = []
+    for k in range(0, n, 2048):       # the state carries over, so the windows are read in order
+        p, h, c = sess.run(None, {"input": feed[k:k + 2048], "h": h, "c": c})
+        probs.append(np.asarray(p, np.float32).reshape(-1))
+    p = np.concatenate(probs)[:n]
+    steps = int(len(x) // int(sr * HOP))
+    return p[np.minimum(((np.arange(steps) + 0.5) * HOP * sr / win).astype(int), n - 1)]
+
+
+VAD_START, VAD_HOLD = 0.5, 0.35   # speech starts where the probability rises over START and lasts until it falls under HOLD
+VAD_PAD = 0.1                     # seconds added before a speech run: the model's 32 ms windows start late
+VAD_PAD_END = 0.2                 # seconds added after one: soft line ends fall under HOLD while still voiced
+VAD_LOWER = 6.0                   # inside a speech run the level counts as sound from this many dB under the threshold
+BED_GAP = 20.0                    # the bed between words is loud when it is less than this many dB under the speech
+
+
+def bed_level(env, words):
+    """The level most of the pauses stay under: 80 % of the steps 0.15 s or more from any word (None if too few)."""
+    away = np.ones(len(env), bool)
+    for w in words:
+        away[max(0, int((w["start"] - 0.15) / HOP)):int((w["end"] + 0.15) / HOP) + 1] = False
+    return float(np.percentile(env[away], 80)) if away.sum() >= 50 else None
+
+
+def speech_runs(prob):
+    """True where the VAD calls it speech: from a rise over VAD_START until a fall under VAD_HOLD, widened by VAD_PAD
+    before and VAD_PAD_END after."""
+    on = np.zeros(len(prob), bool)
+    state = False
+    for i, q in enumerate(prob):
+        state = q >= (VAD_HOLD if state else VAD_START)
+        on[i] = state
+    before, after = int(round(VAD_PAD / HOP)), int(round(VAD_PAD_END / HOP))
+    if on.any():
+        idx = np.flatnonzero(np.diff(np.concatenate([[0], on.view(np.int8), [0]])))
+        for a, b in zip(idx[::2], idx[1::2]):
+            on[max(0, a - before):b + after] = True
+    return on
+
+
+def voice_levels(x, env, words):
+    """(envelope to measure with, quiet threshold, speech level, floor, how).
+
+    With a quiet room or steady noise under the voice the level alone finds speech and pauses (how = "level"). With
+    music or loud noise under it, the pauses are not quiet: the bed between words is less than BED_GAP dB under the
+    speech. Then a step counts as sound only where the Silero VAD calls it speech and the level is over the threshold
+    (VAD_LOWER dB lower there, so soft word ends under the music are kept); every other step is moved 40 dB down
+    (under the threshold), so the code that finds pauses, edges and the quietest point to cut at works unchanged and
+    the order of levels inside a pause is kept. Numbers measured on takes with music 6 to 18 LU under the voice."""
+    thr, speech, floor = levels(env, words)
+    bed = bed_level(env, words)
+    if bed is None or speech - bed >= BED_GAP:
+        return env, thr, speech, floor, "level"
+    gated = gate_env(x, env, thr)
+    if gated is None:
+        return env, thr, speech, floor, "level (no speech detector: faster-whisper missing)"
+    return gated, thr, speech, floor, "level and VAD"
+
+
+def gate_env(x, env, thr):
+    """env with every step the VAD does not call speech moved 40 dB down and under thr; None without the VAD."""
+    prob = speech_prob(x)
+    if prob is None:
+        return None
+    on = np.zeros(len(env), bool)
+    on[:min(len(env), len(prob))] = speech_runs(prob)[:len(env)]
+    # Inside a speech run a soft word end under the music still counts (the threshold is VAD_LOWER dB lower there:
+    # steps are raised by that much); outside one, every step is moved 40 dB down and under the threshold.
+    return np.where(on, env + VAD_LOWER, np.minimum(env - 40.0, thr - 1.0))
+
+
 def quiet_runs(env, thr, a, b):
     """(start, end) of every run of quiet envelope steps between times a and b."""
     i0, i1 = max(0, int(a / HOP)), min(len(env), int(b / HOP) + 1)

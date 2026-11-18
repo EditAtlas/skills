@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # also under python -I
-from common import (HOP, SR, clock, decode, die, envelope_db, is_sure_filler, norm, probe, quiet_runs, read_json,
+from common import (HOP, SR, clock, decode, die, envelope_db, gate_env, is_sure_filler, norm, probe, quiet_runs, read_json,
                     utf8_stdout, write_json)
 
 
@@ -59,8 +59,8 @@ def flat(words):
 def to_source(t, pieces):
     for pc in pieces:
         if pc["at"] - 1e-6 <= t <= pc["at"] + pc["out"] - pc["in"] + 1e-6:
-            return pc["in"] + t - pc["at"]
-    return None
+            return pc["in"] + t - pc["at"], pc.get("src")
+    return None, None
 
 
 def seam_sheet(film, times, out, fps):
@@ -128,12 +128,19 @@ def main():
                 w0 = heard[got_o[k]]
                 findings.append({"kind": "DOUBLED", "at": round((w0["start"] + w0["end"]) / 2, 2), "text": " ".join(got_t[k:k + n])})
     for f in findings:
-        src = to_source(f["at"], edl["pieces"])
+        src, lb = to_source(f["at"], edl["pieces"])
         f["source"] = None if src is None else round(src, 2)
+        if lb:
+            f["file"] = lb
 
-    # Joins and pauses, measured on the cut's own sound.
-    env = envelope_db(decode(a.film))
+    # Joins and pauses, measured on the cut's own sound; with music under the voice, as cut.py measured them: sound
+    # only where the level and the speech detector agree.
+    audio = decode(a.film)
+    env = envelope_db(audio)
     thr = edl.get("quiet_dbfs", -50)
+    if edl.get("measured_with") == "level and VAD":
+        gated = gate_env(audio, env, thr)
+        env = env if gated is None else gated
     pace = edl.get("pace_values") or {}
     joins = []
     for j in edl.get("joins", []):
@@ -170,8 +177,8 @@ def main():
           f"{len(misheard)} word(s) heard differently (usually Whisper, not the cut).", ""]
     if findings:
         md += ["| Kind | Cut time | Source time | What |", "|---|---|---|---|"]
-        md += [f"| {f['kind']} | {clock(f['at'])} | {'' if f.get('source') is None else clock(f['source'])} | {f['text']} |"
-               for f in findings]
+        md += [f"| {f['kind']} | {clock(f['at'])} | {f.get('file', '')}{'' if f.get('source') is None else clock(f['source'])} | "
+               f"{f['text']} |" for f in findings]
     else:
         md.append("Nothing extra, missing or doubled was heard; every join is in a pause.")
     if misheard:

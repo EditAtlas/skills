@@ -34,6 +34,34 @@ Times are seconds. "Source" is the raw recording; "cut" is the rendered cut film
 | `remove[].why` | your reason, in a few words. It is shown in `cuts.md`; write it so the person understands it. |
 | `keep[]` | quotes to keep even though they are sure fillers |
 
+### Several takes in several files
+
+With several files, the plan also has `takes`: the lines to use, in the order they play. Lines are named by file, as
+`takes.md` names them (`A1` is line 1 of the first file given to `takes.py`).
+
+```json
+{
+  "pace": "natural",
+  "takes": [
+    {"lines": "A1-A2", "quote": "So the first thing", "why": "the only complete take of the opening"},
+    {"lines": "B3", "quote": "Then open settings", "why": "A3 breaks off before 'export'"}
+  ],
+  "remove": [
+    {"quote": "um so", "line": "B3", "why": "hesitation"},
+    {"from": 12.4, "to": 13.0, "file": "B", "why": "a false start with no words (SOUND?)"}
+  ]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `takes[].lines` | one range of lines in one file: `"B4"`, `"B4-B6"` or `"B4-6"`. Each line can be used once. |
+| `takes[].quote` | words from those lines, best their first words; `cut.py` stops if they are not there |
+| `takes[].why` | why this take: shown in `cuts.md` and `edl.json` |
+| `remove[]`, `keep[]` | as above; a quote needs `"line": "B5"`, a `from`/`to` needs `"file": "B"` |
+
+Lines no take uses are left out; they are not listed as removed.
+
 Line numbers are only stable for the `takes.json` they came from: run `takes.py` again after a transcript edit, and
 check the numbers.
 
@@ -53,6 +81,13 @@ quiet on either side.
 `lines[]`: `line` (from 1), `first` and `last` (word numbers in `transcript.json`, from 0), `start`, `end` (measured
 on the sound), `pause_after` (measured silence after the line), `text`, `marks`. Also `quiet_dbfs` (the level under
 which the recording counts as quiet), `speech_dbfs`, `floor_dbfs` and `unheard` (stretches of voice with no words).
+`measured_with` is there when music or noise under the voice made the scripts use the speech detector as well
+(`"level and VAD"`, see `how-cuts-are-placed.md`).
+
+With several files: `sources[]` (one per file: `label`, `film`, `transcript`, and the levels above), `lines[]` with
+`line` as `"A12"` and `source`, and `passages[]`: each part of the script said in more than one file, with
+`takes` (the lines of it in each file, by label) and `lines[]`: `line`, `length` and `also[]`, one per other file
+with the same words: `in` (the lines there) and `differs` (`lacks "..."`, `adds "..."`, `then B goes on "..."`).
 
 ## edl.json (cut.py)
 
@@ -72,6 +107,11 @@ which the recording counts as quiet), `speech_dbfs`, `floor_dbfs` and `unheard` 
   grid wherever the pause allows, so picture and sound cut at the same time.
 - `joins[].pause`: the silence the join keeps, from the last word before to the first word after.
 - `joins[].inside_sound`: there was no pause to cut in; listen there.
+- `measured_with`: `"level and VAD"` when music or noise under the voice was found (`verify.py` then measures the
+  cut the same way).
+- Several files: `sources[]` (each file's `label`, `path`, `fps`, `width`, `height`), `src` on every piece, removal
+  and join (`from_src`, `to_src`), `takes[]` (the plan's picks) and `normalised[]` (files converted to the cut's
+  frame rate and size, which are those of the file the cut uses most).
 
 The EditAtlas studio (editable-export skill) can take `pieces` as the clips of the main track: each piece is the
 source file from `in` to `out`, placed at `at`.

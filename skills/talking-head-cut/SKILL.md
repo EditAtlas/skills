@@ -1,11 +1,11 @@
 ---
 name: talking-head-cut
-description: Cut a raw talking-head recording (one person speaking to camera, a lesson, a vlog, a voice-over take) into a clean video. Takes out false starts, failed and repeated takes, words said to the editor ("take two", "nói lại nhé"), doubled words and um/uh/ờ/ừm. Shortens long pauses to a natural breath and keeps everything the speaker meant to say. You quote the words to remove; the scripts find them, put every cut in silence, render picture and sound in step, then transcribe the cut again to catch leftovers and clipped words. Use it when someone asks to "cut my mistakes out", "clean up this take", "remove the retakes", "tighten the pacing", "rough cut", "cắt video nói chuyện", "cắt chỗ nói hỏng", "bỏ đoạn nói lại", "cắt ờ ừm và khoảng lặng", "dựng video nói cho gọn". Needs the transcribe skill's word-level transcript. Not for a transcript or subtitles alone (transcribe), picking highlights from a long video, multi-camera edits, or adding music, B-roll or captions (do those after the cut).
+description: Cut a raw talking-head recording (one person speaking to camera, a lesson, a vlog, a voice-over take) into a clean video. Takes out false starts, failed and repeated takes, words said to the editor ("take two", "nói lại nhé"), doubled words and um/uh/ờ/ừm, and shortens long pauses to a breath, also with music or noise under the voice. When the script was recorded several times across files, picks the best take of each line. You quote the words; the scripts find them, put every cut in silence, render picture and sound in step, then transcribe the cut again to catch leftovers and clipped words. Use it for "cut my mistakes out", "clean up this take", "remove the retakes", "pick the best takes", "cắt video nói chuyện", "cắt chỗ nói hỏng", "bỏ đoạn nói lại", "chọn take tốt nhất", "cắt ờ ừm và khoảng lặng". Needs the transcribe skill's word-level transcript. Not for subtitles alone (transcribe), highlights from a long video, multi-camera edits, or adding music, B-roll or captions (after the cut).
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy, FFmpeg with ffprobe, and the EditAtlas transcribe skill (faster-whisper) for the transcript and for verify.py. Runs on the person's machine; nothing is uploaded. Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.2.0"
+  version: "0.3.0"
   status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_skill send_feedback
@@ -13,7 +13,7 @@ metadata:
 
 # Talking-head cut: from a raw take to a clean cut
 
-This is talking-head-cut 0.2.0.
+This is talking-head-cut 0.3.0.
 
 The result: the person's raw recording cut so it says what they meant, once, with natural breathing room, and
 nothing they meant to say lost. They also get a list of every cut with the words it removed, and a transcript of
@@ -39,11 +39,22 @@ python SKILL/scripts/render.py work/cut/edl.json --out work/cut/cut.mp4
 python SKILL/scripts/verify.py work/cut/cut.mp4 --cut work/cut
 ```
 
+Takes of one script in several files: transcribe each file into its own folder, then give every transcript and its
+film, in the same order, to `takes.py` and `cut.py` (step 4b):
+
+```
+python SKILL/scripts/takes.py work/tA/transcript.json A.mp4 work/tB/transcript.json B.mp4 --out work/cut
+python SKILL/scripts/cut.py work/tA/transcript.json A.mp4 work/tB/transcript.json B.mp4 work/cut/plan.json --out work/cut
+```
+
 ## 1. Ask first
 
 You need, and must not invent:
 
-1. **The file.** No file, no cut: ask for it. Several clips: ask for their order, and cut each one.
+1. **The file.** No file, no cut: ask for it. Several files: they are either **parts** (the video in pieces: ask
+   their order, cut each one, then join) or **takes** (the same script, or parts of it, said again in another file:
+   step 4b picks the best take of each line). If the person did not say which, run `takes.py` on all of them: lines
+   marked `ALSO IN` are said in more than one file. Ask when it is still unclear.
 2. **What kind of cut.** The default is clean-up: mistakes, retakes, notes to the editor, fillers and long pauses go;
    everything the speaker meant stays. Shortening to a length, dropping a section or reordering is a different job:
    do it only when asked, and list each content cut for the person to approve before it is made.
@@ -95,6 +106,12 @@ confirm: MISSING means you took the wrong copy.
 
 Read every line, not only the marked ones: the marks are hints, and a line can be wrong in a way no mark catches.
 
+**Music or noise under the voice.** When the sound between words is loud (music playing while recording, a busy
+street), the pauses are not quiet, so the level alone cannot find them. The scripts then count a stretch as speech only
+where the level and a speech detector (Silero VAD, which comes with faster-whisper) agree, and `takes.md` says so
+under its title. Nothing changes in what you do. The music under a removed piece goes with it, so the music jumps at
+the joins: say so in your reply, and suggest a music bed laid over the whole cut afterwards if the jumps bother them.
+
 ## 4. Decide what goes
 
 This is the part that needs you. In order:
@@ -121,6 +138,51 @@ This is the part that needs you. In order:
    clean-up. If you think it should go, list it in your reply as a suggestion.
 
 When you are unsure about a line, keep it and ask about it in your reply, quoting the words.
+
+## 4b. Several takes in several files
+
+`takes.md` lists each file's lines (A1, A2... for the first file, B1... for the second), marks a line said in
+another file too with `ALSO IN`, and then, under **Said in more than one file**, groups those lines into passages:
+one part of the script with its lines in each file. For each line it gives its length and how the same words
+differ in the other file: the words it `lacks` or `adds` there, and `then B goes on ...` where the two files part
+ways after it (one breaks off, skips or goes back). Choose one take of each passage, or of each line in it, in the
+order of the script:
+
+1. **Complete.** Every word of the line is there. A take that lacks words the other file has, or after which the
+   other file "goes on" with more of the same sentence, broke off or skipped them. A take that ends the file
+   mid-sentence is cut off.
+2. **No slip.** No stumble, doubled words, `UNFINISHED`, `NOTE?` or filler-heavy start. Prefer a clean take over a
+   slipped one you would have to repair with a cut: a repaired take has a join inside the sentence.
+3. **Natural delivery.** Among complete, clean takes, the one whose length is typical for the line (a take far longer
+   than the others has hesitations; far shorter, rushed or missing words). Without a reason, the later take: speakers
+   redo a line because they were not happy with it.
+4. **Consistent with its neighbours.** Prefer staying in one file for lines that run on in one breath, and taking a
+   run of lines from one file where it is as good: every change of file is a jump in picture and room sound.
+5. A line said in only one file is used from that file, unless it is a mistake there too.
+
+Ask the person, quoting the takes, when two takes are equally good but say it differently (a changed word, another
+example), when every take of a line has a fault, or when files disagree about the order of the script.
+
+The plan lists the takes in the order they play. Each item names one range of lines in one file, the first words of
+it as `quote` (the script stops if they are not there, which catches a wrong line number), and why this take:
+
+```json
+{
+  "pace": "natural",
+  "takes": [
+    {"lines": "A1-A2", "quote": "So the first thing", "why": "the only complete take of the opening"},
+    {"lines": "B3", "quote": "Then open settings", "why": "A3 breaks off before 'export'"},
+    {"lines": "A4-A6", "quote": "Once it is saved", "why": "B5 stumbles on 'preset'"}
+  ],
+  "remove": [{"quote": "um so", "line": "A5", "why": "hesitation inside the take used"}]
+}
+```
+
+Lines no take uses are left out. Inside the takes used, `remove` and `keep` work as in step 5, with lines named by
+file ("A5"). Then `cut.py` with every transcript and film, in the order `takes.py` had them. The cut takes the frame
+rate and picture size of the file it uses most; a piece from a file with another frame rate has frames repeated or
+dropped to match, and one with another size is scaled to fit with bars where the shape differs. `cuts.md` and
+`render.py` say when they did that: tell the person.
 
 ## 5. Write the plan and cut
 
@@ -182,12 +244,13 @@ not read.
 
 ## 7. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists talking-head-cut above 0.2.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name talking-head-cut gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists talking-head-cut above 0.3.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name talking-head-cut gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 
 1. **The cut film** (`cut.mp4`) and its length before and after.
-2. **What was removed**, from `cuts.md`, quoting the words: "the first try at 'Open the settings and...', then
+2. **What was removed**, from `cuts.md`, quoting the words (with several files: which take of each line you used and
+   why, and the takes you left out): "the first try at 'Open the settings and...', then
    'sorry, start over'". Never line numbers or word indexes: the person cannot see them.
 3. **What you kept on purpose** and **what you were unsure about**, as questions.
 4. **The check**: what `verify.py` found and what you did about it; that nobody has listened yet; the joins to
