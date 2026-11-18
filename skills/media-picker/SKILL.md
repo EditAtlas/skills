@@ -1,11 +1,11 @@
 ---
 name: media-picker
-description: Find and pick B-roll (stock clips for the lines of a voice-over), background music, photos and sound effects that fit the video, and check each before it goes into the edit. Use it before calling search_videos, search_music, search_photos or search_sfx, or downloading from Pexels or Pixabay, whenever a video needs B-roll, cutaway shots or music, and when someone says a pick does not fit. Writes what each slot needs, gathers 3-5 candidates per slot, measures each with measure.py (camera shake, cuts inside a clip, what a 9:16 crop keeps, repeats; for music the tempo, intro, energy, length), looks at every frame sheet, drops what does not show the line, and has the person hear two or three music options first. Triggers include "cần B-roll cho mấy câu này", "tìm cảnh trên Pexels", "tìm b-roll", "tìm nhạc nền", "chọn nhạc nền", "nhạc nền không hay", "cảnh bị rung", "find B-roll for these lines", "find background music". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).
+description: Find, pick and place B-roll (stock clips for the lines of a voice-over), background music, photos and sound effects that fit the video, and check each before it goes into the edit. Use it before calling search_videos, search_music, search_photos or search_sfx, or downloading from Pexels or Pixabay, whenever a video needs B-roll, cutaway shots or music, when B-roll goes on the words of a voice-over or talking head, and when someone says a pick does not fit. Measures candidates (shake, cuts, crop; music tempo, intro, energy), looks at every frame sheet, has the person hear music options, and places clips on their words, colour-matched, off the face. Triggers include "cần B-roll cho mấy câu này", "chèn B-roll vào video", "tìm cảnh trên Pexels", "tìm b-roll", "tìm nhạc nền", "chọn nhạc nền", "nhạc nền không hay", "cảnh bị rung", "find B-roll for these lines", "add B-roll to this voice-over", "find background music". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Needs network access to download candidates, or the files downloaded by the person. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.2.0"
+  version: "0.3.0"
   status: beta
   library: sfx
   mcp-tools: search_music search_videos search_photos search_sfx get_sfx send_feedback
@@ -13,7 +13,7 @@ metadata:
 
 # Media picker: pick music, footage and sounds that fit this video
 
-This is media-picker 0.2.0.
+This is media-picker 0.3.0.
 
 The person gets music, B-roll, photos and sounds chosen for their video and their words, not the first results of a
 search, and an `ASSETS.md` that says what each pick is for, why the others were dropped, and who to credit.
@@ -36,6 +36,14 @@ You need to know what the video is and where each item goes. If there is a scrip
 read it and write the brief yourself. If not, ask once, in one short message: what the video is for and where it
 will be posted, the feeling they want, and whether they have music or footage they already use. Never invent
 footage, and never present a stock clip as the person's own product, place or people.
+
+## Pick, or pick and place
+
+Only pick (steps 1-6) when the person wants files or a list: "tìm cảnh", "find B-roll for these lines", "tải về thư
+mục". Also place (step 7) when you make the edit yourself and there is a voice: "add B-roll to this voice-over",
+"chèn B-roll vào video", a talking head that needs cutaways or a box beside the speaker. Placing needs word times
+(the transcribe skill's `transcript.json`, or `transcript_cut.json` after a cut); without them, transcribe first.
+Never guess times by ear or from a script.
 
 ## Workflow
 
@@ -99,9 +107,58 @@ footage, and never present a stock clip as the person's own product, place or pe
    clip whose brightness or colour stands apart close to the others before it goes in. Start music where its
    energy matches the section, not always at 0 s.
 
+7. **Place it on the words.** Write `work/picks.json` in timeline order, one entry per chosen clip, with the
+   words it shows copied from the transcript, starting at the word the picture should appear on ("glass jar", not
+   "then add four cups"):
+
+   ```json
+   {"clips": [{"id": "jar", "file": "work/assets/files/jar.mp4", "shows": "a big glass jar"},
+              {"id": "ice", "file": "work/assets/files/ice.mp4", "shows": "over ice", "layout": "pip"}]}
+   ```
+
+   `layout` is `cutaway` (the default: the clip fills the frame and the voice carries on) or `pip` (a box beside the
+   speaker, who stays on screen; use it when the person asked to stay visible). Then run, with `--speaker` for a
+   talking head or `--voice` for a voice-over with no one on screen:
+
+   ```
+   python scripts/place.py --words work/transcript.json --picks work/picks.json --out work/place \
+          --speaker work/talking-head.mp4 --target 1080x1920 --face auto
+   ```
+
+   It starts each clip 0.1 s before its word, keeps it 2-6 s (2.5-8 s for a wide frame), and ends it at a sentence
+   or phrase end, at the next clip or where its footage runs out, never inside a word. Clips never overlap; between
+   two cutaways the speaker gets at least 1 s, or the two are joined cut to cut. The part used is the clip's
+   steadiest stretch of exactly that length. Each clip's colour is measured against the speaker (`--match-to` a
+   shot, or the middle of the picks, when there is no speaker) and graded 70% of the way there with a LUT, so it
+   keeps its own look. `references/placing.md` has every rule, number and option.
+
+   Read `work/place/placements.md`. Each row gives the word it starts on, its time on the timeline, why it ends
+   where it does, the source in and out, its shake, and the colour difference (ΔE) before and after the grade.
+   Act on every line under "Check": a clip shown before the line that names it, words found only loosely, a clip
+   under 2 s, a clip still shaky, a speaker back for under a second, a gap with nothing on screen. Fix `picks.json`
+   (another clip, other words, `"word"` with the index when the words are said twice) and run it again. A ΔE still
+   over 10 after the grade means the clip will stand out: say so or pick another.
+
+   **The face.** For a `pip` clip or captions over a talking head, the face must stay clear. `--face auto` finds it
+   with OpenCV if it is installed (never install it for this). Otherwise open `work/place/speaker_grid.png`, read
+   the face box off its grid as fractions and pass `--face x0,y0,x1,y1`. Pass where the captions go as
+   `--captions x0,y0,x1,y1`. place.py moves each box to a corner or side that clears the head by 24 px and says
+   when no spot does (then use a cutaway), and tells you where to move captions that cover the face.
+
+   **Into the edit.** place.py writes graded copies of the parts used, the voice as a sound, and PiP clips as
+   animated WebP in `work/place/media/`, and `fragment.json`, an editable-export project: footage track with the
+   speaker and cutaways back to back, a B-roll picture track, the voice as one sound so it carries on under the
+   cutaways. Build it with editable-export: `package.py build work/place/fragment.json --out result/NAME.edit`.
+   With captions, build the speaker's own project with `--captions` first (words under a cutaway have no speaker
+   clip to map to afterwards), then run place.py with `--into result/NAME.edit/project.json`: it splits the footage
+   clips at the cutaways, moves the footage's sound to sound items so it plays on under them, and writes
+   `project_with_broll.json`; save it as the next version with `package.py save ... --from 1`. The grade is burned
+   into the copies, so tell the person the studio cannot change it. For a plain MP4 without the studio, add
+   `--render out/final.mp4`: it lays the graded clips over the speaker with FFmpeg, exactly as placed.
+
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.2.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.3.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
 
 Write `ASSETS.md` next to the edit, in the person's language, with the template in `references/fit-guide.md`: for
 each slot the pick, why it fits, its measured numbers, the in and out times, and the candidates dropped with one
@@ -127,3 +184,5 @@ it.
   points for music by video type, and stock search habits. Read it at step 1.
 - `references/reading-the-numbers.md`: every number `measure.py` prints, its thresholds, what it was measured on
   and where it is wrong. Read it when a flag looks wrong.
+- `references/placing.md`: how `place.py` times, grades and frames each clip, its options, the editable-export
+  fragment, and what it was measured on. Read it at step 7.
