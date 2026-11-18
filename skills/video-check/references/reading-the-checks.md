@@ -16,6 +16,17 @@ so on variable-frame-rate files times drift (the `variable_fps` finding warns ab
 
 A finding is a measurement, not a verdict. A dip to black is "black frames" until you say it is planned.
 
+With `--type`, some codes change level for that kind of video (the old level stays in `check.json` as
+`level_default`); `references/video-types.md` says why:
+
+| Type | Raised | Lowered to P2 |
+|---|---|---|
+| `tutorial` | | `still`, `still_long`, `still_end`, `black_first_frame`, `white_first_frame`, `flash_shot` |
+| `talk` | `music_masks_voice` to P0 | `black_first_frame`, `white_first_frame` |
+| `promo` | `black_first_frame`, `white_first_frame`, `text_small`, `text_unsafe` to P0; `slow_open`, `abrupt_end` to P1 | |
+| `reel` | `black_first_frame`, `white_first_frame`, `text_small`, `text_unsafe` to P0; `slow_open`, `silent_start` to P1 | |
+| `film` | | `black_frames`, `white_frames`, `still`, `still_long`, `still_end`, `black_first_frame`, `black_end`, `dead_air`, `silent_start` |
+
 ## Checks
 
 | Code | Measured as | Misses or confuses |
@@ -25,6 +36,11 @@ A finding is a measurement, not a verdict. A dip to black is "black frames" unti
 | `still`, `still_long`, `still_end` | change under 0.0015 for 1.5 s (P2), 3 s (P1), or 2 s at the end | Film grain or a small moving element (a blinking cursor) keeps a held frame "moving"; a still picture with a slow zoom is not still |
 | `one_frame_flash` | one frame that differs from both neighbours (change over 0.03 and 3 times the local median) while the neighbours match each other | Two-frame glitches; a flash that lands on a cut |
 | `repeated_frames` | frames identical to the previous one while both neighbours move, over 5% of moving frames; the pattern says how often (one every N frames) and where they come closer together | Cannot tell a low-frame-rate source or animation on twos (expected) from a conversion in the render (a fault); a pattern that changes partway points at the place to look |
+| `join_frame` | at a cut, frames that belong to neither shot: two cut-sized changes within two frames (a flash or a stray frame on the join), or a frame just before or after the cut that jumps more than four times the motion of both shots while the step on the other side of the cut is ordinary (a frame from the wrong place in the clip) | A wrong frame that looks like its shot (the next frame of the same take) is not caught; a camera flash on the first frame of a shot is reported (pass `--flashes`); a fast wipe or iris that lands on one frame can be reported. The strip in `cuts_NN.png` shows each one |
+| `slow_open` (with `--type reel` or `promo`) | the first second does not change (every step under 0.0015) or is all black or white | A slow zoom on a still picture counts as moving |
+| `text_small` (with `--text`) | a text held 0.6 s or more whose font size, scaled to a phone 360 px wide, is under 6.7 px (P1) or 8.7 px (P2): under 1.86% (2.4%) of the frame width, which is 1.05% of the height on 9:16 video and 3.3% on 16:9. The thresholds are take-one's text audit (MIT), which measures on a 360 px wide phone so that tall and wide video are judged by the same eye | Font size, not the drawn letters: a thin or light font at the same size reads worse; key-framed scale is not counted. Capital letters are about 0.7 of the font size, so on a 360 px tile 6.7 px is capitals about 5 px tall |
+| `text_brief` (with `--text`) | a text on screen less than 0.4 s + 0.2 s a word (also take-one's rule); P1 under 60% of that. Captions that follow the speech are left out: items with word timings, and cues of up to three words that butt against the next or the last one (within 0.1 s); so is a text that ends in the last 0.3 s | Text burned into the footage, or inside a picture, is not in the layers: the reviewer looks for it on the sheets |
+| `text_unsafe` (with `--text`, vertical video) | a text whose centre is in the top 15% or the bottom 25% of the frame | Only the centre: a tall block centred at 74% still reaches under the buttons. Items inside a card are skipped |
 | `flash_shot` | a shot under 0.25 s between two cuts | Cut detection is simple (change over 0.08 and 5 times the local median); fast camera moves can look like cuts |
 | `loop_repeat`, `loop_jump` (with `--loop`) | change from the last frame to the first against a normal step: the same picture twice, or a jump over 2.5 times a step | Only the seam; the sound at the seam is not checked |
 | `no_audio`, `silent_track`, `audio_short` | ffprobe and loudness | Whether silence is wanted |
@@ -34,14 +50,20 @@ A finding is a measurement, not a verdict. A dip to black is "black frames" unti
 | `dead_air`, `silent_start` | `silencedetect` at -50 dB for 0.5 s: 2 s or more in the middle, 1 s or more at the start | Quiet room tone above -50 dB counts as sound |
 | `abrupt_end` | the last 30 ms louder than -30 dBFS and within 6 dB of the last 0.6 s | A hard ending on a hit may be planned |
 
-What it does not check at all: whether the edit is good, text size and spelling, whether text sits in the safe
-area (the sheets mark it; you look), what the sound is, lip sync, colour. Say so in `REVIEW.md`.
+What it does not check at all: whether the edit is good, spelling, the size and timing of text that is not in
+`--text` (burned into footage or drawn inside pictures: the sheets show it; you look), what the sound is, lip sync,
+colour. Say so in `REVIEW.md`.
 
 ## The sheets
 
 - `overview_NN.png`: one frame about every 0.5 s or more, up to about 36 frames, each labelled with its time and
   frame number. Vertical video is drawn 360 px wide, the size a phone shows it; landscape 480 px. On vertical video
   dashed pink lines mark 15% from the top and 25% from the bottom, where platform buttons and captions sit.
+- `cuts_NN.png`: one row per cut, six frames: the two last frames before the join, the two first after it (marked
+  `CUT`), and one about 1/12 s further out on each side; at 24 to 30 fps that is six frames in a row, since a
+  one-frame fault sits on one frame and 1/12 s steps would skip it. Frames `check.py` found odd are marked `odd`.
+  Vertical video has 4 rows a sheet at 150 px wide, landscape 8 rows at 200 px. At most `--strips` cuts (16): cuts
+  with a fault first, then the rest spread evenly, so a long video gives at most 4 sheets.
 - `findings.png`: the frame before, at and after each finding that has a place in time, labelled with its code.
   Whole-file findings (loudness, size) have no frames.
 - `before_after.png` (with `--before`): the same times from the earlier round and now, side by side.
@@ -98,3 +120,20 @@ nothing flagged it. With `--voice` and `--music`, check.py now measures the gap 
 LU (`music_buried`) and 2.7 LU louder than the voice (`music_masks_voice`); a bed that stops under speech gave a note
 and no finding, and a 6 s bed on a 10 s video gave `stem_length`. On a 13.5 s synthetic voice from a TTS model it found
 9.5 s of speech and read the gap the same way. Nobody has checked these numbers by ear or on a real edit's tracks.
+
+**Joins, text and long videos (0.3.0, check.py 0.2.0).** 26 planted faults in 25 files (2026-11-17): six at a
+cut in film footage (a white frame and a magenta frame on the join, a frame of an earlier shot on the join, a frame
+from 6 s later in the next clip just after the join, one from later in the last clip just before it, two wrong frames),
+four text faults with the project's text layers (a 9-word caption on screen 0.45 s, the same from an `.srt`, an 18 px
+caption on a 1080 px canvas, a caption at 88% of the height) and the 15 files of the 0.1.0 set, rebuilt (the clipping
+file is also too loud). check.py 0.2.0 found all 26 with the right code and time and no other finding beyond the
+repeated frames of the old film footage, which its clean files show too; 0.1.2 found 15 (none of the joins or texts,
+and not the loop that shows its first frame twice: the encoder made that seam 0.0012 against a 0.0006 threshold, now
+a quarter of a normal step). Word-at-a-time captions from an `.srt` (0.3 s each, back to back) gave no finding.
+On 143 finished videos (the EditAtlas demos, five talking-head takes and 147 s of demos joined end to end) nothing
+crashed and every other finding was the same as 0.1.2. `join_frame` first fired in 11 files, all on dissolves and dips
+of one to three frames; a frame that is a mix of its neighbours is now left alone (every dissolve and dip was within
+0.11 of a mix, every planted fault 0.42 or more off), which left 4 findings in 2 files: a fast move and an iris in a
+cartoon, and two ghosted frames where an old film copy blends the shots at a cut, which a viewer can see. On the
+147 s file (21 cuts) the strips showed 16 cuts on 2 sheets, 8 images in all; before this version a video with more
+than about 100 frames to draw lost its overview and findings sheets (FFmpeg's expression parser), which is fixed.

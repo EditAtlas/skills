@@ -1,7 +1,7 @@
 # Review guide
 
-How to look at a render after `check.py` has measured it: the brief for a fresh reviewer, the tells to look
-for, how to write a problem, and the `REVIEW.md` the person receives.
+How to look at a render after `check.py` has measured it: the brief for a fresh reviewer, the brief for checking
+claimed fixes from round 2 on, the tells to look for, how to write a problem, and the `REVIEW.md` the person receives.
 
 ## The brief for a fresh reviewer
 
@@ -12,19 +12,53 @@ was meant to show: a reviewer who knows the intention sees the intention.
 You are checking a video before it is posted. You have only these frame sheets: <paths>.
 Each tile is labelled with its time and frame number. On vertical video the dashed pink lines mark the
 caption-safe area: platform buttons and captions cover the top 15% and bottom 25%.
+The cuts_NN.png sheets hold one row per cut: frames in a row around the join, the first new frame marked CUT.
+Overview tiles are drawn at phone size (360 px wide for vertical video, 480 for landscape).
 The video is for: <platform>, <one sentence: what it is for and who watches it>.
+It is a <type>. For this kind, these block delivery: <the Blocks line from video-types.md>; these are only notes:
+<the Note line>.
 
 1. For each sheet, describe every tile in one plain sentence, as a stranger would. Do not guess what was meant.
-2. Then list problems, worst first, one per line:
+2. On each cut strip, say whether every frame belongs to the shot before or the shot after. A frame that belongs
+   to neither (a flash, a frame from elsewhere, a last frame of the old shot after the cut) is a P1.
+3. Text: on a 360 px tile, capital letters under about 5 px tall (font under about 7 px) cannot be read on a
+   phone; on a 480 px landscape tile, under about 6 px. Text that shows in only one overview tile may leave before
+   it can be read: it needs about 0.4 s plus 0.2 s a word. Name each such text with its time.
+4. Then list problems, worst first, one per line:
    t=<seconds>s · <where on screen> · <what is wrong> → <the exact change>  [P0|P1|P2]
-   P0 = broken or unreadable, P1 = a viewer will notice, P2 = polish.
-3. Go through the tells below and mark each one seen, not seen, or cannot tell from stills.
-4. First word of your answer: ship, fix or rebuild.
+   P0 = broken or unreadable, P1 = a viewer will notice, P2 = polish. Mark each one "blocks" or "note" by the
+   lists above.
+5. Go through the tells below and mark each one seen, not seen, or cannot tell from stills.
+6. First word of your answer: ship, fix or rebuild.
 No scores out of ten. Do not praise. Do not suggest new ideas the video did not try.
 ```
 
+Fill `<type>` and its two lines from `video-types.md`. When `check.py --text` measured the text layers, give the
+reviewer its `text_small`, `text_brief` and `text_unsafe` findings too and skip step 3 for those texts; step 3 still
+covers text burned into the footage or drawn inside pictures.
+
 When you cannot start a subagent, do step 1 yourself before reading your plan again, and write "one context"
 in `REVIEW.md`.
+
+## From round 2: checking the fixes that were claimed
+
+Whoever fixed the video believes the fix is in; that belief is the thing to check. Before the reviewer looks at
+round 2, write each fix you claim as one line in the problem format (`t=3.20s · whole frame · white frame between two
+shots → removed frame 96`; `t=5.0->4.9s` when the fix moved the time), and lines without a time for whole-file fixes
+such as loudness. Then take a frame of the old render and of the new one at each claimed time (a frame either side
+too for a fix at a cut) and put them side by side, OLD left and NEW right, in `work/check2/fixes.png`; measure a
+whole-file fix such as loudness on the new file. Give the reviewer the claims, `fixes.png` and those numbers, with
+this added to the brief:
+
+```
+The editor says these fixes are made: <the lines>. fixes.png shows, for each, three frames of the old render (OLD)
+and the same times in the new one (NEW); <numbers for whole-file fixes>.
+For each claim, answer seen or not seen, from the NEW frames and numbers only, with one sentence of what you see.
+A claim you cannot see on the NEW frames is a P0: the fix is not made, whatever the editor says.
+```
+
+A claim marked not seen goes back to step 4 of the workflow as a P0. Never write a fix as made in `REVIEW.md`
+because you ran the command for it: write it as made only when the reviewer saw it, or the numbers show it.
 
 ## Tells
 
@@ -88,6 +122,7 @@ After finding one problem, look for others of the same kind elsewhere in the vid
 # Review: <file name>
 
 **Verdict:** ready / ready with notes / not ready — <one sentence why>
+**Type assumed:** <tutorial / talking head / promo / reel / film> — <why: shape, length, what it shows>
 <!-- ready: no finding left. ready with notes: every finding left is named below, and each P1 left needs something
      you do not have, such as the edit project. not ready: a P0 is left, or a P1 you could fix. -->
 
@@ -98,6 +133,11 @@ After finding one problem, look for others of the same kind elsewhere in the vid
 |---|---|---|---|---|
 | 1 | | | | |
 | 2 | | | | |
+
+## Claimed fixes, checked on the new render
+| Claim | Seen on the new frames or numbers? |
+|---|---|
+| t=3.20s · white frame removed | seen: frame 96 is now the next shot / not seen: the caption still sits at 88% |
 
 ## Looked at
 Reviewer: separate (saw only the sheets) / one context.

@@ -5,7 +5,7 @@ sound with FFmpeg, makes frame sheets at phone size, has a reviewer who has not 
 three worst problems, checks again (at most three rounds), and writes a `REVIEW.md` that says what was measured,
 what was looked at and what nobody listened to.
 
-Status: beta (0.2.0).
+Status: beta (0.3.0).
 
 ## Needs
 
@@ -18,10 +18,11 @@ Status: beta (0.2.0).
 | Path | What |
 |---|---|
 | `SKILL.md` | The workflow Claude follows |
-| `scripts/check.py` | File spec, black, white, frozen, stray and repeated frames, cuts, loop seam, loudness, true peak, silences, audio length and ending, music under the voice (with the two tracks); overview and findings sheets; `--before` compares with an earlier round |
+| `scripts/check.py` | File spec, black, white, frozen, stray and repeated frames, cuts and wrong frames at joins, loop seam, loudness, true peak, silences, audio length and ending, music under the voice (with the two tracks), text too small, too brief or under the buttons (with the text layers); levels by kind of video (`--type`); overview, cut-strip and findings sheets; `--before` compares with an earlier round |
 | `scripts/fix_sound.py` | Loudness and true peak fixed on a finished file in one go: peaks limited, two-pass `loudnorm`, picture copied, result measured |
 | `references/reading-the-checks.md` | Every check, its thresholds, what it misses, and the results on known videos |
-| `references/review-guide.md` | The brief for a fresh reviewer, the tells of a template-made edit, the problem format, the `REVIEW.md` template |
+| `references/video-types.md` | What blocks delivery and what is only a note, for a tutorial, a talking head, a promo, a reel and a film |
+| `references/review-guide.md` | The brief for a fresh reviewer, the brief for checking claimed fixes, the tells of a template-made edit, the problem format, the `REVIEW.md` template |
 | `evals/` | Test cases in the `claude plugin eval` layout; inputs are downloaded from the EditAtlas site |
 
 ## Verified
@@ -77,3 +78,38 @@ case with the final text (`no-video-given` from the round before, unchanged by t
 
 On 2026-11-11 the owner looked at the results of the last round (both videos, their `REVIEW.md` files, the sheets
 and `before_after.png`) and approved the skill for beta.
+
+### Eval, version 0.3.0 (2026-11-17)
+
+`check.py` 0.2.0 against 0.1.2 (the script in 0.2.5) on 26 planted faults in 25 files: six at cuts in film footage
+(a white frame, a magenta frame and a frame of an earlier shot on the join; a frame from later in the clip just after
+or just before the join; two wrong frames), four text faults read from the project's text layers or an `.srt`, and
+the 0.1.0 set rebuilt. Details are in `references/reading-the-checks.md`.
+
+| | 0.3.0 | 0.2.5 |
+|---|---|---|
+| Planted faults found | 26 of 26 | 15 of 26 (no joins, no text, one loop seam) |
+| Findings not planted | 0 | 0 |
+| 143 finished videos: crashes | 0 | 0 |
+| 143 finished videos: new `join_frame` findings | 4, in 2 files (a fast move, an iris, two ghosted frames) | - |
+| 147 s video with 21 cuts: images to read | 8 (5 overview, 2 cut strips, 1 findings) | 0 (sheets were lost past about 100 frames) |
+
+Fresh agents (Sonnet 5.5, `claude -p` with no settings, no MCP and one plugin holding only this skill), 0.3.0 against
+0.2.5, two runs a case (three for the tutorial), all told not to edit:
+
+| Case | 0.3.0 | 0.2.5 |
+|---|---|---|
+| Reel with a white frame and a stray frame at cuts, a tiny and a brief caption, and its `project.json` | 8 of 8 faults found | 6 of 8 (the stray frame missed both times) |
+| Editor's review claims three fixes, a caption was not moved | false fix caught 2 of 2, no fix wrongly called made | 2 of 2, none |
+| Agency's review claims three fixes, a frame at a cut was not trimmed | 2 of 2, none | 2 of 2, none |
+| Help-center screen recording with long held screens and no hook | 3 wrong blockers in 3 runs; "ready with notes" 2 of 3 | 6 in 3 runs; "not ready" 3 of 3 |
+| Wrong blockers, all cases | 5 | 10 |
+| Cost per run | $0.13 to $0.20 | $0.12 to $0.17 |
+
+Pairs, each judged twice with A and B swapped (Sonnet, shown the person's request and what is really in the video):
+0.3.0 won 5, tied 2 and lost 2 of 9; the judge picked the ideal answer over a poor one in all 4 controls and never
+chose the same letter in both orders (0 of 13). The two losses: a tutorial run that called small 960x540 interface
+text a blocker (the rubric now gives the phone numbers for it), and a promo run that blocked on "no product on
+screen". Checking claimed fixes made no measurable difference with these agents: 0.2.5 caught every false claim too,
+by pulling the frames at the claimed times itself. A script that did it for them (`verify_fixes.py`) was tried and left out;
+the brief for checking claims stays.

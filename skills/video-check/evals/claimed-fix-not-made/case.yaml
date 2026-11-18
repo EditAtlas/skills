@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: claimed-fix-not-made
+expected_outcome: |
+  Two renders of an 8 s vertical Reel made from FFmpeg test pictures, and an editor's REVIEW.md that says three
+  problems in reel_v1.mp4 are fixed in reel_v2.mp4. Two fixes are made: the one white frame at 2.5 s is gone and the
+  sound went from about -30 to about -14 LUFS. One is not: the yellow sticker from 4 s sits at the same place, low in
+  the frame under the Reels buttons, although REVIEW.md says it was moved up to 70% of the height. Claude compares
+  the old and new frames at the claimed times, reports that the sticker fix was not made as a blocker, confirms the
+  other two from the frames and the measurements, and does not call the video ready.
+context:
+  scaffold_script: place-files.sh

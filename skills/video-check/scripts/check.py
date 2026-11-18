@@ -1,13 +1,17 @@
 """Check a finished video before anyone sees it: file spec, picture faults, sound levels, and review sheets.
 
-  check.py VIDEO --out work/check [--expect 1080x1920] [--fps 30] [--duration 30] [--loudness -14]
+  check.py VIDEO --out work/check [--type reel] [--expect 1080x1920] [--fps 30] [--duration 30] [--loudness -14]
                  [--audio required|none|any] [--loop] [--holds 4-6,12.5-14] [--flashes 3.2,9.8]
                  [--before work/check-round1/check.json] [--voice voice.wav --music music.wav]
+                 [--text project.json|captions.srt|captions.vtt|captions.ass] [--strips 16]
 
 Writes OUT/check.json, OUT/overview_NN.png (frames at phone size, with the caption safe area marked on vertical
-video) and OUT/findings.png (the frames around each finding). With --before, also OUT/before_after.png and a list
-of findings gone, still there and new. With --voice and --music (the two tracks as they sit in the mix, from 0 s),
-also how far the music sits under the voice while someone speaks.
+video), OUT/cuts_NN.png (six frames around each cut, so a one-frame pop or a wrong frame at a join shows) and
+OUT/findings.png (the frames around each finding). With --before, also OUT/before_after.png and a list of findings
+gone, still there and new. With --voice and --music (the two tracks as they sit in the mix, from 0 s), also how far
+the music sits under the voice while someone speaks. With --text (the edit's text layers), text too small for a
+phone or on screen too briefly to read. With --type, findings are graded for that kind of video
+(references/video-types.md).
 
 The numbers find faults a viewer would notice; they cannot tell whether the edit is good. Open the sheets with
 the Read tool, and read references/reading-the-checks.md for what each check misses.
@@ -23,7 +27,7 @@ from pathlib import Path
 
 import numpy as np
 
-VERSION = "0.1.2"
+VERSION = "0.2.0"
 STILL = 0.0015      # mean absolute change (0..1) under which two frames count as the same picture
 DUPE = 0.0006       # an exact repeat, after compression noise
 MOVING = 0.004      # change per frame above which the picture is moving
@@ -31,6 +35,23 @@ SAFE_TOP, SAFE_BOTTOM = 0.15, 0.25   # caption-safe area on vertical video: stay
 # Music under speech, in LU below the voice. Beds under a voice are usually mixed 10 to 16 LU down; past 18 a phone
 # speaker loses them (a user said "the music is still too quiet", 2026-11-14), under 6 they cover the words.
 BED_BURIED, BED_MASKS = 18.0, 6.0
+# Text on a phone, after take-one's text-audit (MIT): a font size under about 6.7 px on a phone 360 px wide fails, under
+# 8.7 px is a warning. As a share of the frame: font size under 1.86% of the frame width (2.4%), which is 1.05% (1.36%)
+# of the height on 9:16 video and 3.3% (4.3%) on 16:9. Capital letters are about 0.7 of the font size.
+PHONE_W, TEXT_FAIL_PX, TEXT_WARN_PX = 360, 6.7, 8.7
+READ_BASE, READ_PER_WORD = 0.4, 0.2     # seconds a text must stay on screen: 0.4 s + 0.2 s a word (take-one)
+# Levels by kind of video (references/video-types.md). Only codes whose weight changes with the kind are listed.
+TYPES = {
+    "tutorial": {"still": "P2", "still_long": "P2", "still_end": "P2", "black_first_frame": "P2",
+                 "white_first_frame": "P2", "flash_shot": "P2"},
+    "talk": {"music_masks_voice": "P0", "dead_air": "P1", "black_first_frame": "P2", "white_first_frame": "P2"},
+    "promo": {"black_first_frame": "P0", "white_first_frame": "P0", "slow_open": "P1", "text_small": "P0",
+              "text_unsafe": "P0", "abrupt_end": "P1"},
+    "reel": {"black_first_frame": "P0", "white_first_frame": "P0", "slow_open": "P1", "silent_start": "P1",
+             "text_small": "P0", "text_unsafe": "P0"},
+    "film": {"black_frames": "P2", "white_frames": "P2", "still": "P2", "still_long": "P2", "still_end": "P2",
+             "black_first_frame": "P2", "black_end": "P2", "dead_air": "P2", "silent_start": "P2"},
+}
 
 
 def die(msg):
@@ -171,6 +192,70 @@ def cadence(d, fps):
     return "; ".join(words)
 
 
+def join_faults(g, d, cuts, merged, mean, fps, flashes, holds, findings):
+    """Frames at a cut that belong to neither shot: a one-frame flash on the join, or a stray frame from elsewhere.
+
+    Two kinds: two cut-sized changes within two frames (the frames between them are a shot of one or two frames),
+    and a cut where the frame just before or just after it jumps far more than the rest of its own shot moves (a
+    frame from the wrong place in the clip). Returns the indices of the odd frames.
+    """
+    n = len(d)
+    t = lambda i: round(i / fps, 3)
+    slack = 2 / fps
+    raw = set(cuts)
+    odd = []
+    for c in merged:
+        close = sorted(i for i in raw if c <= i <= c + 2)
+        frames = []
+        if len(close) >= 2:
+            frames = list(range(close[0], close[-1]))
+        else:
+            after = d[c + 2:c + 9]
+            before = d[max(1, c - 8):max(1, c - 1)]
+            if len(after) < 3 or len(before) < 3:
+                continue
+            # Both shots' own motion: a jump has to stand out from each (a dissolve or a wipe into the cut moves a lot)
+            calm = max(0.03, 4 * float(np.median(after)) + 0.005, 4 * float(np.median(before)) + 0.005)
+            calm_a = max(0.03, 4 * float(np.median(before)) + 0.005)
+            calm_b = max(0.03, 4 * float(np.median(after)) + 0.005)
+            # ... and the step on the other side of the cut is ordinary: a transition moves on both sides of it
+            if c + 1 < n and d[c + 1] > calm and d[c - 1] <= calm_a:
+                # the first frame after the cut is not like the rest of its shot
+                if float(np.abs(g[c] - g[min(n - 1, c + 2)]).mean()) > 0.6 * d[c + 1]:
+                    frames = [c]
+            if not frames and c - 2 >= 1 and d[c - 1] > calm and (c + 1 >= n or d[c + 1] <= calm_b):
+                if float(np.abs(g[c - 1] - g[c - 3 if c >= 3 else 0]).mean()) > 0.6 * d[c - 1]:
+                    frames = [c - 1]
+        if not frames:
+            continue
+        # A frame that is a mix of the frames around it is a dissolve or a dip (planned, or at worst soft), not a
+        # stray frame: on 139 real edits every dissolve and dip came within 0.11 of a mix, every planted fault 0.42 off.
+        A, B = g[max(0, frames[0] - 1)], g[min(n - 1, frames[-1] + 1)]
+        D = (A - B).ravel()
+        ab = float(np.abs(D).mean())
+        if ab > 0:
+            mixes = []
+            for x in frames:
+                X = g[x]
+                w = float(np.clip(np.dot((X - B).ravel(), D) / (np.dot(D, D) + 1e-9), 0, 1))
+                mixes.append(float(np.abs(X - (w * A + (1 - w) * B)).mean()) / ab)
+            if max(mixes) < 0.2:
+                continue
+        a = frames[0]
+        if any(abs(t(a) - f) <= slack for f in flashes) or inside(t(a), t(frames[-1]), holds, slack):
+            continue
+        odd.extend(frames)
+        m = float(mean[frames].mean())
+        kind = "white" if m > 0.85 else "black" if m < 0.08 else "different"
+        what = (f"{len(frames)} {kind} frame(s) on the cut at {t(c)} s that belong to neither shot" if len(close) >= 2
+                else f"frame {a} at the cut at {t(c)} s does not match the shot it sits in (a stray frame from another "
+                     f"part of the clip, or a frame left over from the last shot)")
+        findings.append(dict(level="P1", code="join_frame", t=t(a), t_end=t(frames[-1]), what=what,
+                             fix=f"trim frame(s) {', '.join(map(str, frames))} from the join, or pass --flashes {t(a)} if "
+                                 "it is a planned flash; look at the strip for this cut in cuts_NN.png"))
+    return odd
+
+
 def picture(g, fps, args, findings):
     n = len(g)
     t = lambda i: round(i / fps, 3)
@@ -194,6 +279,14 @@ def picture(g, fps, args, findings):
                                  what=f"one {kind} frame between two similar ones (a glitch or a stray frame)",
                                  fix=f"remove frame {i}, or pass --flashes {t(i)} if it is a planned flash"))
 
+    cut_thr = np.maximum(0.08, 5 * med)
+    cuts = [i for i in range(1, n) if d[i] > cut_thr[i] and i not in pops and i - 1 not in pops]
+    merged = []
+    for i in cuts:
+        if not merged or i - merged[-1] > 2:
+            merged.append(i)
+    joins = join_faults(g, d, cuts, merged, mean, fps, flashes, holds, findings)
+
     black = (mean < 0.06) & (std < 0.03)
     white = (mean > 0.94) & (std < 0.03)
     for name, mask, word in (("black", black, "black"), ("white", white, "white")):
@@ -203,6 +296,8 @@ def picture(g, fps, args, findings):
                 continue
             if b - a == 1 and a in pops:
                 continue
+            if b - a <= 2 and any(a <= j < b for j in joins):
+                continue    # reported as a frame at a join
             if a == 0:
                 findings.append(dict(level="P1", code=f"{name}_first_frame", t=t0, t_end=t1,
                                      what=f"the video opens on {b} {word} frame(s): the thumbnail and the first look are {word}",
@@ -252,12 +347,6 @@ def picture(g, fps, args, findings):
                                  "(old film, animation on twos: leave it) or in the render (deliver at the source rate); "
                                  "a pattern that changes partway marks where another clip, a speed change or a dropped-frame stretch starts: look there"))
 
-    cut_thr = np.maximum(0.08, 5 * med)
-    cuts = [i for i in range(1, n) if d[i] > cut_thr[i] and i not in pops and i - 1 not in pops]
-    merged = []
-    for i in cuts:
-        if not merged or i - merged[-1] > 2:
-            merged.append(i)
     bounds = [0] + merged + [n]
     shots = [(bounds[k + 1] - bounds[k]) / fps for k in range(len(bounds) - 1)]
     blank = black | white
@@ -270,12 +359,23 @@ def picture(g, fps, args, findings):
                              what=f"{len(short)} shot(s) under 0.25 s, at {', '.join(map(str, short[:6]))} s",
                              fix="check each is a planned flash cut and not a leftover frame"))
 
+    if args.type in ("reel", "promo"):
+        first = int(round(fps))
+        head = slice(0, min(first, n))
+        if (d[1:first + 1] < STILL).all() or (mean[head] < 0.06).all() or (mean[head] > 0.94).all():
+            findings.append(dict(level="P1", code="slow_open", t=0.0, t_end=t(min(first, n - 1)),
+                                 what="nothing moves in the first second (or it is blank): on a feed this is where people "
+                                      "decide to stay",
+                                 fix="open on the strongest moving picture; put any title over it"))
+
     loop = None
     if args.loop:
         seam = float(np.abs(g[0] - g[-1]).mean())
         steps = [float(d[-1]), float(d[1])]
         ref = max(steps)
-        if ref > MOVING and seam < DUPE:
+        # The first frame is a key frame and the last is not, so the same picture twice differs by the encoder's noise
+        # (0.0012 on a striped scroll at CRF 18): a seam under a quarter of a normal step is the same picture.
+        if ref > MOVING and seam < max(DUPE, 0.25 * ref):
             state = "first frame shows twice"
             findings.append(dict(level="P1", code="loop_repeat", t=t(n - 1), t_end=t(n - 1),
                                  what="the last frame equals the first, so one picture shows twice on every loop (a stutter)",
@@ -300,6 +400,8 @@ def picture(g, fps, args, findings):
         "longest_still_seconds": round(longest_still, 2),
         "black_frames": int(black.sum()), "white_frames": int(white.sum()),
         "one_frame_flashes": [t(i) for i in pops],
+        "join_faults": [t(i) for i in joins],
+        "_cut_idx": merged, "_odd_idx": joins,
         "repeated_frames_in_motion": len(dupes),
         "loop": loop,
     }
@@ -434,13 +536,180 @@ def balance(voice_path, music_path, info, findings):
     return result
 
 
+# ------------------------------------------------------------------ text
+def count_words(text):
+    return len([w for w in re.split(r"\s+", text or "") if re.search(r"\w", w)])
+
+
+def _clock(x):
+    m = re.match(r"(?:(\d+):)?(\d+):(\d+(?:[.,]\d+)?)", x.strip())
+    if not m:
+        die(f"cannot read the time '{x}' in the captions file.")
+    h, mi, sec = m.groups()
+    return int(h or 0) * 3600 + int(mi) * 60 + float(sec.replace(",", "."))
+
+
+def read_text_layers(path, info):
+    """Text items: text, at, dur, size (font size in pixels of a frame `width` wide, or None), y (centre, 0..1, or
+    None), track. From an EditAtlas project.json (editatlas-project/1), an .srt or .vtt file (timing only) or an .ass
+    file (timing and font size). Returns (items, width the sizes are measured against, source kind)."""
+    p = Path(path)
+    if not p.is_file():
+        die(f"no such file: {path}. --text takes the edit's project.json or a captions file (.srt, .vtt, .ass).")
+    raw = p.read_text(encoding="utf-8-sig", errors="replace").replace("\r", "")
+    width = info["width"] or 1080
+    items = []
+    suffix = p.suffix.lower()
+    if suffix == ".json":
+        try:
+            pj = json.loads(raw)
+        except ValueError:
+            die(f"{path} is not JSON. --text takes an EditAtlas project.json or a captions file.")
+        if isinstance(pj, dict) and isinstance(pj.get("project"), dict):
+            pj = pj["project"]          # a versions/vN.json file
+        canvas = pj.get("canvas") or {}
+        width = canvas.get("width") or width
+        styles = pj.get("styles") or {}
+        for tr in pj.get("tracks") or []:
+            if tr.get("kind") != "text" or tr.get("hidden"):
+                continue
+            for it in tr.get("items") or []:
+                st = dict(styles.get(it.get("style"), {}) or {})
+                st.update(it)
+                if float(st.get("opacity", 1) or 0) == 0:
+                    continue
+                items.append({"text": str(st.get("text", "")), "at": float(st.get("at", 0)),
+                              "dur": float(st.get("dur", 0)), "size": float(st.get("size", 64)),
+                              "y": None if it.get("parent") else float(st.get("y", 0.75)),
+                              "track": tr.get("id", "T"), "synced": bool(it.get("words"))})
+        return items, float(width), "project"
+    if suffix in (".srt", ".vtt"):
+        for block in re.split(r"\n\s*\n", raw):
+            m = re.search(r"([\d:.,]+)\s*-->\s*([\d:.,]+)", block)
+            if not m:
+                continue
+            text = re.sub(r"<[^>]+>", "", " ".join(l.strip() for l in block[m.end():].strip().splitlines()))
+            a, b = _clock(m.group(1)), _clock(m.group(2))
+            items.append({"text": text, "at": a, "dur": b - a, "size": None, "y": None, "track": "captions",
+                          "synced": False})
+        return items, float(width), "captions"
+    if suffix == ".ass":
+        play = {k: float(v) for k, v in re.findall(r"^PlayRes([XY]):\s*([\d.]+)", raw, re.M)}
+        sizes, sfmt, efmt = {}, None, None
+        section = ""
+        for line in raw.splitlines():
+            if line.startswith("["):
+                section = line.strip().lower()
+            elif line.startswith("Format:"):
+                cols = [x.strip() for x in line[7:].split(",")]
+                if "styles" in section:
+                    sfmt = cols
+                elif "events" in section:
+                    efmt = cols
+            elif line.startswith("Style:") and sfmt and "Fontsize" in sfmt:
+                vals = [x.strip() for x in line[6:].split(",")]
+                sizes[vals[sfmt.index("Name")]] = float(vals[sfmt.index("Fontsize")])
+            elif line.startswith("Dialogue:") and efmt:
+                rec = dict(zip(efmt, [v.strip() for v in line[9:].split(",", len(efmt) - 1)]))
+                body = rec.get("Text", "")
+                fs = sizes.get(rec.get("Style"))
+                m = re.search(r"\\fs(\d+(?:\.\d+)?)", body)
+                if m:
+                    fs = float(m.group(1))
+                text = re.sub(r"\{[^}]*\}", "", body).replace("\\N", " ").replace("\\n", " ")
+                a, b = _clock(rec["Start"]), _clock(rec["End"])
+                items.append({"text": text, "at": a, "dur": b - a, "size": fs, "y": None, "track": "captions",
+                              "synced": False})
+        # Font sizes in an .ass file are in script pixels: PlayResY tall, PlayResX (or the same shape as the video) wide.
+        resx = play.get("X") or (play.get("Y", 288) * (info["width"] or 16) / (info["height"] or 9))
+        return items, float(resx), "captions"
+    die(f"cannot read text layers from {path}: give a project.json, .srt, .vtt or .ass file.")
+
+
+def text_census(path, info, findings, portrait):
+    """Text too small for a phone, on screen too briefly to read, or under the platform buttons."""
+    items, width, kind = read_text_layers(path, info)
+    dur = info["duration"]
+    fail_px, warn_px = TEXT_FAIL_PX * width / PHONE_W, TEXT_WARN_PX * width / PHONE_W
+    by_track = {}
+    for it in items:
+        by_track.setdefault(it["track"], []).append(it)
+    for lst in by_track.values():
+        lst.sort(key=lambda x: x["at"])
+        for k, it in enumerate(lst):
+            prev_end = lst[k - 1]["at"] + lst[k - 1]["dur"] if k else -9.0
+            nxt = lst[k + 1]["at"] if k + 1 < len(lst) else 9e9
+            # A running caption follows the speech, one short cue straight after another: it is heard as it is read,
+            # so the reading-time rule does not apply to each cue.
+            # A text that overlaps another on its track is a separate card, not a running caption.
+            butt = lambda gap: -0.05 <= gap <= 0.1
+            it["running"] = it["synced"] or (count_words(it["text"]) <= 3 and
+                                              (butt(it["at"] - prev_end) or butt(nxt - (it["at"] + it["dur"]))))
+    rows, flagged = [], {"text_small": [], "text_brief": [], "text_unsafe": []}
+    for it in items:
+        words = count_words(it["text"])
+        if not words or it["at"] >= dur:
+            continue
+        held = max(0.0, min(it["at"] + it["dur"], dur) - it["at"])
+        need = READ_BASE + READ_PER_WORD * words
+        row = {"text": it["text"][:80], "at": round(it["at"], 2), "dur": round(held, 2), "words": words,
+               "needs": round(need, 2), "running_caption": it["running"]}
+        if it["size"]:
+            row["size_px"] = round(it["size"], 1)
+            row["phone_px"] = round(it["size"] * PHONE_W / width, 1)
+            if held >= 0.6 and it["size"] < warn_px:
+                flagged["text_small"].append((it, "P1" if it["size"] < fail_px else "P2", row))
+        near_end = it["at"] + it["dur"] >= dur - 0.3
+        if held < need and not it["running"] and not near_end:
+            flagged["text_brief"].append((it, "P1" if held < 0.6 * need else "P2", row))
+        if portrait and it["y"] is not None and (it["y"] > 1 - SAFE_BOTTOM or it["y"] < SAFE_TOP):
+            flagged["text_unsafe"].append((it, "P1", row))
+        rows.append(row)
+    for code, lst in flagged.items():
+        lst.sort(key=lambda x: x[0]["at"])
+        shown = lst if len(lst) <= 5 else lst[:4]
+        for it, lvl, row in shown:
+            q = f"'{row['text'][:40]}'"
+            if code == "text_small":
+                what = (f"{q} is {row['size_px']:g} px on a {width:g} px wide frame, {row['phone_px']} px on a phone 360 px "
+                        f"wide (under {TEXT_FAIL_PX if lvl == 'P1' else TEXT_WARN_PX} px is hard to read)")
+                fix = f"make it at least {math.ceil(warn_px)} px (font size), or crop in so it reads"
+            elif code == "text_brief":
+                what = f"{q} ({row['words']} words) is on screen {row['dur']:.2f} s; reading it needs about {row['needs']:.1f} s"
+                fix = f"hold it to {row['needs']:.1f} s or cut words"
+            else:
+                what = f"{q} sits at {100 * it['y']:.0f}% of the height, under the platform buttons and captions"
+                fix = "move it inside the dashed lines (15% from the top, 25% from the bottom)"
+            findings.append(dict(level=lvl, code=code, t=round(it["at"], 2), t_end=round(it["at"] + row["dur"], 2),
+                                 what=what, fix=fix))
+        if len(lst) > len(shown):
+            rest = lst[len(shown):]
+            findings.append(dict(level=min(x[1] for x in rest), code=code,
+                                 t=round(rest[0][0]["at"], 2), t_end=round(rest[-1][0]["at"], 2),
+                                 what=f"{len(rest)} more texts like this, at "
+                                      + ", ".join(f"{x[0]['at']:.1f}" for x in rest[:10])
+                                      + (" ..." if len(rest) > 10 else "") + " s",
+                                 fix="the same change for each; check.json lists every text under text.items"))
+    return {"source": kind, "frame_width": width, "items": rows,
+            "min_font_px": {"fail": round(fail_px, 1), "warn": round(warn_px, 1)},
+            "running_captions": sum(1 for r in rows if r["running_caption"]),
+            "counts": {k: len(v) for k, v in flagged.items()}}
+
+
 # ------------------------------------------------------------------ sheets
 def frames_at(video, idx, w, h):
     """RGB frames by decoded index, in one ffmpeg pass."""
     idx = sorted(set(int(i) for i in idx))
     if not idx:
         return {}
-    expr = "+".join(f"eq(n\\,{i})" for i in idx)
+    def tree(terms):
+        # FFmpeg's expression parser nests a chain of + one level per term and fails past about 100 frames ("Cannot
+        # allocate memory"), which left long videos without sheets; a balanced sum stays a few levels deep.
+        if len(terms) == 1:
+            return terms[0]
+        mid = len(terms) // 2
+        return f"({tree(terms[:mid])}+{tree(terms[mid:])})"
+    expr = tree([f"eq(n\\,{i})" for i in idx])
     r = subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-i", str(video), "-an", *passthrough(), "-vf",
                         f"select='{expr}',scale={w}:{h}:flags=area,format=rgb24", "-f", "rawvideo", "-"],
                        capture_output=True)
@@ -483,7 +752,27 @@ def tile_size(info, width):
     return width, max(2, int(round(width * h0 / w0 / 2) * 2))
 
 
-def sheets(video, info, n, fps, findings, out, every, before=None):
+def strip_picks(cuts, odd, n, cap):
+    """Which cuts get a strip: those with a fault at the join first, then evenly spread over the rest, at most cap."""
+    if cap <= 0 or not cuts:
+        return []
+    bad = [c for c in cuts if any(c - 2 <= j <= c + 1 for j in odd)]
+    rest = [c for c in cuts if c not in bad]
+    room = max(0, cap - len(bad))
+    if len(rest) > room:
+        rest = [rest[int(k * len(rest) / room)] for k in range(room)] if room else []
+    return sorted(bad[:cap] + rest)
+
+
+def strip_frames(c, fps, n):
+    """Six frames around the cut whose first new frame is c: the two last frames before the join, the two first after
+    it, and one about 1/12 s further out on each side. At 24-30 fps that is six frames in a row, which is what it takes
+    to see a one-frame fault; plain 1/12 s steps would skip the frame it sits on."""
+    s = max(2, int(round(fps / 12)))
+    return [i for i in (c - 2 - (s - 1), c - 2, c - 1, c, c + 1, c + 1 + (s - 1)) if 0 <= i < n]
+
+
+def sheets(video, info, n, fps, findings, out, every, before=None, cuts=(), odd=(), strips=16):
     portrait = (tile_size(info, 100)[1] > 100)
     w, h = tile_size(info, 360 if portrait else 480)
     dur = n / fps
@@ -500,7 +789,11 @@ def sheets(video, info, n, fps, findings, out, every, before=None):
             if 0 <= i < n:
                 near.append(i)
         tag.setdefault(a, f["code"])
+    picks = strip_picks(list(cuts), list(odd), n, strips)
+    sw, shh = tile_size(info, 150 if portrait else 200)
+    strip_idx = sorted({i for c in picks for i in strip_frames(c, fps, n)})
     got = frames_at(video, idx + near, w, h)
+    sgot = frames_at(video, strip_idx, sw, shh) if strip_idx else {}
     lab = lambda i: f"{i / fps:.2f}s f{i}"
     paths = []
     per = 12 if portrait else 9
@@ -510,6 +803,22 @@ def sheets(video, info, n, fps, findings, out, every, before=None):
                        cols, portrait)
         if p:
             paths.append(p)
+    cut_paths = []
+    per_sheet = 4 if portrait else 8
+    for k in range(0, len(picks), per_sheet):
+        tiles = []
+        for c in picks[k:k + per_sheet]:
+            row = strip_frames(c, fps, n)
+            row = row + [None] * (6 - len(row))
+            for i in row:
+                if i is None:
+                    tiles.append((np.full((shh, sw, 3), 24, np.uint8), ""))
+                else:
+                    mark = " CUT" if i == c else (" odd" if i in odd else "")
+                    tiles.append((sgot.get(i), f"{i / fps:.2f}s f{i}{mark}"))
+        cp = draw_sheet(tiles, Path(out) / f"cuts_{k // per_sheet + 1:02d}.png", 6, False)
+        if cp:
+            cut_paths.append(cp)
     fp = None
     if near:
         fp = draw_sheet([(got.get(i), lab(i) + (" " + tag[i] if i in tag else "")) for i in sorted(set(near))[:60]],
@@ -528,8 +837,10 @@ def sheets(video, info, n, fps, findings, out, every, before=None):
                 tiles.append((bgot.get(min(int(round(x * bfps)), int(binfo["duration"] * bfps) - 1)), f"before {x:.2f}s"))
                 tiles.append((got.get(min(n - 1, int(round(x * fps)))), f"now {x:.2f}s"))
             ba = draw_sheet(tiles, Path(out) / "before_after.png", 6 if portrait else 4, portrait)
-    return {"overview": paths, "findings": fp, "before_after": ba, "every_seconds": step,
-            "tile": [w, h], "safe_area_marked": portrait}
+    return {"overview": paths, "findings": fp, "before_after": ba, "cuts": cut_paths, "every_seconds": step,
+            "tile": [w, h], "safe_area_marked": portrait,
+            "cut_strips": {"cuts": len(cuts), "shown": len(picks), "times": [round(c / fps, 3) for c in picks],
+                           "sampled": len(picks) < len(cuts)}}
 
 
 # ------------------------------------------------------------------ main
@@ -558,6 +869,10 @@ def main():
     ap.add_argument("--before", help="check.json of an earlier round, to list what changed")
     ap.add_argument("--voice", help="the voice track as it sits in the mix (from 0 s), with --music")
     ap.add_argument("--music", help="the music track as it sits in the mix (from 0 s), with --voice")
+    ap.add_argument("--type", choices=sorted(TYPES), help="the kind of video, which sets what blocks delivery: "
+                    "tutorial (or screen recording), talk (talking head), promo (or ad), reel (short-form), film (or story)")
+    ap.add_argument("--text", help="the edit's text layers: an EditAtlas project.json, or captions as .srt, .vtt or .ass")
+    ap.add_argument("--strips", type=int, default=16, help="most cuts to draw a six-frame strip for (0: none)")
     args = ap.parse_args()
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -610,6 +925,13 @@ def main():
     snd = sound(video, info, args, findings)
     if args.voice and snd:
         snd["music_under_voice"] = balance(args.voice, args.music, info, findings)
+    portrait = tile_size(info, 100)[1] > 100
+    txt = text_census(args.text, info, findings, portrait) if args.text else None
+    if args.type:
+        for f in findings:
+            lvl = TYPES[args.type].get(f["code"])
+            if lvl and lvl != f["level"]:
+                f["level_default"], f["level"] = f["level"], lvl
     findings.sort(key=lambda f: ({"P0": 0, "P1": 1, "P2": 2}[f["level"]], f["t"]))
     before = None
     if args.before:
@@ -623,13 +945,16 @@ def main():
                 f"not a video or another file: {args.before}")
         if not isinstance(before, dict) or "findings" not in before:
             die(f"--before {args.before} is not a check.json from check.py: it has no findings")
-    sh = sheets(video, info, len(g), fps, findings, args.out, args.every, before)
-    result = {"version": VERSION, "video": video, "spec": info, "picture": pic, "sound": snd,
-              "findings": findings, "sheets": sh,
-              "planned": {k: getattr(args, k) for k in ("expect", "fps", "duration", "loudness", "audio", "loop",
-                                                         "holds", "flashes", "voice", "music")},
+    cut_idx, odd_idx = pic.pop("_cut_idx"), pic.pop("_odd_idx")
+    sh = sheets(video, info, len(g), fps, findings, args.out, args.every, before, cut_idx, odd_idx, args.strips)
+    result = {"version": VERSION, "video": video, "type": args.type, "spec": info, "picture": pic, "sound": snd,
+              "text": txt, "findings": findings, "sheets": sh,
+              "planned": {k: getattr(args, k) for k in ("type", "expect", "fps", "duration", "loudness", "audio", "loop",
+                                                         "holds", "flashes", "voice", "music", "text")},
               "not_checked": ["whether it is good: story, pacing, taste", "spelling and meaning of on-screen text",
-                              "text size and position (look at the sheets)", "what the sound is: nobody listened",
+                              ("text size and timing of text not in --text (burned in, inside pictures): look at the sheets"
+                               if txt else "text size, timing and position (no --text given): look at the sheets"),
+                              "what the sound is: nobody listened",
                               "lip sync and sound against picture", "colour and grade"]}
     if before:
         result["compared_with_before"] = compare(before, findings)
@@ -642,6 +967,11 @@ def main():
     print(f"picture: {pic['frames']} frames, {len(pic['cuts'])} cuts ({pic['cuts_per_minute']}/min), shots "
           f"{pic['shot_seconds']['shortest']}-{pic['shot_seconds']['longest']} s, still {100 * pic['still_share']:.0f}%"
           + (f", loop {pic['loop']['state']}" if pic["loop"] else ""))
+    print(f"type: {args.type}" if args.type else
+          "type: not given; findings use default levels (pass --type, see references/video-types.md)")
+    if txt:
+        print(f"text: {len(txt['items'])} texts from {Path(args.text).name}, {txt['running_captions']} running captions; "
+              f"font under {txt['min_font_px']['fail']} px fails on this frame")
     if snd:
         print(f"sound: {snd['lufs']} LUFS (target {args.loudness:g}), true peak {snd['true_peak_dbtp']} dBTP, "
               f"{len(snd['silences'])} silence(s) over 0.5 s")
@@ -658,7 +988,11 @@ def main():
         c = result["compared_with_before"]
         print(f"against the earlier round: {len(c['gone'])} gone (fixed, or now declared as planned), "
               f"{len(c['still'])} still there, {len(c['new'])} new")
-    print("sheets: " + ", ".join(sh["overview"] + [p for p in (sh["findings"], sh["before_after"]) if p]))
+    cs = sh["cut_strips"]
+    if cs["cuts"]:
+        print(f"cut strips: {cs['shown']} of {cs['cuts']} cuts" + (" (sampled: cuts with a fault first, then spread out)"
+                                                                    if cs["sampled"] else ""))
+    print("sheets: " + ", ".join(sh["overview"] + sh["cuts"] + [p for p in (sh["findings"], sh["before_after"]) if p]))
 
 
 if __name__ == "__main__":
