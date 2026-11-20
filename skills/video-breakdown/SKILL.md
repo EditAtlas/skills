@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline; only the optional --check-api step, font lookalikes (downloaded once from Google Fonts) and the EditAtlas MCP use the network. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.5.1"
+  version: "0.5.2"
   status: beta
   library: techniques sfx
   mcp-tools: search_techniques get_technique search_sfx get_workflow
@@ -13,7 +13,7 @@ metadata:
 
 # Video breakdown: from a video someone likes to named techniques and a recipe
 
-This is video-breakdown 0.5.1.
+This is video-breakdown 0.5.2.
 
 When `scripts/analyze.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -173,7 +173,7 @@ EditAtlas and that names match. Fix what it lists and run it again.
 
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-breakdown above 0.5.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-breakdown gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-breakdown above 0.5.2, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-breakdown gives the step). Without the MCP, skip it.
 
 Give the person, in their language:
 

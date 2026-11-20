@@ -291,7 +291,87 @@ def test_every_skill_has_this_helper_and_its_main_script_uses_it():
         copy = ROOT / "skills" / skill / "scripts" / "editatlas_signal.py"
         assert copy.read_bytes().replace(b"\r\n", b"\n") == helper, copy
         source = (ROOT / "skills" / skill / "scripts" / script).read_text(encoding="utf-8")
-        assert "from editatlas_signal import run" in source and "except ImportError:" in source, script
+        assert "from editatlas_signal import run as editatlas_run" in source and "except ImportError:" in source, script
+
+
+def test_the_signal_never_replaces_a_name_the_script_uses():
+    # skills v0.26.0 imported the helper as `run` in the __main__ block. That rebinds the module's own run(), and
+    # mix.py, check.py and measure.py call FFmpeg through a run() of their own, so every one of their runs failed with
+    # "TypeError: 'list' object is not callable" (found 2026-11-20 from the run signal: sound-design 10 errors in 13).
+    import ast
+    for skill, script in _main_scripts().items():
+        path = ROOT / "skills" / skill / "scripts" / script
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        block = next(node for node in tree.body if isinstance(node, ast.If) and "__main__" in ast.unparse(node.test))
+        bound = {n.asname or n.name for node in ast.walk(block) if isinstance(node, (ast.Import, ast.ImportFrom)) for n in node.names}
+        bound |= {t.id for node in ast.walk(block) if isinstance(node, ast.Assign) for t in node.targets if isinstance(t, ast.Name)}
+        rest = [node for node in tree.body if node is not block]
+        used = {n.id for node in rest for n in ast.walk(node) if isinstance(n, ast.Name)}
+        used |= {node.name for node in rest if isinstance(node, (ast.FunctionDef, ast.ClassDef))}
+        used |= {n.asname or n.name.split(".")[0] for node in rest for n in getattr(node, "names", []) if isinstance(node, (ast.Import, ast.ImportFrom))}
+        assert not (bound & used), (skill, script, sorted(bound & used))
+
+
+def _film(folder):
+    """A 3-second test film with a tone, made by FFmpeg."""
+    film = folder / "film.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=size=360x640:rate=30:duration=3",
+                    "-f", "lavfi", "-i", "sine=frequency=330:duration=3", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-shortest", str(film)], check=True, timeout=120)
+    return film
+
+
+def _sound_mirror(folder):
+    """A one-sound stand-in for a local EditAtlas/sfx clone, so mix.py downloads nothing."""
+    import hashlib
+    mirror = folder / "mirror"
+    (mirror / "click").mkdir(parents=True)
+    wav = mirror / "click" / "test-tick.wav"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=2000:duration=0.08", "-ac", "2",
+                    "-ar", "48000", str(wav)], check=True, timeout=60)
+    sound = {"id": "sfx-test0001", "title": "Test Tick", "category": "click", "path": "click/test-tick.wav",
+             "bytes": wav.stat().st_size, "sha256": hashlib.sha256(wav.read_bytes()).hexdigest(),
+             "url": "https://raw.githubusercontent.com/EditAtlas/sfx/main/click/test-tick.wav"}
+    (mirror / "index.json").write_text(json.dumps({"count": 1, "sounds": [sound]}), encoding="utf-8")
+    return mirror
+
+
+def test_main_scripts_that_call_ffmpeg_really_run_and_send_once():
+    # --help skips the signal, so the v0.26.0 break passed every check. These run the scripts on a real film, through
+    # the proxy: one send (one CONNECT to edit.trysometh.ing) and the script's own result, no traceback.
+    import importlib.util
+    if not (shutil.which("ffmpeg") and shutil.which("ffprobe")):
+        assert not os.environ.get("CI"), "CI installs FFmpeg for this test (.github/workflows/validate.yml)"
+        print("  skipped: FFmpeg not installed")
+        return
+    if not (importlib.util.find_spec("numpy") and importlib.util.find_spec("PIL")):
+        print("  skipped: numpy or Pillow not installed")
+        return
+    folder = Path(tempfile.mkdtemp(prefix="real-run-"))
+    proxy = Server()
+    try:
+        film, mirror = _film(folder), _sound_mirror(folder)
+        cues = folder / "cues.json"
+        cues.write_text(json.dumps({"video": str(film), "keep_audio": True,
+                                    "cues": [{"t": 1.0, "id": "sfx-test0001", "role": "click"}]}), encoding="utf-8")
+        scripts = ROOT / "skills"
+        runs = [
+            ("sound-design", [scripts / "sound-design/scripts/mix.py", cues, "--out", folder / "out/film_sfx.mp4",
+                              "--mirror", mirror, "--cache", folder / "cache"], folder / "out/film_sfx.mp4"),
+            ("video-check", [scripts / "video-check/scripts/check.py", film, "--out", folder / "check"], None),
+            ("media-picker", [scripts / "media-picker/scripts/measure.py", film, "--out", folder / "measure"], folder / "measure/sheets"),
+        ]
+        for skill, args, made in runs:
+            proxy.bodies.clear()
+            done = subprocess.run([sys.executable, "-I", *map(str, args)], capture_output=True, encoding="utf-8",
+                                  errors="replace", env=proxied_env(proxy), timeout=300, cwd=folder)
+            assert "Traceback" not in done.stderr, (skill, done.stderr[-800:])
+            assert done.returncode == 0, (skill, done.returncode, done.stderr[-400:])
+            assert proxy.bodies == [{"connect": "edit.trysometh.ing:443"}], (skill, proxy.bodies)
+            assert made is None or made.exists(), (skill, made)
+    finally:
+        proxy.close()
+        shutil.rmtree(folder, ignore_errors=True)
 
 
 if __name__ == "__main__":

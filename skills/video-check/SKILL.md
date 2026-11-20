@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Runs offline. Designed for Claude Code and other agents with a shell that can read images; a reviewer subagent is used when the agent can start one.
 metadata:
   author: EditAtlas
-  version: "0.3.1"
+  version: "0.3.2"
   status: beta
   library: techniques
   mcp-tools: search_techniques get_technique get_workflow
@@ -13,7 +13,7 @@ metadata:
 
 # Video check: find what is wrong with a render before anyone else does
 
-This is video-check 0.3.1.
+This is video-check 0.3.2.
 
 When `scripts/check.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -117,7 +117,7 @@ below for the rest.
 
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-check above 0.3.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-check gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists video-check above 0.3.2, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name video-check gives the step). Without the MCP, skip it.
 
 Write `REVIEW.md` next to the video, in the person's language, with the template in
 `references/review-guide.md`:

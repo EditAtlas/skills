@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Needs network access to download candidates, or the files downloaded by the person. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.3.1"
+  version: "0.3.2"
   status: beta
   library: sfx
   mcp-tools: search_music search_videos search_photos search_sfx get_sfx send_feedback
@@ -13,7 +13,7 @@ metadata:
 
 # Media picker: pick music, footage and sounds that fit this video
 
-This is media-picker 0.3.1.
+This is media-picker 0.3.2.
 
 When `scripts/measure.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -160,7 +160,7 @@ Never guess times by ear or from a script.
 
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.3.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.3.2, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
 
 Write `ASSETS.md` next to the edit, in the person's language, with the template in `references/fit-guide.md`: for
 each slot the pick, why it fits, its measured numbers, the in and out times, and the candidates dropped with one

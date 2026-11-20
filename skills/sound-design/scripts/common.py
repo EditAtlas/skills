@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import numpy as np
 
 SR = 48000
 INDEX_URL = "https://raw.githubusercontent.com/EditAtlas/sfx/main/index.json"
+INDEX_MAX_AGE_S = 86400
 USER_AGENT = "sound-design-skill/0.2"
 
 # Peak level (dBFS) a sound of each role is set to before the cue's own gain_db.
@@ -152,7 +154,9 @@ def load_index(cache=None, mirror=None, refresh=False):
         return json.loads(f.read_text(encoding="utf-8")), Path(mirror)
     c = cache_dir(cache)
     f = c / "index.json"
-    if refresh or not f.is_file():
+    # A cached index older than a day is fetched again: the library grows, and search_sfx gives ids of new sounds
+    # that an old copy does not have (until 0.4.4 the first copy was kept forever).
+    if refresh or not f.is_file() or time.time() - f.stat().st_mtime > INDEX_MAX_AGE_S:
         try:
             _get(INDEX_URL, f)
         except OSError as e:

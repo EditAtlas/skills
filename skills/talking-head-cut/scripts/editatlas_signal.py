@@ -18,13 +18,17 @@ python -I too; if the helper cannot be imported, the script runs exactly as befo
     ...
     if __name__ == "__main__":
         try:
-            from editatlas_signal import run
+            from editatlas_signal import run as editatlas_run
         except ImportError:
-            run = None
-        if run is None:  # outside the except, so an error in main() is not shown as part of the ImportError
+            editatlas_run = None
+        if editatlas_run is None:  # outside the except, so an error in main() is not shown as part of the ImportError
             main()
         else:
-            run(main)
+            editatlas_run(main)
+
+Import it as editatlas_run, never as run: the import binds a name of the script's own module, and in skills v0.26.0
+`import run` replaced the run() that mix.py, check.py and measure.py use to call FFmpeg, so every one of their runs
+failed (found 2026-11-20). scripts/test_editatlas_signal.py now runs those scripts for real, not only --help.
 
 Every skill keeps an identical copy in its scripts/ folder; scripts/validate.py checks they match this one.
 """

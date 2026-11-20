@@ -30,4 +30,5 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install numpy pillow  # the main scripts' own needs, so each one's --help runs under python -I
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg  # mix.py, check.py and measure.py run for real
       - run: python scripts/test_editatlas_signal.py
