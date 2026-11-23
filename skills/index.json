@@ -18,7 +18,7 @@
       "plugin": "editable-export",
       "install_claude_code": "/plugin install editable-export@editatlas-skills",
       "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/editable-export.zip",
-      "eval_cases": 8
+      "eval_cases": 9
     },
     {
       "name": "media-picker",
