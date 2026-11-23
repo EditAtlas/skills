@@ -15,7 +15,8 @@ graphic baked into a clip) cannot be changed there. Put text, graphics and sound
   "canvas": {"width": 1080, "height": 1920, "fps": 30, "background": "#000000"},
   "media":  { "<id>": { ... } },
   "styles": { "<name>": { ...text properties... } },
-  "tracks": [ { ... }, ... ]
+  "tracks": [ { ... }, ... ],
+  "notes":  [ { "id": "note-1", "at": 12.4, "text": "cut this faster" } ]
 }
 ```
 
@@ -242,6 +243,14 @@ exit, and a hold of at least 0.5 s between moves. A card's keys carry its words 
   the first and after the last; fades apply on top. Use them to duck music under speech. In the studio the person
   drags the line (it changes `gain_db`), double-clicks it to add a point, drags points, and drags the dots on the
   sound's top edge to set `fade_in` and `fade_out`. Splitting a sound puts a point at the cut on both parts.
+
+## notes: what the person wants changed, and where
+
+Optional. The person adds notes for you in the studio (N, or right-click the timeline): `id`, `at` (seconds on the
+timeline) and `text` (up to 500 characters), in time order. They are not elements: they draw nothing, the export and
+`render.py` ignore them, and their ids are not element ids. They come with the version, in the message from the
+studio and in `package.py changes`. Work on each one; take out of `notes` the ones you have done and keep the ones
+you could not do (say why). Leave `notes` out, or empty, when you write a project yourself.
 
 ## Ids
 

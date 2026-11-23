@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: notes-from-studio
+expected_outcome: |
+  Claude reads the person's version 2 in tweak.edit and its two notes on the timeline (from message.txt, package.py
+  changes or the project's "notes"): at 0.8 s, the title should say "Two ways" instead of "Three ways"; at 4.5 s, the
+  video should end at 5 seconds. On a copy of version 2 it changes the hook text to "Two ways to cut faster", ends the
+  video at 5 s (clip c1 out 5, the title and sounds still inside), takes both notes out of "notes", keeps every id,
+  and saves that as version 3 with package.py save --from 2. It renders the final MP4 from tweak.edit with render.py,
+  checks it, and tells the person what it did for each note. It invents no other change.
+context:
+  scaffold_script: place-files.sh

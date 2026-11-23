@@ -173,6 +173,13 @@ def check(p, base=None):
                     errs.append(f"{where}: gain_keys must be in time order")
     if nvideo > 1:
         errs.append("use one video track (the footage); put other pictures on image tracks")
+    notes = p.get("notes")
+    if notes is not None:
+        if not (isinstance(notes, list) and all(isinstance(n, dict) and isinstance(n.get("id"), str) and n["id"] and is_num(n.get("at")) and n["at"] >= 0
+                                               and isinstance(n.get("text", ""), str) and len(n.get("text", "")) <= 500 for n in notes)):
+            errs.append('notes must be a list of {"id": text, "at": seconds, "text": up to 500 characters}')
+        elif len({n["id"] for n in notes}) != len(notes):
+            errs.append("each note needs an id of its own")
     errs += check_cards(p)
     for name, st in styles.items():
         font = st.get("font")
@@ -599,6 +606,7 @@ def cmd_changes(a):
         print("note:", vt["note"])
     if frm is None:
         print(f"v{to} is the first version; nothing to compare it with")
+        print_notes(vt["project"])
         return
     if frm not in have:
         die(f"there is no version {frm} in {out}")
@@ -606,6 +614,7 @@ def cmd_changes(a):
     print(f"changes from v{frm} to v{to}:" if lines else f"no changes from v{frm} to v{to}")
     for line in lines:
         print("-", line)
+    print_notes(vt["project"])
 
 
 # ------------------------------------------------------------------ what changed, in the studio's words
@@ -902,7 +911,39 @@ def change_summary(a, b):
     for ta in tracks_a:
         if find(tracks_b, get(ta, "id")) is None:
             out.append(f"track {js_template(js_or(get(ta, 'name'), get(ta, 'id')))}: removed")
+    # notes for the agent, left on the timeline by the person
+    na, nb = js_or(get(a, "notes"), []), js_or(get(b, "notes"), [])
+
+    def note_at(n):
+        return f"note at {js_num(r3(js_or(js_plus(get(n, 'at')), 0)))} s"
+
+    for n in na:
+        if find(nb, get(n, "id")) is None:
+            out.append(f"{note_at(n)} {val(js_or(get(n, 'text'), ''))}: removed")
+    for n in nb:
+        was = find(na, get(n, "id"))
+        if was is None:
+            out.append(f"{note_at(n)} {val(js_or(get(n, 'text'), ''))}: added")
+            continue
+        if not js_is(js_or(get(was, "text"), ""), js_or(get(n, "text"), "")):
+            out.append(f"{note_at(was)}: text {val(js_or(get(was, 'text'), ''))} → {val(js_or(get(n, 'text'), ''))}")
+        if r3(js_or(js_plus(get(was, "at")), 0)) != r3(js_or(js_plus(get(n, "at")), 0)):
+            out.append(f"{note_at(was)}: moved to {js_num(r3(js_or(js_plus(get(n, 'at')), 0)))} s")
     return out
+
+
+def note_lines(project):
+    """The person's notes on the timeline, in time order, as the studio's message lists them."""
+    notes = [n for n in (project.get("notes") or []) if isinstance(n, dict) and str(n.get("text", "")).strip()]
+    return [f"at {n.get('at')} s ({n.get('id')}): {' '.join(str(n['text']).split())}" for n in sorted(notes, key=lambda n: n.get("at") or 0)]
+
+
+def print_notes(project, indent=""):
+    lines = note_lines(project)
+    if lines:
+        print(f"{indent}notes on the timeline for you (do each one, then take it out of \"notes\" in your version):")
+        for line in lines:
+            print(f"{indent}  - {line}")
 
 
 # ------------------------------------------------------------------ check

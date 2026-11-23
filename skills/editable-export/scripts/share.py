@@ -388,6 +388,7 @@ def cmd_pull(a):
             print(f"changes from v{newest['parent']} to v{target}:" if lines else f"no changes from v{newest['parent']}")
             for line in lines:
                 print("  -", line)
+    pk.print_notes(newest["project"])
     fetch_studio_fonts(folder, newest["project"], link.site)
     print_media_gaps(folder, newest)
     print("->", folder / "project.json")
