@@ -15,6 +15,10 @@ import numpy as np
 from common import SR, db, decode, die, envelope, lufs, utf8_stdout, window_db, write_json
 
 HEAVY = {"hit", "impact", "boom"}
+# The role levels already balance one sound against another, so a cue raised far past its role is usually the wrong
+# sound, or a slice of a long take made to stand alone. Feedback 2026-11-20: two 0.5 s strokes cut from an 11 s marker
+# take and raised 12 dB were the first thing the person asked to remove ("sounds weird").
+MAX_BOOST_DB = 6
 
 
 def events(cues, merge=0.08):
@@ -123,6 +127,9 @@ def main():
             flags.append(f"lost: nothing audible near {c['t']:.2f}s ({c['title']})")
     for c in cues:
         m = c.get("measured") or {}
+        if float(c.get("gain_db") or 0) > MAX_BOOST_DB:
+            flags.append(f"boost: {c['title']} at {c['t']:.2f}s is raised {float(c['gain_db']):+.0f} dB over its role; "
+                         "a sound that needs this much is likely the wrong one: find a sound made for that moment, or leave it quiet")
         if c.get("anchor") == "start" and m.get("attack_s", 0) > 0.06 and not c.get("offset_in"):
             lines.append(f"note: {c['title']} at {c['t']:.2f}s swells for {int(m['attack_s'] * 1000)} ms before its peak; "
                          "if its peak is the moment, use anchor peak")

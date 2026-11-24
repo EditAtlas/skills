@@ -132,7 +132,8 @@ def main():
                          "role": role, "anchor": anchor, "placed_at": round(i0 / SR, 3),
                          "lands_at": round(i0 / SR + lead, 3), "len_s": round(len(x) / SR, 3), "lead_s": round(lead, 4),
                          "path": str(path), "offset_in": float(cue.get("offset_in", 0.0)) + cut,
-                         "peak_dbfs": round(target, 1), "label": cue.get("label"), "notes": notes,
+                         "peak_dbfs": round(target, 1), "gain_db": float(cue.get("gain_db", 0)),
+                         "label": cue.get("label"), "notes": notes,
                          "measured": m})
     keep = sheet.get("keep_audio", True) and info["has_audio"]
     master_db, target_lufs = 0.0, float(sheet.get("target_lufs", SFX_ONLY_LUFS))

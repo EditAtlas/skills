@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, FFmpeg with ffprobe, and network access to raw.githubusercontent.com (or a local clone of EditAtlas/sfx). Designed for Claude Code and other agents with a shell.
 metadata:
   author: EditAtlas
-  version: "0.4.4"
+  version: "0.4.5"
   status: beta
   library: sfx
   mcp-tools: search_sfx get_sfx
@@ -13,7 +13,7 @@ metadata:
 
 # Sound design: real sounds on a finished video
 
-This is sound-design 0.4.4.
+This is sound-design 0.4.5.
 
 When `scripts/mix.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -87,6 +87,19 @@ One line per moment that deserves sound: time, what happens, what kind of sound.
 Not every move needs a sound. Pace and taste rules with numbers are in `references/taste.md`; read it before the
 first cue sheet of a session.
 
+One person asked to remove four sounds from one film (2026-11-20). Each time the sound itself was fine; the
+placement was not:
+
+- **A whoosh is for something fast.** Under a slow pan (4 s across a kitchen) it sounded "creepy". A move that takes
+  more than about a second gets no whoosh: leave it quiet, or let the music carry it.
+- **Something drawn by hand gets a drawing sound.** An interface beep on an arrow drawing onto a photo mixed two
+  worlds. Interface sounds belong to interface things: buttons, chips, cursors, notifications.
+- **Do not cut one stroke out of a long take and raise it.** Two 0.5 s strokes cut from an 11 s marker take and raised
+  12 dB sounded "weird". Find a short sound made for that moment; `check.py` flags any cue raised more than 6 dB.
+- **When the clip already has the real sound, do not add the library's.** A recorded pour over a shot of water being
+  poured, with the clip's own audio kept, read as fake. With `keep_audio: true`, listen for what the picture already
+  makes before you add foley for it.
+
 ## 3. Choose sounds: read, measure, compare
 
 1. Search. If the EditAtlas MCP is connected, `search_sfx` ranks better (it also understands Vietnamese); otherwise
@@ -136,7 +149,8 @@ Run `check.py` after every render; exit code 1 means it flagged something. It re
 `mix.py` wrote next to `_resolved.json`, so keep those files together when you copy results. It finds every sound in the rendered
 track by its own waveform, so `sync` is real: anything off by more than one frame is a bug in the sheet. It also
 measures gestures per 10 s, the longest hole, heavy hits, repeats, digital silence, master loudness and true
-peak, mono fold-down, and how many strong picture moments got a sound.
+peak, mono fold-down, cues raised more than 6 dB past their role, and how many strong picture moments got a
+sound.
 
 For each flag either fix it (add a sound to the hole, swap a repeat, move a cue) or decide it is right and say why
 in the report ("the 7.8 s hole is a talking stretch, the voice carries it"). Notes about slow attacks are hints:
@@ -144,7 +158,7 @@ if the moment is the sound's peak, switch that cue to `anchor: peak`. Two or thr
 
 ## 6. Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists sound-design above 0.4.4, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name sound-design gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists sound-design above 0.4.5, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name sound-design gives the step). Without the MCP, skip it.
 
 Give the person:
 
