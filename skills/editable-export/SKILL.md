@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (reading and adding to a link the person gives you) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.7.0"
+  version: "0.7.1"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.7.0.
+This is editable-export 0.7.1.
 
 When `scripts/package.py build` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -190,7 +190,7 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.7.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.7.1, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy: "a folder you
 open in the EditAtlas studio; your footage stays in it." With a yes, build the copy if you have not, and give them the folder:

@@ -40,11 +40,9 @@ jobs:
         python-version: ["3.9", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+      # uv, because setup-python has no 3.9 for the newest Ubuntu (2026-11-24) and the skill says Python 3.9+.
+      - uses: astral-sh/setup-uv@v6
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg  # package.py build measures the test footage
       # jsonschema for the schema; OpenTimelineIO and its FCP XML adapter read the converters' files back.
       # convert.py itself needs neither.
-      - run: pip install jsonschema opentimelineio otio-fcp-adapter
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg  # package.py build measures the test footage
-      - run: python scripts/test_project_format.py
+      - run: uv run --no-project --python ${{ matrix.python-version }} --with jsonschema --with opentimelineio --with otio-fcp-adapter python scripts/test_project_format.py

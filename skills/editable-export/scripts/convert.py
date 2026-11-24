@@ -566,7 +566,8 @@ def main():
     else:
         text = to_xml(plan)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(text, encoding="utf-8", newline="\n")
+    with open(out, "w", encoding="utf-8", newline="\n") as fh:   # Path.write_text takes newline only from Python 3.10
+        fh.write(text)
     c = plan.counts
     print(f"{out}: {c['clips']} clips, {c['pictures']} pictures, {c['sounds']} sounds, {c['text']} text and "
           f"{c['notes']} notes as markers; {plan.end} frames at {plan.fps:g} fps ({plan.end / plan.fps:.2f} s)")
