@@ -6,6 +6,36 @@ it, let the person change one element, and export the MP4 again. Format id: `edi
 Everything the studio shows comes from this file. Anything burned into the footage (text you drew with FFmpeg, a
 graphic baked into a clip) cannot be changed there. Put text, graphics and sounds here as elements instead.
 
+The format is open: any tool may read and write it. Its JSON Schema (draft 2020-12) is
+`editatlas-project-1.schema.json` next to this file, served at
+https://edit.trysometh.ing/schemas/editatlas-project-1.schema.json; `#/$defs/version` in it is a `versions/v<n>.json`
+file. The schema checks shapes, names and ranges. What it cannot check, `package.py check` does: `out` greater than
+`in`, ids unique, `media` ids of the right kind, `style` names and fonts that exist, `words` as many as the words of
+`text`, keys and `gain_keys` in time order, a card's items inside its time, one video track. The page
+https://edit.trysometh.ing/docs/project-format describes the format for other tools.
+
+The format, this file and the schema are under the Apache License 2.0, like the rest of this repository
+(https://github.com/EditAtlas/skills), so anyone may build a tool that reads or writes it.
+
+## Versioning
+
+- `format` stays `editatlas-project/1` while every change can be ignored by a reader that does not know it: a new
+  optional field, or a new value of a field where the old readers' default still makes sense. The schema at the same
+  address then gains the field.
+- A change that old readers would draw wrongly (a field whose meaning changes, a new required field, other units)
+  gets a new id, `editatlas-project/2`, and a new schema file next to this one. The studio keeps opening /1.
+- Readers ignore fields they do not know, and keep them when they write the project back. Fields that start with
+  `x-` are free for other tools; EditAtlas never gives them a meaning.
+
+## Converting to other editors
+
+`scripts/convert.py` writes the project as OpenTimelineIO (`.otio`) or as Final Cut Pro 7 XML (xmeml 4, which
+Premiere Pro and DaVinci Resolve import). The footage clips (source in and out, speed, their own sound and volume),
+the sounds and music (file in and out, level) and the pictures (timing only) become clips; text and notes become
+markers with their words and times; a dissolve becomes a transition (in the XML a dip to black or white too). The
+rest is printed as not carried over: text looks and positions, picture position, size and motion, framing, fades,
+volume lines, keys, slide and wipe. The `.otio` file keeps each element as it was under metadata `editatlas`.
+
 ## Top level
 
 ```json

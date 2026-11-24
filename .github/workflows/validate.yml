@@ -32,3 +32,19 @@ jobs:
       - run: pip install numpy pillow  # the main scripts' own needs, so each one's --help runs under python -I
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg  # mix.py, check.py and measure.py run for real
       - run: python scripts/test_editatlas_signal.py
+
+  project-format:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # jsonschema for the schema; OpenTimelineIO and its FCP XML adapter read the converters' files back.
+      # convert.py itself needs neither.
+      - run: pip install jsonschema opentimelineio otio-fcp-adapter
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg  # package.py build measures the test footage
+      - run: python scripts/test_project_format.py

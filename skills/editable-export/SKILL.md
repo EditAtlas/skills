@@ -5,7 +5,7 @@ license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (reading and adding to a link the person gives you) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.6.0"
+  version: "0.7.0"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.6.0.
+This is editable-export 0.7.0.
 
 When `scripts/package.py build` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -65,6 +65,8 @@ python SKILL/scripts/package.py save work/next.json --to result/NAME.edit --from
 python SKILL/scripts/share.py pull result/NAME.edit                                     # their versions from the link
 python SKILL/scripts/share.py push result/NAME.edit                                     # yours onto the link
 python SKILL/scripts/share.py pull "LINK" --out result/NAME.edit                        # a link they pasted
+python SKILL/scripts/convert.py xml result/NAME.edit --out result/NAME.xml              # for Premiere Pro, DaVinci Resolve
+python SKILL/scripts/convert.py otio result/NAME.edit --out result/NAME.otio            # OpenTimelineIO
 ```
 
 ## When the inputs are missing
@@ -188,7 +190,7 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.6.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.7.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy: "a folder you
 open in the EditAtlas studio; your footage stays in it." With a yes, build the copy if you have not, and give them the folder:
@@ -248,6 +250,12 @@ Tell them how the studio works:
    there (Continue with Claude offers it) and paste the link with the message.
 
 Say what you checked and what you did not. For example: "exported once in Chrome; not tried in Safari".
+
+**If they want to finish in another editor** (Premiere Pro, DaVinci Resolve, or anything that reads OpenTimelineIO),
+run `scripts/convert.py` on the folder and give them the file. Do not offer it unasked. It carries the cuts, speeds,
+sounds and levels and the pictures' timing; text arrives as markers with its words and times, so they set its look
+there. Tell them what it printed as not carried over, and that the file points at the files in the folder's `media/`
+by their full path: they keep the folder where it is, or relink.
 
 **Last, ask once how it went.** If the EditAtlas MCP is connected, ask the person, in one short message in their
 language, about each thing from EditAtlas you used, by name: the techniques, sounds, music, stock clips and this
@@ -323,3 +331,4 @@ changed what, and you need them to carry on.
 
 - `references/project-format.md`: every field of `project.json`, the folder's `versions/v<n>.json` and the light
   link. Read it before you write one by hand.
+- `references/editatlas-project-1.schema.json`: the same format as a JSON Schema, for a tool that checks a file.
