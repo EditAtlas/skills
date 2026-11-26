@@ -1,11 +1,11 @@
 ---
 name: media-picker
-description: Find, pick and place B-roll (stock clips for the lines of a voice-over), background music, photos and sound effects that fit the video, and check each before it goes into the edit. Use it before calling search_videos, search_music, search_photos or search_sfx, or downloading from Pexels or Pixabay, whenever a video needs B-roll, cutaway shots or music, when B-roll goes on the words of a voice-over or talking head, and when someone says a pick does not fit. Measures candidates (shake, cuts, crop; music tempo, intro, energy), looks at every frame sheet, has the person hear music options, and places clips on their words, colour-matched, off the face. Triggers include "cần B-roll cho mấy câu này", "chèn B-roll vào video", "tìm cảnh trên Pexels", "tìm b-roll", "tìm nhạc nền", "chọn nhạc nền", "nhạc nền không hay", "cảnh bị rung", "find B-roll for these lines", "add B-roll to this voice-over", "find background music". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).
+description: Find, pick and place B-roll, background music, photos and sound effects that fit the video, and check each before it goes into the edit; also cut the person's own clips into a recap or highlight reel on the beat of a track. Use it before calling search_videos, search_music, search_photos or search_sfx, whenever a video needs B-roll, cutaways or music, when B-roll goes on the words of a voice-over or talking head, when someone says a pick does not fit, and for a montage of their own footage. Measures candidates, looks at every frame sheet and keeps what it saw, has the person hear music options, and places clips on their words, colour-matched, off the face. Triggers include "chèn B-roll vào video", "tìm b-roll", "tìm nhạc nền", "dựng recap từ mấy clip này", "find B-roll for these lines", "find background music", "make a highlight reel from my clips". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ with numpy and Pillow, and FFmpeg with ffprobe. Needs network access to download candidates, or the files downloaded by the person. Designed for Claude Code and other agents with a shell that can read images.
 metadata:
   author: EditAtlas
-  version: "0.3.2"
+  version: "0.4.0"
   status: beta
   library: sfx
   mcp-tools: search_music search_videos search_photos search_sfx get_sfx send_feedback
@@ -13,7 +13,7 @@ metadata:
 
 # Media picker: pick music, footage and sounds that fit this video
 
-This is media-picker 0.3.2.
+This is media-picker 0.4.0.
 
 When `scripts/measure.py` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -158,9 +158,34 @@ Never guess times by ear or from a script.
    into the copies, so tell the person the studio cannot change it. For a plain MP4 without the studio, add
    `--render out/final.mp4`: it lays the graded clips over the speaker with FFmpeg, exactly as placed.
 
+## The person's own clips: look once, then cut the best moments on the beat
+
+For a recap, a highlight reel or a montage of the person's own footage (an event, a trip, a match, a day out):
+
+1. **Look once, and keep what you saw.** `python scripts/look.py c1.mp4 c2.mov ... --out work/look` makes a sheet
+   per file: up to 12 frames from across it, each marked with its time in the file. Open each with the Read tool,
+   then keep two or three short lines per file with times: `look.py c1.mp4 --note "0-3s couple dancing, pink light;
+   she laughs at 10 s (best); soft focus in the first second" --by Claude --out work/look`. The next edit, or the
+   next round after the person's changes, reads them (`look.py --notes`, or `seen` in the project) instead of
+   looking again; a file that changed since shows up as changed. Write what is there, not what you hope for.
+2. **Pick the moments.** `python scripts/highlights.py c1.mp4 c2.mp4 ... --music track.mp3 --out work/highlights
+   --target 1080x1920 --preview` scores every clip about four times a second for focus, exposure, colour and
+   steadiness, takes the best stretches round-robin in the order they were filmed, makes every shot a whole number
+   of beats (long and short in turn), ends on a bar, and starts the song on the bar where it lifts. `--seconds`
+   sets the length (default half the good footage, 12-40 s), `--pace calm|fast` the shot length, `--every` takes
+   something from every clip. Pick the track with the person first (step 5 above): the cut follows its beat.
+3. **Look at `work/highlights/sheet.png`, as at step 4.** The scores see pixels, not meaning: a sharp shot of a wall
+   can beat a blurry laugh, and two shots can show the same moment. Check them against your notes from step 1;
+   swap a shot by editing its `file`, `in` and `out` in `highlights.json` (keep its length on the beat) and run
+   `highlights.py --from work/highlights/highlights.json --out work/highlights --preview`. Watch `preview.mp4` for
+   the rhythm; say that nobody has listened to it with the music if the person has not.
+4. **Into the edit.** `fragment.json` is an editable-export project (the shots back to back, the music from its
+   start). Add the person's titles or sounds there, then `package.py build`. `look.py --into` puts your notes in
+   it as `seen`. `references/reading-the-numbers.md` has what each score means and where it is wrong.
+
 ## Deliver
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.3.2, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists media-picker above 0.4.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name media-picker gives the step). Without the MCP, skip it.
 
 Write `ASSETS.md` next to the edit, in the person's language, with the template in `references/fit-guide.md`: for
 each slot the pick, why it fits, its measured numbers, the in and out times, and the candidates dropped with one
@@ -186,5 +211,6 @@ it.
   points for music by video type, and stock search habits. Read it at step 1.
 - `references/reading-the-numbers.md`: every number `measure.py` prints, its thresholds, what it was measured on
   and where it is wrong. Read it when a flag looks wrong.
+- `references/reading-the-numbers.md` also covers `highlights.py` (the scores, the beat grid, its limits).
 - `references/placing.md`: how `place.py` times, grades and frames each clip, its options, the editable-export
   fragment, and what it was measured on. Read it at step 7.

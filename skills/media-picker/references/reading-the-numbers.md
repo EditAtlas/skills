@@ -44,3 +44,28 @@ listen.
 
 `hit_at` is the time of the loudest sample; `tail` is how long the sound stays above 1% of that peak; `peak_dbfs`
 and `lufs` are its level as a file, before mixing.
+
+## highlights.py
+
+Each clip is read about four times a second at 160x90 (at most 600 samples a clip). Per sample:
+
+- **focus**: the variance of the Laplacian of the grey frame (log scale). Low on blurred, out-of-focus or very
+  dark frames; also low on a sharp but plain frame (a sky, a white wall).
+- **exposure**: 1 at mid grey, falling toward black and white; 0 under 10 % or over 93 % brightness. A night scene
+  that is meant to be dark scores low here.
+- **colour**: colourfulness (Hasler and Süsstrunk). A grey or monochrome look scores low on purpose.
+- **steadiness**: 1 minus the change since the sample before. A whip pan, a shaky hand or fast action scores low,
+  so a cut of sports or dancing leans toward its calmer moments: look at the sheet.
+- a **cut inside the clip** (the picture changes at once): no window crosses one.
+
+Each measure is placed between its 10th and 90th percentile over all the clips together, then weighted 0.35 focus,
+0.25 exposure, 0.2 colour, 0.2 steadiness. A window's score is the mean of its samples; under the 30th percentile
+of all samples it is not used (with `--every`, a clip with no shot yet still gives its best one). No faces, no
+meaning: the scores cannot tell a laugh from a wall.
+
+The beat: a spectral-flux onset curve, tempo from its autocorrelation (70-180 BPM, so it may be half or double),
+refined within 3 % with the phase that puts the most onset energy on the grid, each beat moved to its onset within
+50 ms; bar starts are the beat of each four with the most low-end onset energy (the kick), as sound-design's
+`beat_grid.py` guesses them. On a 128 BPM track (Pixabay 589893) and seven Pexels party clips, 2026-11-26, its cuts
+sat within 12 ms of `beat_grid.py`'s beats and its start on `beat_grid.py`'s bar start; 40 beats, 10 bars. A track
+with a free tempo, a long beatless intro or swing gives a grid that drifts: listen to the preview.

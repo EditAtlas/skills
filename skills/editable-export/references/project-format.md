@@ -68,6 +68,13 @@ Every file the edit uses, by id. `path` is relative to `project.json` (package.p
 | `image` | `path` (PNG with transparency, JPG, WebP, SVG; or an animated WebP, GIF or APNG for a motion graphic) |
 | `font` | `path` (TTF, OTF, WOFF, WOFF2), `family`, optional `weight` (400), `style` (`normal`/`italic`) |
 
+Any video or picture may carry `seen`: what you saw in it after looking, so the next edit, yours or another
+agent's, need not look again: `{"text": "0-3s girl eating noodles; 3-8s close-up, laughing, best 5s; bright kitchen,
+handheld but steady", "by": "Claude", "at": "2026-11-26", "fingerprint": "..."}`. `text` is required and at most 800
+characters; `fingerprint` is the file's size and a hash of its ends (media-picker's `look.py` writes and checks it),
+so a file that was changed since shows another one. The studio shows `seen` under Media and keeps it. When a
+project comes back, read `seen` before you look at a file again, and look again only when the fingerprint differs.
+
 Use fonts you may redistribute (Google Fonts are OFL): the font file goes into the package folder, which the
 person keeps and may pass on.
 

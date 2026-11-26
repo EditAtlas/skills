@@ -5,7 +5,7 @@
     {
       "name": "editable-export",
       "description": "Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer (kept in Google Drive from the studio, it also gets a link). Each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for \"an editable version\", \"a project file\", to \"tweak it myself\", pastes a message from EditAtlas Studio, \"chỉnh lại chút\", \"tự sửa\", \"file để sửa\", \"chỉnh cỡ chữ\", or \"âm thanh bị trễ\" after an edit. It is not a full editor; effects burned into the clips cannot be changed there.",
-      "version": "0.7.1",
+      "version": "0.8.0",
       "status": "beta",
       "libraries": [
         "studio"
@@ -22,8 +22,8 @@
     },
     {
       "name": "media-picker",
-      "description": "Find, pick and place B-roll (stock clips for the lines of a voice-over), background music, photos and sound effects that fit the video, and check each before it goes into the edit. Use it before calling search_videos, search_music, search_photos or search_sfx, or downloading from Pexels or Pixabay, whenever a video needs B-roll, cutaway shots or music, when B-roll goes on the words of a voice-over or talking head, and when someone says a pick does not fit. Measures candidates (shake, cuts, crop; music tempo, intro, energy), looks at every frame sheet, has the person hear music options, and places clips on their words, colour-matched, off the face. Triggers include \"cần B-roll cho mấy câu này\", \"chèn B-roll vào video\", \"tìm cảnh trên Pexels\", \"tìm b-roll\", \"tìm nhạc nền\", \"chọn nhạc nền\", \"nhạc nền không hay\", \"cảnh bị rung\", \"find B-roll for these lines\", \"add B-roll to this voice-over\", \"find background music\". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).",
-      "version": "0.3.2",
+      "description": "Find, pick and place B-roll, background music, photos and sound effects that fit the video, and check each before it goes into the edit; also cut the person's own clips into a recap or highlight reel on the beat of a track. Use it before calling search_videos, search_music, search_photos or search_sfx, whenever a video needs B-roll, cutaways or music, when B-roll goes on the words of a voice-over or talking head, when someone says a pick does not fit, and for a montage of their own footage. Measures candidates, looks at every frame sheet and keeps what it saw, has the person hear music options, and places clips on their words, colour-matched, off the face. Triggers include \"chèn B-roll vào video\", \"tìm b-roll\", \"tìm nhạc nền\", \"dựng recap từ mấy clip này\", \"find B-roll for these lines\", \"find background music\", \"make a highlight reel from my clips\". Not for checking a finished render (video-check) or placing sounds on frames (sound-design).",
+      "version": "0.4.0",
       "status": "beta",
       "libraries": [
         "sfx"

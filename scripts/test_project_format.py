@@ -71,7 +71,8 @@ FULL = {
     "canvas": {"width": 1080, "height": 1920, "fps": 30, "background": "#000000"},
     "media": {
         "a-roll": {"kind": "video", "path": "media/a.mp4", "duration": 10.0, "width": 1080, "height": 1920, "fps": 29.97, "has_audio": True},
-        "b-roll": {"kind": "video", "path": "media/b.mp4", "duration": 8.0, "width": 1920, "height": 1080, "fps": 60, "has_audio": False, "title": "Beach"},
+        "b-roll": {"kind": "video", "path": "media/b.mp4", "duration": 8.0, "width": 1920, "height": 1080, "fps": 60, "has_audio": False, "title": "Beach",
+                   "seen": {"text": "0-3s waves on sand, steady; 3-8s a dog runs in, best 5s", "by": "Claude", "at": "2026-11-26", "fingerprint": "123:abc"}},
         "pop": {"kind": "audio", "path": "media/pop.wav", "duration": 0.4, "title": "pop"},
         "music": {"kind": "audio", "path": "media/music.mp3", "title": None},
         "card": {"kind": "image", "path": "media/card.webp", "width": 900, "height": 700, "fps": 60, "duration": 2.5},
@@ -238,6 +239,9 @@ try:
         ("an opacity of 2", setp(pic + ("opacity",), 2), False),
         ("a style property that does not exist", setp(("styles", "caption", "glow"), True), False),
         ("tracks that are not a list", setp(("tracks",), {"V1": {}}), True),
+        ("what was seen in a file, without its text", setp(("media", "b-roll", "seen", "text"), DELETE), False),
+        ("what was seen in a file, 801 characters long", setp(("media", "b-roll", "seen", "text"), "x" * 801), False),
+        ("a field in seen that is neither known nor x-", setp(("media", "b-roll", "seen", "mood"), "calm"), False),
     ]
     for what, change, both in CASES:
         p = broken(change)

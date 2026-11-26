@@ -89,7 +89,7 @@ sends it:
 | Skill | Sends from | Other scripts (they send nothing) |
 |---|---|---|
 | editable-export | `package.py build` | `package.py check`, `save`, `versions`, `changes`; `render.py`; `share.py` |
-| media-picker | `measure.py` | `place.py`, only when B-roll goes on the words |
+| media-picker | `measure.py` | `place.py`, only when B-roll goes on the words; `look.py`, `highlights.py` |
 | sound-design | `mix.py`, once per render | `moments.py`, `sounds.py`, `check.py`, `beat_grid.py` |
 | talking-head-cut | `render.py`, once per cut | `cut.py`, `takes.py`, `verify.py`; it also runs transcribe's `transcribe.py`, which sends for transcribe |
 | transcribe | `transcribe.py` | `doctor.py`, `fix.py`, `captions.py`, `cuts.py`, `align.py` |

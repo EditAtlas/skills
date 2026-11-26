@@ -20,6 +20,13 @@ moving a clip's colour only part of the way (0.7) toward the speaker's shot, and
 head box made larger than the face. The code and the numbers chosen are our own; no code from Yap Studio is included
 in this repository.
 
+`skills/media-picker/scripts/highlights.py` and `look.py` follow ideas from
+[Editroom](https://github.com/robbietilton/Editroom) by Robbie Tilton (MIT): scoring frame samples for focus,
+exposure, colour and steadiness and taking the best windows round-robin across clips in the order they were filmed,
+shots of whole beats in a long and short pattern that end on a bar with the song starting on a bar where it lifts,
+frames of a clip in a grid marked with their times, and short notes of what an agent saw in a file kept so it need
+not look again. The code and the numbers chosen are our own; no code from Editroom is included in this repository.
+
 `skills/talking-head-cut/scripts/takes.py` and `cut.py` follow the multi-take idea of
 [video-use](https://github.com/browser-use/video-use) (MIT): lines from every take listed together, and a cut
 plan that quotes each take it keeps with the reason. No code from video-use is included in this repository.

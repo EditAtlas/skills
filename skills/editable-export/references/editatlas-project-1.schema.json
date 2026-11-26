@@ -67,7 +67,20 @@
         "has_audio": { "type": ["boolean", "null"], "description": "Whether a video file has a sound stream." },
         "family": { "type": "string", "minLength": 1, "description": "Font family name that text properties use in font." },
         "weight": { "type": "number", "minimum": 1, "maximum": 1000, "description": "Font weight of this file. Default 400." },
-        "style": { "enum": ["normal", "italic"], "description": "Font style of this file. Default normal." }
+        "style": { "enum": ["normal", "italic"], "description": "Font style of this file. Default normal." },
+        "seen": {
+          "type": "object",
+          "required": ["text"],
+          "description": "What an agent saw in the file after looking at it, so a later edit need not look again. The studio shows it and keeps it.",
+          "properties": {
+            "text": { "type": "string", "minLength": 1, "maxLength": 800, "description": "Two or three short lines: what happens and where (seconds in the file), the people, the place, the light, how steady, the best and weakest moments." },
+            "by": { "type": ["string", "null"], "description": "Who wrote it, such as Claude." },
+            "at": { "type": "string", "description": "The day it was written, YYYY-MM-DD." },
+            "fingerprint": { "type": "string", "description": "The file's size and a SHA-256 of its first and last MiB when it was seen (media-picker look.py). Another fingerprint means the file changed: look again." }
+          },
+          "patternProperties": { "^x-": true },
+          "additionalProperties": false
+        }
       },
       "if": { "properties": { "kind": { "const": "font" } } },
       "then": { "required": ["family"] },
