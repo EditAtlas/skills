@@ -126,9 +126,11 @@ def check(p, base=None):
             errs.append(f"media {mid}: file not found: {m['path']}")
         if m.get("kind") == "font" and not m.get("family"):
             errs.append(f"media {mid}: a font needs its family name")
+        if m.get("matte") is not None:
+            errs += check_matte(mid, m, media)
     ids = set()
     styles = p.get("styles") or {}
-    nvideo = 0
+    nvideo, behind_items = 0, []
     for t in p.get("tracks") or []:
         k = t.get("kind")
         if k not in TRACK_KINDS:
@@ -149,6 +151,17 @@ def check(p, base=None):
                 tr = x.get("transition")
                 if tr is not None and not (isinstance(tr, dict) and tr.get("type") in TRANSITIONS and is_num(tr.get("dur", 0.5)) and 0 < tr.get("dur", 0.5) <= 5):
                     errs.append(f"{where}: transition must be {{\"type\": one of {sorted(TRANSITIONS)}, \"dur\": seconds}}")
+                errs += check_crop(x, where)
+                bg = x.get("background")
+                if bg is not None:
+                    if not media.get(x.get("media"), {}).get("matte"):
+                        errs.append(f"{where}: a background needs a matte on media {x.get('media')!r} (the person is cut out with it)")
+                    if not (isinstance(bg, dict) and len(set(bg) & {"color", "blur", "media"}) == 1):
+                        errs.append(f'{where}: background must be {{"color": "#rrggbb"}}, {{"blur": pixels}} or {{"media": id, "from": seconds}}')
+                    elif "blur" in bg and not (is_num(bg["blur"]) and 0 < bg["blur"] <= 200):
+                        errs.append(f"{where}: background blur must be from 1 to 200 pixels")
+                    elif "media" in bg and media.get(bg["media"], {}).get("kind") not in ("image", "video"):
+                        errs.append(f"{where}: background media {bg['media']!r} is not a picture or a video in media")
                 ids_add(ids, x.get("id"), where, errs)
             continue
         for x in t.get("items") or []:
@@ -163,8 +176,21 @@ def check(p, base=None):
                     errs.append(f"{where}: style {x['style']!r} is not in styles")
                 if x.get("words") and len(x["words"]) != len(str(x.get("text", "")).split()):
                     errs.append(f"{where}: {len(x['words'])} word times for {len(str(x.get('text', '')).split())} words")
-            if k in ("image", "audio") and media.get(x.get("media"), {}).get("kind") != k:
-                errs.append(f"{where}: media {x.get('media')!r} is not an {k} in media")
+            mk = media.get(x.get("media"), {}).get("kind")
+            if k == "audio" and mk != "audio":
+                errs.append(f"{where}: media {x.get('media')!r} is not an audio in media")
+            if k == "image":
+                if mk not in ("image", "video"):
+                    errs.append(f"{where}: media {x.get('media')!r} is not an image or a video in media")
+                errs += check_crop(x, where)
+                if "radius" in x and not (is_num(x["radius"]) and 0 <= x["radius"] <= 0.5):
+                    errs.append(f"{where}: radius must be from 0 to 0.5 (a fraction of the shorter side)")
+                if "volume" in x and not (is_num(x["volume"]) and 0 <= x["volume"] <= 2):
+                    errs.append(f"{where}: volume must be from 0 to 2")
+                if x.get("cutout") and not (mk == "video" and media.get(x["media"], {}).get("matte")):
+                    errs.append(f"{where}: cutout needs a video with a matte in media")
+            if k in ("text", "image") and x.get("behind"):
+                behind_items.append(where)
             if k == "audio" and "gain_keys" in x:
                 ks = x["gain_keys"]
                 if not (isinstance(ks, list) and all(isinstance(q, dict) and is_num(q.get("t")) and is_num(q.get("db")) for q in ks)):
@@ -172,7 +198,10 @@ def check(p, base=None):
                 elif any(b["t"] < a["t"] for a, b in zip(ks, ks[1:])):
                     errs.append(f"{where}: gain_keys must be in time order")
     if nvideo > 1:
-        errs.append("use one video track (the footage); put other pictures on image tracks")
+        errs.append("use one video track (the footage); put other footage over it as image items, and pictures on image tracks")
+    behind_items += [f"style {n}" for n, st in styles.items() if isinstance(st, dict) and st.get("behind")]
+    if behind_items and not any(media.get(c.get("media"), {}).get("matte") for t in p.get("tracks") or [] if t.get("kind") == "video" for c in t.get("clips") or []):
+        errs.append(f"{behind_items[0]}: behind needs footage with a matte; no clip has one, so it would be drawn in front")
     notes = p.get("notes")
     if notes is not None:
         if not (isinstance(notes, list) and all(isinstance(n, dict) and isinstance(n.get("id"), str) and n["id"] and is_num(n.get("at")) and n["at"] >= 0
@@ -189,6 +218,33 @@ def check(p, base=None):
 
 
 TRANSITIONS = {"dissolve", "black", "white", "slide", "wipe"}
+CROP_EDGES = ("left", "top", "right", "bottom")
+
+
+def check_crop(x, where):
+    cr = x.get("crop")
+    if cr is None:
+        return []
+    if not (isinstance(cr, dict) and set(cr) <= set(CROP_EDGES) and all(is_num(cr[k]) and 0 <= cr[k] <= 0.9 for k in cr)):
+        return [f"{where}: crop must be {{left, top, right, bottom}}, each a fraction from 0 to 0.9 of the source"]
+    if cr.get("left", 0) + cr.get("right", 0) >= 0.95 or cr.get("top", 0) + cr.get("bottom", 0) >= 0.95:
+        return [f"{where}: crop leaves almost nothing (left + right and top + bottom must stay under 0.95)"]
+    return []
+
+
+def check_matte(mid, m, media):
+    """A matte: another video of the same footage, as long and the same shape."""
+    k, mt = m.get("matte"), media.get(m.get("matte"), {})
+    if m.get("kind") != "video":
+        return [f"media {mid}: only a video can have a matte"]
+    if k == mid or mt.get("kind") != "video":
+        return [f"media {mid}: matte {k!r} must be another video in media"]
+    errs = []
+    if all(is_num(q.get(f)) for q in (m, mt) for f in ("width", "height")) and abs(m["width"] / m["height"] - mt["width"] / mt["height"]) > 0.01:
+        errs.append(f"media {mid}: matte {k!r} is {mt['width']}x{mt['height']}, not the shape of the footage ({m['width']}x{m['height']})")
+    if is_num(m.get("duration")) and is_num(mt.get("duration")) and abs(m["duration"] - mt["duration"]) > 0.1:
+        errs.append(f"media {mid}: matte {k!r} lasts {mt['duration']} s, the footage {m['duration']} s; make it the same length")
+    return errs
 
 
 def is_num(v):
@@ -624,7 +680,9 @@ MISSING = object()                                    # JS undefined
 NAMES = {"at": "start", "dur": "length", "in": "in point", "out": "out point", "gain_db": "volume (dB)",
          "fade_in": "fade in", "fade_out": "fade out", "x": "x", "y": "y", "width": "width", "size": "size",
          "text": "text", "color": "colour", "rotation": "rotation", "opacity": "opacity", "volume": "volume",
-         "scale": "zoom", "zoom_to": "zoom at the end", "style": "style", "speed": "speed"}
+         "scale": "zoom", "zoom_to": "zoom at the end", "style": "style", "speed": "speed", "crop": "crop",
+         "background": "background behind the person", "behind": "behind the person", "from": "start in its file",
+         "loop": "loop", "cutout": "only the person", "radius": "corners"}
 
 
 def js_truthy(v):

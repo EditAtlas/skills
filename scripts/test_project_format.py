@@ -70,7 +70,8 @@ FULL = {
     "format": "editatlas-project/1", "title": "Every field",
     "canvas": {"width": 1080, "height": 1920, "fps": 30, "background": "#000000"},
     "media": {
-        "a-roll": {"kind": "video", "path": "media/a.mp4", "duration": 10.0, "width": 1080, "height": 1920, "fps": 29.97, "has_audio": True},
+        "a-roll": {"kind": "video", "path": "media/a.mp4", "duration": 10.0, "width": 1080, "height": 1920, "fps": 29.97, "has_audio": True, "matte": "a-roll-matte"},
+        "a-roll-matte": {"kind": "video", "path": "media/a-matte.mp4", "duration": 10.0, "width": 540, "height": 960, "fps": 29.97, "has_audio": False},
         "b-roll": {"kind": "video", "path": "media/b.mp4", "duration": 8.0, "width": 1920, "height": 1080, "fps": 60, "has_audio": False, "title": "Beach",
                    "seen": {"text": "0-3s waves on sand, steady; 3-8s a dog runs in, best 5s", "by": "Claude", "at": "2026-11-26", "fingerprint": "123:abc"}},
         "pop": {"kind": "audio", "path": "media/pop.wav", "duration": 0.4, "title": "pop"},
@@ -88,16 +89,20 @@ FULL = {
     },
     "tracks": [
         {"id": "V1", "kind": "video", "name": "Footage", "hidden": False, "muted": False, "clips": [
-            {"id": "c1", "media": "a-roll", "in": 0.4, "out": 5.2, "volume": 1.0, "fit": "cover", "x": 0.5, "y": 0.45, "scale": 1.0, "zoom_to": 1.08, "label": "hook"},
+            {"id": "c1", "media": "a-roll", "in": 0.4, "out": 5.2, "volume": 1.0, "fit": "cover", "x": 0.5, "y": 0.45, "scale": 1.0, "zoom_to": 1.08, "label": "hook",
+             "crop": {"left": 0.05, "top": 0, "right": 0.05, "bottom": 0.1}, "background": {"blur": 24}},
             {"id": "c2", "media": "b-roll", "in": 2.0, "out": 6.0, "speed": 2, "fit": "contain", "transition": {"type": "dissolve", "dur": 0.5}},
-            {"id": "c2-2", "media": "a-roll", "in": 6.0, "out": 8.0, "transition": None}]},
+            {"id": "c2-2", "media": "a-roll", "in": 6.0, "out": 8.0, "transition": None, "background": {"media": "b-roll", "from": 1.5}}]},
         {"id": "T1", "kind": "text", "name": "Captions", "items": [
             {"id": "t1", "style": "caption", "text": "Saying no", "at": 0.4, "dur": 0.9, "words": [{"at": 0.0, "dur": 0.42}, {"at": 0.42, "dur": 0.48}]},
-            {"id": "t1-2", "style": "caption", "text": "is fine", "at": 1.3, "dur": 0.8, "in": None, "out": None, "case": ""}]},
+            {"id": "t1-2", "style": "caption", "text": "is fine", "at": 1.3, "dur": 0.8, "in": None, "out": None, "case": "", "behind": True}]},
         {"id": "G1", "kind": "image", "name": "Graphics", "hidden": False, "items": [
             {"id": "g-yes", "media": "card", "at": 1.5, "dur": 5.9, "x": 0.5, "y": 0.59, "width": 0.78, "opacity": 1, "rotation": 0,
              "in": {"type": "pop", "dur": 0.2}, "out": {"type": "fade", "dur": 0.15}, "loop": False, "from": 0, "label": "YES card",
-             "keys": [{"t": 0, "dy": 40, "opacity": 0}, {"t": 0.3, "dy": 0, "opacity": 1, "ease": "out"}, {"t": 2.6, "rotate": -8, "dx": 3, "scale": 1.1, "ease": "back"}]}]},
+             "keys": [{"t": 0, "dy": 40, "opacity": 0}, {"t": 0.3, "dy": 0, "opacity": 1, "ease": "out"}, {"t": 2.6, "rotate": -8, "dx": 3, "scale": 1.1, "ease": "back"}]},
+            {"id": "react", "media": "b-roll", "at": 0, "dur": 3, "from": 1, "loop": True, "volume": 0.5, "x": 0.78, "y": 0.2, "width": 0.36,
+             "crop": {"top": 0.1, "bottom": 0.1}, "radius": 0.08, "behind": False, "label": "Reaction"},
+            {"id": "me", "media": "a-roll", "at": 3, "dur": 2, "cutout": True, "behind": True, "width": 0.5}]},
         {"id": "T2", "kind": "text", "name": "Card words", "items": [
             {"id": "yes-title", "parent": "g-yes", "style": "card", "text": "This client project", "at": 1.54, "dur": 5.86, "x": 0.26, "y": 0.42,
              "keys": [{"t": 0, "scale": 0.6, "opacity": 0}, {"t": 0.25, "scale": 1, "opacity": 1, "ease": "back"}]}]},
@@ -242,7 +247,28 @@ try:
         ("what was seen in a file, without its text", setp(("media", "b-roll", "seen", "text"), DELETE), False),
         ("what was seen in a file, 801 characters long", setp(("media", "b-roll", "seen", "text"), "x" * 801), False),
         ("a field in seen that is neither known nor x-", setp(("media", "b-roll", "seen", "mood"), "calm"), False),
+        ("a crop edge of 0.95", setp(clip + ("crop",), {"left": 0.95}), True),
+        ("a crop with a width instead of edges", setp(clip + ("crop",), {"width": 0.5}), True),
+        ("a background that is a colour and a blur at once", setp(clip + ("background",), {"color": "#000", "blur": 3}), True),
+        ("a background blur of 0", setp(clip + ("background",), {"blur": 0}), True),
+        ("a picture with corners rounder than a circle", setp(pic + ("radius",), 0.7), True),
+        ("a footage picture with volume 3", setp(("tracks", 2, "items", 1, "volume"), 3), True),
+        ("a matte that is not a text id", setp(("media", "a-roll", "matte"), 3), False),
+        ("behind as text", setp(text + ("behind",), "yes"), False),
     ]
+    # what only package.py check sees: the schema cannot follow ids or compare files
+    PCASES = [
+        ("a background on footage without a matte", setp(("tracks", 0, "clips", 1, "background"), {"color": "#000"})),
+        ("a matte that is not in media", setp(("media", "a-roll", "matte"), "nowhere")),
+        ("a matte of another shape", setp(("media", "a-roll-matte", "width"), 960)),
+        ("a matte shorter than its footage", setp(("media", "a-roll-matte", "duration"), 6.0)),
+        ("a cutout of footage without a matte", setp(("tracks", 2, "items", 1, "cutout"), True)),
+        ("a picture item of a sound", setp(("tracks", 2, "items", 1, "media"), "pop")),
+    ]
+    for what, change in PCASES:
+        p = broken(change)
+        check(f"broken: {what} passes the schema", not errors(p), errors(p)[:2])
+        check(f"broken: {what} fails package.py check", bool(pk.check(p)), "")
     for what, change, both in CASES:
         p = broken(change)
         es = errors(p)

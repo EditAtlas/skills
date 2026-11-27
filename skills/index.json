@@ -4,8 +4,8 @@
   "skills": [
     {
       "name": "editable-export",
-      "description": "Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer (kept in Google Drive from the studio, it also gets a link). Each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for \"an editable version\", \"a project file\", to \"tweak it myself\", pastes a message from EditAtlas Studio, \"chỉnh lại chút\", \"tự sửa\", \"file để sửa\", \"chỉnh cỡ chữ\", or \"âm thanh bị trễ\" after an edit. It is not a full editor; effects burned into the clips cannot be changed there.",
-      "version": "0.8.0",
+      "description": "Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render, such as a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer. Each save adds a version, so you can take turns. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for \"an editable version\", \"a project file\", to \"tweak it myself\", pastes a message from EditAtlas Studio, \"chỉnh lại chút\", \"tự sửa\", \"file để sửa\", \"chỉnh cỡ chữ\", or \"âm thanh bị trễ\" after an edit. It is not a full editor; what is burned into the clips cannot change there, so crops, a person cut out on a new background, text behind the person and picture in picture go in as elements.",
+      "version": "0.9.0",
       "status": "beta",
       "libraries": [
         "studio"
@@ -18,7 +18,7 @@
       "plugin": "editable-export",
       "install_claude_code": "/plugin install editable-export@editatlas-skills",
       "download_zip": "https://github.com/EditAtlas/skills/releases/latest/download/editable-export.zip",
-      "eval_cases": 9
+      "eval_cases": 10
     },
     {
       "name": "media-picker",

@@ -4,14 +4,17 @@
 it, let the person change one element, and export the MP4 again. Format id: `editatlas-project/1`.
 
 Everything the studio shows comes from this file. Anything burned into the footage (text you drew with FFmpeg, a
-graphic baked into a clip) cannot be changed there. Put text, graphics and sounds here as elements instead.
+graphic baked into a clip) cannot be changed there. Put text, graphics and sounds here as elements instead, and the
+harder edits too: a crop, the person cut out on a new background, text behind the person, other footage over the
+footage (see "Layers" below).
 
 The format is open: any tool may read and write it. Its JSON Schema (draft 2020-12) is
 `editatlas-project-1.schema.json` next to this file, served at
 https://edit.trysometh.ing/schemas/editatlas-project-1.schema.json; `#/$defs/version` in it is a `versions/v<n>.json`
 file. The schema checks shapes, names and ranges. What it cannot check, `package.py check` does: `out` greater than
 `in`, ids unique, `media` ids of the right kind, `style` names and fonts that exist, `words` as many as the words of
-`text`, keys and `gain_keys` in time order, a card's items inside its time, one video track. The page
+`text`, keys and `gain_keys` in time order, a card's items inside its time, one video track, a matte as long as
+its footage and the same shape, `background` and `cutout` only with a matte. The page
 https://edit.trysometh.ing/docs/project-format describes the format for other tools.
 
 The format, this file and the schema are under the Apache License 2.0, like the rest of this repository
@@ -63,7 +66,7 @@ Every file the edit uses, by id. `path` is relative to `project.json` (package.p
 
 | kind | Fields |
 |---|---|
-| `video` | `path`; package.py adds `duration`, `width`, `height`, `fps`, `has_audio` |
+| `video` | `path`, optional `matte` (the media id of its matte, see "Layers"); package.py adds `duration`, `width`, `height`, `fps`, `has_audio` |
 | `audio` | `path`, optional `title`; package.py adds `duration` |
 | `image` | `path` (PNG with transparency, JPG, WebP, SVG; or an animated WebP, GIF or APNG for a motion graphic) |
 | `font` | `path` (TTF, OTF, WOFF, WOFF2), `family`, optional `weight` (400), `style` (`normal`/`italic`) |
@@ -131,6 +134,8 @@ Drawn in order: later tracks are on top. Each has `id`, `kind`, `name`, optional
   moves from `scale` to `zoom_to` over the clip (a slow push-in). In the studio the person drags the picture to set
   `x` and `y` (only as far as the footage reaches) and drags its corner to set `scale` (a push-in keeps its ratio).
 - `volume`: the footage's own sound for this clip (0 mutes it; up to 2). The studio shows it as a line on the clip.
+- `crop`: edges cut off the source before it is fitted (see "Layers"). `background`: what replaces everything around
+  the person, when the footage has a matte (see "Layers").
 - The person can add footage, pictures and sounds from their computer (a button, or files dropped on the page). Each
   new file gets a media id from its name (`beach-walk`, then `beach-walk-2`), a `path` of `media/<its file name>`
   (`-2` added before the extension when that path is taken), a `title`, and what the studio measured: `duration`,
@@ -178,6 +183,7 @@ Text properties (style or item):
 | `opacity` | 1 | |
 | `rotation` | 0 | degrees |
 | `strike` | none | `{"color": "#ff3b30", "width": 6, "at": 0.4, "dur": 0.3}`: a line drawn through the text, line by line, from `at` s after the item starts, over `dur` s |
+| `behind` | false | drawn behind the person in the footage, where the clip's footage has a matte (see "Layers") |
 
 ### image: logos, stickers, graphics
 
@@ -239,6 +245,55 @@ a `box`) on one track and its words on a text track:
 - `max_width` of an item inside a card is still a fraction of the canvas width.
 - In the studio, the card's words fold under it on the timeline and show when the card is selected; moving the card
   in time moves them too, and deleting it deletes them.
+
+### Layers: crop, the person cut out, footage over the footage
+
+Edits that used to be burned into the footage can stay elements, so the person can still change them in the studio.
+
+**Crop.** A clip or a picture item can cut edges off its source: `"crop": {"left": 0.1, "top": 0, "right": 0.1,
+"bottom": 0.2}`, fractions of the source's width (left, right) or height (top, bottom), each from 0 to 0.9, with left
++ right and top + bottom under 0.95; a missing edge is 0. A clip then fits what is left (`fit`, `x`, `y`, `scale`
+work on it); a picture's `width` is the width of what is left. For FFmpeg's `crop=w:h:x:y` on a source of W×H:
+`left = x / W`, `right = 1 - (x + w) / W`, `top = y / H`, `bottom = 1 - (y + h) / H`.
+
+**A matte: the person cut out.** A video in `media` may name its matte: `"a-roll": {"kind": "video", "path":
+"media/a-roll.mp4", "matte": "a-roll-matte"}`. The matte is another video of the same shot, as long, the same shape
+and at the same frame rate, white where the person (the subject) is and black elsewhere (grey for soft edges, such
+as hair). Make it with the tool you cut the person out with (a background-removal or matting model), as an H.264 MP4
+with no sound; `scripts/matte.py` turns a video with transparency or a folder of masks into one and adds both
+entries. The studio reads the matte at the same source time as the footage, so cuts, speed, splits and a new order
+keep it in step. With a matte:
+
+- A clip's `background` replaces everything around the person: `{"color": "#0f0f12"}`, `{"blur": 24}` (the footage
+  itself, blurred by that many pixels), or `{"media": "beach"}`, a picture or a video in `media` filling the frame (a
+  video plays from `"from": seconds` at the clip's start, and loops). No `background`: the footage as filmed.
+- A text (property `behind`, on the item or its style) or a picture item (`"behind": true`) is drawn behind the
+  person: over the background, under the person. This is the title that runs behind someone. Where the footage under
+  it has no matte, it is drawn as usual.
+
+**Footage over the footage.** An image item may use a video: picture in picture, a reaction, a screen recording in a
+corner, B-roll over part of the frame. It plays from `from` seconds into its file for `dur` and holds its last frame
+(`"loop": true` starts it again). Its own sound plays at `volume` (default 1; 0 mutes it). With a matte on that video,
+`"cutout": true` shows only the person. It moves, resizes, turns, fades and animates like any picture, and takes
+`crop` too.
+
+| Field (image item) | Default | Meaning |
+|---|---|---|
+| `crop` | none | edges cut off the picture or video, as above |
+| `radius` | 0 | round corners, a fraction of the shorter side; 0.5 makes a square crop a circle |
+| `behind` | false | behind the person in the footage |
+| `volume` | 1 | a video's own sound |
+| `cutout` | false | a video with a matte: only the person |
+
+```json
+{"id": "G2", "kind": "image", "name": "Over the footage", "items": [
+  {"id": "react", "media": "reaction", "at": 1.0, "dur": 4.0, "from": 2.5, "x": 0.78, "y": 0.2, "width": 0.36,
+   "radius": 0.08, "crop": {"top": 0.1, "bottom": 0.1}, "volume": 0.8, "label": "Reaction"}
+]}
+```
+
+In the studio the person picks a crop, a background (as filmed, a colour, blurred, or one of the project's pictures or
+videos) and "behind the person" in the panel, and puts footage over the footage with Over in the Media tab.
 
 ### keys: motion of one element
 

@@ -1,11 +1,11 @@
 ---
 name: editable-export
-description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render. Typical fixes are a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer (kept in Google Drive from the studio, it also gets a link). Each save adds a version, so you can take turns. It is optional. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", to "tweak it myself", pastes a message from EditAtlas Studio, "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; effects burned into the clips cannot be changed there.
+description: Give the person an editable copy of a video you made, built from its elements (footage clips, text, graphics, sounds, music), which opens in the EditAtlas studio, a web page with a timeline. There they fix small things themselves and export the MP4 again in their browser, without asking you to edit and re-render, such as a sound a little late or too loud, text slightly off, captions too small, a typo, a clip a few frames long. The copy is a folder on their computer. Each save adds a version, so you can take turns. Offer it when you deliver a video, and build it only when they want it. Also use it when someone asks for "an editable version", "a project file", to "tweak it myself", pastes a message from EditAtlas Studio, "chỉnh lại chút", "tự sửa", "file để sửa", "chỉnh cỡ chữ", or "âm thanh bị trễ" after an edit. It is not a full editor; what is burned into the clips cannot change there, so crops, a person cut out on a new background, text behind the person and picture in picture go in as elements.
 license: Apache-2.0. LICENSE.txt has the complete terms
 compatibility: Requires Python 3.9+ and FFmpeg with ffprobe. render.py needs Playwright (pip install playwright), Chrome or Edge, and network access to edit.trysometh.ing to load the studio page; the files stay on the machine. share.py (reading and adding to a link the person gives you) needs the cryptography package and network access. The person needs Chrome or Edge 94+ (WebCodecs, and saving into a folder); Safari and Firefox are not tested. Works with the transcribe and sound-design skills.
 metadata:
   author: EditAtlas
-  version: "0.8.0"
+  version: "0.9.0"
   status: beta
   library: studio
   mcp-tools: none
@@ -13,7 +13,7 @@ metadata:
 
 # Editable export: let the person fix small things themselves
 
-This is editable-export 0.8.0.
+This is editable-export 0.9.0.
 
 When `scripts/package.py build` ends, it sends EditAtlas four things: this skill's name, its version, ok or error, and the seconds it took. Nothing else: no file names, paths, text or media. It is off when `EDITATLAS_TELEMETRY=0` is set, and under CI. If the person asks what the skill sends, tell them this.
 
@@ -47,7 +47,8 @@ Five things stay true the whole way through:
   refuses one that does not come from the studio). Without Drive the folder works on its own, with no link.
 - **Only elements can change.** Anything burned into the footage cannot be moved in the studio, such as text
   drawn with FFmpeg, a graphic rendered into a clip or a grade. So the video you deliver must come from the
-  package. If you made it another way, say which parts are fixed.
+  package. If you made it another way, say which parts are fixed. The harder edits have elements too (step 1,
+  "Harder edits stay elements"): bake them in and the text in them is fixed as well.
 - **Never invent.** Use only the person's own files and the sounds you placed. A missing source file, such as the
   footage, the font or a sound, is a reason to ask, not to guess.
 
@@ -58,6 +59,7 @@ python SKILL/scripts/package.py build work/project.json --out result/NAME.edit -
 python SKILL/scripts/package.py build work/project.json --out result/NAME.edit \
        --cuts work/cuts.json --captions work/transcript.json --sfx result/FILM_sfx_resolved.json
 python SKILL/scripts/package.py check result/NAME.edit
+python SKILL/scripts/matte.py work/project.json --footage a-roll --from work/a-roll-alpha.mov   # the person cut out
 python SKILL/scripts/render.py result/NAME.edit --out result/NAME.mp4                   # the MP4 you deliver
 python SKILL/scripts/package.py versions result/NAME.edit                               # who saved which version
 python SKILL/scripts/package.py changes result/NAME.edit                                # what the newest changed
@@ -95,15 +97,32 @@ Write `work/project.json` in the format of `references/project-format.md` (`edit
   you saw, so the next round need not look again: `look.py --into work/project.json --out work/look`.
 - `styles`: shared looks for text, such as `caption` and `hook`.
 - `tracks`, drawn in order:
-  - one `video` track of clips back to back (source `in`/`out`, crop, a slow zoom)
+  - one `video` track of clips back to back (source `in`/`out`, framing, `crop`, a slow zoom, a `background`)
   - `text` items
-  - `image` items
+  - `image` items: pictures, motion graphics, and other footage over the footage
   - `audio` items (`at`, `in`/`out`, `gain_db`, fades)
 
 **Use the footage you processed, not the raw file.** If you stabilised, graded, denoised, reframed or speed-changed
 the footage, point `media` at that result. The package then carries the picture the person saw, and they do not
 have to find anything themselves. Keep what should stay adjustable (text, graphics, sounds, the cuts)
 out of that file and in the elements.
+
+**Harder edits stay elements.** People ask to change exactly these afterwards, and baked into the footage they
+cannot, nor any text drawn with them. See "Layers" in the format reference.
+
+- **A crop** of a clip or a picture: `crop` (fractions of each edge), not a cropped copy of the file.
+- **The person cut out** (a background swap, a blurred background, text or a sticker behind the person): run your
+  background-removal or matting tool on the whole footage file, then
+  `python SKILL/scripts/matte.py work/project.json --footage a-roll --from work/a-roll-alpha.mov` (a video with
+  transparency, a mask video, or `"masks/%05d.png"`). It writes the matte and sets `media.<id>.matte`. Then give the
+  clip a `background` (`{"color"}`, `{"blur"}` or `{"media"}`) and the title `"behind": true`. Keep the original
+  footage as the clip's media: the person composites it in the studio and in the export.
+- **Footage over the footage** (picture in picture, a reaction, a screen recording in a corner): an image item whose
+  `media` is that video, with `from`, `volume`, `crop`, `radius`, and `cutout: true` when it has a matte. Do not
+  overlay it with FFmpeg.
+
+Effects that still have no element, such as a grade, a LUT, a glow, a speed ramp inside one clip or motion tracking,
+go into the footage file you point `media` at; say which they are when you deliver.
 
 Let the imports write the long parts:
 
@@ -191,7 +210,7 @@ that the first export from the studio will look a little different from the vide
 
 ## 4. Hand it over
 
-**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.8.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
+**First, a version check.** If the EditAtlas MCP is connected, call `get_skill` without a name. If it lists editable-export above 0.9.0, the first line of your reply says a newer version exists and how to update it (in Claude Code: `/plugin`, then Marketplaces, editatlas-skills, Update marketplace; elsewhere `get_skill` with name editable-export gives the step). Without the MCP, skip it.
 
 Give the MP4 first. Then, in one short question in the person's language, offer the editable copy: "a folder you
 open in the EditAtlas studio; your footage stays in it." With a yes, build the copy if you have not, and give them the folder:

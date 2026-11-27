@@ -10,9 +10,10 @@ the output file (move the output next to the folder, or the app asks where the f
 What comes across: the footage clips in order (source in/out, speed, the footage's own sound and its volume), each
 sound and music item (file in/out, level), pictures (timing only), and text and notes as markers. A dissolve, and in
 XML a dip to black or white, becomes a transition. Everything else is printed as lost: text looks and positions,
-picture position, size and animation, framing (fit, x, y, scale, zoom_to), fades and volume lines, keys, slide and
-wipe. The .otio file also keeps each element as it was under metadata "editatlas", so a tool that reads OTIO can
-recover what the timeline cannot show.
+picture position, size and animation, framing (fit, x, y, scale, zoom_to), crops, background swaps, what is behind
+the person, footage over the footage beyond its timing, fades and volume lines, keys, slide and wipe. The .otio file
+also keeps each element as it was under metadata "editatlas", so a tool that reads OTIO can recover what the timeline
+cannot show.
 
 Times are frames at canvas.fps (30 when it is missing); every edge is rounded to the nearest frame from the time in
 seconds, so rounding never adds up along the timeline.
@@ -133,6 +134,10 @@ class Plan:
                     self.lose("framing of clips (fit, x, y, scale)")
             if c.get("zoom_to") is not None:
                 self.lose("slow zooms (zoom_to)")
+            if c.get("crop"):
+                self.lose("crops (crop)")
+            if c.get("background"):
+                self.lose("background swaps behind the person (background, with the footage's matte)")
             self.video.append(row)
             prev = row
             m = self.media.get(c["media"]) or {}
@@ -156,6 +161,12 @@ class Plan:
                     self.lose("picture position, size and motion (x, y, width, rotation, opacity, keys, cards)")
                 if x.get("in") or x.get("out"):
                     self.lose("how pictures appear and leave (in, out)")
+                if x.get("crop") or x.get("radius"):
+                    self.lose("crops and round corners of pictures (crop, radius)")
+                if x.get("behind"):
+                    self.lose("pictures and text behind the person (behind)")
+                if self.media.get(x["media"], {}).get("kind") == "video":
+                    self.lose("footage over the footage: placed from its first frame, without its sound, from, loop or cutout")
                 if str(self.media.get(x["media"], {}).get("path", "")).lower().endswith((".webp", ".gif", ".apng", ".svg")):
                     self.lose("animated WebP, GIF, APNG and SVG pictures (most editing apps cannot read them)")
         self.counts["pictures"] = sum(len(x["items"]) for x in self.pictures)

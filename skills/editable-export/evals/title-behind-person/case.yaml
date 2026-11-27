@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: title-behind-person
+expected_outcome: |
+  Claude builds the edit as elements for the studio: the footage stays me-talking.mp4 (not a composite rendered with
+  the title or the beach in it), it gets a matte made from me-talking-cutout.mov (media.<id>.matte), its clip has the
+  beach photo as background, and "NO EXCUSES" is a text item marked behind, so the person can retype and move it in
+  the studio. package.py check passes, an MP4 is rendered from the package, and Claude says what the person can change.
+context:
+  scaffold_script: place-files.sh
